@@ -54,6 +54,10 @@
         .provider-config .config-field { display: none; }
         .provider-config .config-field.visible { display: block; }
         .config-hint { font-size: 10px; color: #666; line-height: 1.4; }
+        .ai-status { font-size: 11px; line-height: 1.5; color: #888; padding: 2px 0; }
+        .ai-status.ok { color: #39ff14; }
+        .ai-status.warn { color: #ffb300; }
+        .ai-status.bad { color: #ff5252; }
         .sidebar-content { flex: 1; padding: 16px; overflow-y: auto; }
         .section-title {
             font-size: 11px; color: #808080; margin-bottom: 10px;
@@ -273,6 +277,7 @@
                     <input type="text" id="ocBaseUrl" placeholder="https://api.openai.com/v1" autocomplete="off">
                     <div class="config-hint" data-i18n="ocHint">OpenAI-compatible endpoint. Use your key from OpenAI, Anthropic, Google, or any OpenCode-supported provider.</div>
                 </div>
+                <div class="ai-status" id="aiStatus">Checking providers…</div>
             </div>
             <div class="sidebar-content">
                 <div class="section-title" data-i18n="recents">Recents</div>
@@ -410,6 +415,49 @@
         const ollamaConfig = document.getElementById('ollamaConfig');
         const opencodeConfig = document.getElementById('opencodeConfig');
 
+        const aiStatus = document.getElementById('aiStatus');
+        function setStatus(mode, text) {
+            if (!aiStatus) return;
+            aiStatus.className = 'ai-status ' + (mode || '');
+            aiStatus.textContent = text;
+        }
+
+        // Health probes: "reachable" means it can actually answer right now.
+        async function probeOllama(base) {
+            base = (base || 'http://localhost:11434').trim().replace(/\/$/, '');
+            try {
+                const r = await fetch(base + '/api/tags', { signal: AbortSignal.timeout(3000) });
+                if (!r.ok) return { ok: false };
+                const j = await r.json();
+                const models = Array.isArray(j.models) ? j.models.map(m => m.name).filter(Boolean) : [];
+                return { ok: true, models };
+            } catch (e) { return { ok: false }; }
+        }
+        async function probeHuggingFace(token) {
+            // Validates the token (whoami), not model serving — the send
+            // path already falls back across three inference endpoints.
+            try {
+                const r = await fetch('https://huggingface.co/api/whoami-v2', {
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    signal: AbortSignal.timeout(4000)
+                });
+                return { ok: r.ok };
+            } catch (e) { return { ok: false }; }
+        }
+        async function probeOpenCode(baseUrl, apiKey) {
+            try {
+                const base = (baseUrl || 'https://api.openai.com/v1').trim().replace(/\/$/, '');
+                const r = await fetch(base + '/models', {
+                    headers: { 'Authorization': 'Bearer ' + apiKey },
+                    signal: AbortSignal.timeout(4000)
+                });
+                if (!r.ok) return { ok: false };
+                const j = await r.json();
+                const models = Array.isArray(j.data) ? j.data.map(m => m.id).filter(Boolean) : [];
+                return { ok: true, models };
+            } catch (e) { return { ok: false }; }
+        }
+
         let refreshToken = 0;
         async function refreshModels() {
             const p = providerSelect.value;
@@ -426,21 +474,65 @@
             opencodeConfig.classList.toggle('visible', p === 'opencode');
             // Ollama: list whatever models are actually installed locally.
             if (p === 'ollama') {
-                try {
-                    const base = (document.getElementById('ollamaUrl').value || 'http://localhost:11434').trim().replace(/\/$/, '');
-                    const r = await fetch(base + '/api/tags', { signal: AbortSignal.timeout(2500) });
-                    if (token !== refreshToken) return; // provider changed while fetching
-                    const j = await r.json();
-                    if (Array.isArray(j.models) && j.models.length) {
+                const base = (document.getElementById('ollamaUrl').value || 'http://localhost:11434').trim().replace(/\/$/, '');
+                setStatus('', 'Checking Ollama…');
+                const probe = await probeOllama(base);
+                if (token !== refreshToken) return; // provider changed while fetching
+                if (probe.ok && probe.models.length) {
+                    modelSelect.innerHTML = '';
+                    probe.models.forEach(name => {
+                        const o = document.createElement('option');
+                        o.value = name;
+                        o.textContent = name;
+                        modelSelect.appendChild(o);
+                    });
+                    setStatus('ok', '● Connected — Ollama · ' + probe.models.length + ' local model(s)');
+                } else if (probe.ok) {
+                    setStatus('warn', '○ Ollama is up but has no models — run `ollama pull llama3`');
+                } else {
+                    setStatus('bad', '○ Ollama not reachable at ' + base + ' — run `ollama serve`');
+                }
+            }
+            // HuggingFace: token present + valid means ready to try.
+            if (p === 'huggingface') {
+                const tok = (document.getElementById('hfToken').value || '').trim();
+                if (!tok) {
+                    setStatus('warn', '○ Paste a free token (huggingface.co/settings/tokens) to use HuggingFace');
+                } else {
+                    setStatus('', 'Checking HuggingFace token…');
+                    const probe = await probeHuggingFace(tok);
+                    if (token !== refreshToken) return;
+                    setStatus(probe.ok ? 'ok' : 'bad', probe.ok
+                        ? '● Token valid — HuggingFace ready'
+                        : '○ HuggingFace unreachable or token invalid — check the token');
+                }
+            }
+            // OpenCode: probe the OpenAI-compatible /models endpoint and
+            // list exactly what that endpoint serves.
+            if (p === 'opencode') {
+                const key = (document.getElementById('ocApiKey').value || '').trim();
+                const url = (document.getElementById('ocBaseUrl').value || '').trim();
+                if (!key || !url) {
+                    setStatus('warn', '○ Paste an API key + base URL to use OpenCode Models');
+                } else {
+                    setStatus('', 'Checking endpoint…');
+                    const probe = await probeOpenCode(url, key);
+                    if (token !== refreshToken) return;
+                    if (probe.ok && probe.models.length) {
                         modelSelect.innerHTML = '';
-                        j.models.forEach(m => {
+                        probe.models.forEach(id => {
                             const o = document.createElement('option');
-                            o.value = m.name;
-                            o.textContent = m.name;
+                            o.value = id;
+                            o.textContent = id;
                             modelSelect.appendChild(o);
                         });
+                        setStatus('ok', '● Connected — ' + probe.models.length + ' model(s) available');
+                    } else if (probe.ok) {
+                        setStatus('ok', '● Connected — endpoint reachable');
+                    } else {
+                        setStatus('bad', '○ Endpoint unreachable or key rejected — check key + base URL');
                     }
-                } catch (e) { /* keep the default list */ }
+                }
             }
             // Restore the last model picked for this provider, if still present.
             try {
@@ -473,12 +565,42 @@
             const ocUrl = localStorage.getItem('q_ai_oc_url');
             if (ocUrl) document.getElementById('ocBaseUrl').value = ocUrl;
         } catch (e) {}
-        // Provider: from the hub (?provider=), else default Ollama (local).
+        // Provider: from the hub (?provider=), else auto-connect to the
+        // first provider that actually answers — Ollama (local, zero
+        // config) first, then a saved HuggingFace token, then a saved
+        // OpenCode key. If nothing answers, stay on Ollama and say so.
         const urlProvider = params.get('provider');
-        if (urlProvider && PROVIDERS[urlProvider]) {
-            providerSelect.value = urlProvider;
+        async function autoConnect() {
+            if (urlProvider && PROVIDERS[urlProvider]) {
+                providerSelect.value = urlProvider;
+                await refreshModels();
+                return;
+            }
+            setStatus('', 'Checking providers…');
+            const ollamaBase = document.getElementById('ollamaUrl').value || 'http://localhost:11434';
+            const ol = await probeOllama(ollamaBase);
+            if (ol.ok && ol.models.length) {
+                providerSelect.value = 'ollama';
+                await refreshModels();
+                return;
+            }
+            const hfTok = (document.getElementById('hfToken').value || '').trim();
+            if (hfTok && (await probeHuggingFace(hfTok)).ok) {
+                providerSelect.value = 'huggingface';
+                await refreshModels();
+                return;
+            }
+            const ocKey = (document.getElementById('ocApiKey').value || '').trim();
+            const ocUrl = (document.getElementById('ocBaseUrl').value || '').trim();
+            if (ocKey && ocUrl && (await probeOpenCode(ocUrl, ocKey)).ok) {
+                providerSelect.value = 'opencode';
+                await refreshModels();
+                return;
+            }
+            providerSelect.value = 'ollama';
+            await refreshModels();
         }
-        refreshModels();
+        autoConnect();
 
         /* ============================== File Attachments ============================== */
         const fileInput = document.getElementById('fileInput');

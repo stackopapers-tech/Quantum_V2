@@ -1341,7 +1341,7 @@
          website markup. Edit the SOURCES (css/style.css, js/*.js), then run
          py bump_version.py && py build_index.py (regenerates js/bundle.js and
          standalone.html — never hand-edit those). -->
-    <script>window.HUB_VERSION = '2026.10.11-1';</script>
+    <script>window.HUB_VERSION = '2026.10.11-2';</script>
     <script>
     /* Start-screen failsafe (plain script, no modules): the overlay can never
        trap the hub, even if app.js is stale, cached, or fails to boot. */
@@ -2105,8 +2105,11 @@ const gotd=(()=>{try{const g=gameOfDay(app);return g?g.name:'—';}catch(e){retu
         <button id="q-fb-send" class="btn-premium text-xs px-4 py-2 mt-3">SUBMIT</button>`,{'#q-fb-send':async()=>{const body=$('#q-fb-text').value.trim();if(!body)return;if(!cleanText(body)){toast.show('Feedback blocked (keep it clean).','error');return;}
 try{await api(app,'feedback',{body});toast.show('Feedback sent.','success');modals.close();}
 catch(e){toast.show(e.message,'error');}},}));$('#q-install').addEventListener('click',async()=>{if(window._qInstallPrompt){window._qInstallPrompt.prompt();await window._qInstallPrompt.userChoice;window._qInstallPrompt=null;}else toast.show('No install prompt available in this browser.','info');});}
-function openInHub(url,title){try{window.app.launchContent(url,'about-blank',title);}catch(e){try{openGameViewer({title,url,mirrors:[url]});}
-catch(err){try{launchViaAboutBlank(url,title);}catch(e2){}}}}
+function openInHub(url,title){if(!/^https?:/i.test(url)){try{openGameViewer({title,url,mirrors:[url]});return;}
+catch(e){}}
+try{const ok=window.app.launchContent(url,'about-blank',title);if(ok)return;}catch(e){}
+try{try{openGameViewer({title,url,mirrors:[url]});}
+catch(err){try{launchViaAboutBlank(url,title);}catch(e2){}}}catch(e){}}
 function buildMedia(app,mod){const movies=$('.movie-grid'),tv=$('.tv-grid'),pods=$('.podcast-grid');if(!movies&&!tv&&!pods)return;if(movies&&!movies.dataset.q){movies.dataset.q='1';movies.innerHTML=mod.movies.map((m,i)=>`<div class="media-card" data-mi="${i}">
             <div class="media-art" style="background-image:url('${esc(m.thumb)}')">
                 ${m.url && (m.url.indexOf('media/') === 0 || /\.mp4($|\?)/i.test(m.url)) ? `<video class="media-preview" muted loop playsinline preload="none" src="${esc(m.url)}"></video>` : ''}
@@ -2293,7 +2296,7 @@ loadSettings(){const stored=localStorage.getItem('hub_settings');if(stored){try{
 localStorage.setItem('hub_audio_feedback',this.settings.audioFeedback);}catch(e){}}else{this.settings={...DEFAULT_SETTINGS,language:this.detectLanguage()};this.saveSettings();}}
 saveSettings(){localStorage.setItem('hub_settings',JSON.stringify(this.settings));localStorage.setItem('hub_audio_feedback',this.settings.audioFeedback);}
 loadGames(){const allDefaults=this._dedupeGames([...DEFAULT_GAMES,...PASTED_GAMES,...POLARIS_GAMES,...GAMESITE_GAMES,...GMS55_GAMES,...ESCAPE_ROAD_GAMES,...SELENITE_GAMES,...DOTNET_GAMES,...PETEZAH_GAMES]);const RETIRED_GAME_IDS=new Set(['ubz_who_s_your_daddy_186','ubz_2048_1','ubz_chrome_dino_35','ubz_escape_road_58','ubz_escape_road_2_59','ubz_escape_road_3_60','gplus_baldis_basics_field_trip_13','gplus_baldis_basics_14','gplus_bitlife_20']);const stored=localStorage.getItem('hub_games');if(!stored){this.games=[...allDefaults];this.saveGames();return;}
-try{const parsed=JSON.parse(stored);const byId=new Map(parsed.map(g=>[g.id,g]));this.games=[...allDefaults].map(def=>{const existing=byId.get(def.id);if(existing){byId.delete(def.id);const githackOnly=(u)=>/^https?:\/\/(?:raw|rawcdn)\.githack\.com\//i.test(u);const merged=[...(def.mirrors||[])].filter(githackOnly);for(const u of(existing.mirrors||[]))if(u&&githackOnly(u)&&!merged.includes(u))merged.push(u);const oldImg=existing.image||'';const img=(!oldImg||oldImg.startsWith('games/thumbs/')||oldImg.indexOf('rayquaza')!==-1)?(def.image||oldImg):oldImg;const out={...def,...existing,url:def.url,image:img,mirrors:merged.length?merged:def.mirrors};const mL={...(def.mirrorLabels||{}),...(existing.mirrorLabels||{})};if(Object.keys(ml).length)out.mirrorLabels=ml;const cp=[...(def.copies||[])];for(const c of(existing.copies||[])){if(c&&c.url&&!cp.some(x=>x.url===c.url))cp.push(c);}
+try{const parsed=JSON.parse(stored);const byId=new Map(parsed.map(g=>[g.id,g]));this.games=[...allDefaults].map(def=>{const existing=byId.get(def.id);if(existing){byId.delete(def.id);const githackOnly=(u)=>/^https?:\/\/(?:raw|rawcdn)\.githack\.com\//i.test(u);const merged=[...(def.mirrors||[])].filter(githackOnly);for(const u of(existing.mirrors||[]))if(u&&githackOnly(u)&&!merged.includes(u))merged.push(u);const oldImg=existing.image||'';const img=(!oldImg||oldImg.startsWith('games/thumbs/')||oldImg.indexOf('rayquaza')!==-1)?(def.image||oldImg):oldImg;const out={...def,...existing,url:def.url,image:img,mirrors:merged.length?merged:def.mirrors};const mL={...(def.mirrorLabels||{}),...(existing.mirrorLabels||{})};if(Object.keys(mL).length)out.mirrorLabels=mL;const cp=[...(def.copies||[])];for(const c of(existing.copies||[])){if(c&&c.url&&!cp.some(x=>x.url===c.url))cp.push(c);}
 if(cp.length)out.copies=cp;return out;}
 return{...def};});for(const custom of byId.values()){if(RETIRED_GAME_IDS.has(custom.id))continue;if(typeof custom.id==='string'&&custom.id.startsWith('polaris_'))continue;if(typeof custom.id==='string'&&custom.id.startsWith('ubz_'))continue;this.games.push(custom);}
 for(const g of this.games){const c=(g.accentColor||'').toLowerCase();if(c==='#ff6600'||c==='#f59e0b'||c==='#f97316')g.accentColor='#39ff14';}

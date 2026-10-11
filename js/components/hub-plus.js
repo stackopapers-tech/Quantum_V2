@@ -3,15 +3,15 @@
    favorites, random, ratings, GOTD, streaks, i18n, lite, txt backup,
    updates, feedback, media previews, similar, ranks, forms, install,
    stats, polls, profiles, social (friends/chat/block/report). */
-import toast from './toast.js?v=2026.10.11-1';
-import modals from './modal.js?v=2026.10.11-1';
-import { TV_CATALOG, MOVIE_CATALOG, ANIME_CATALOG, TOP_TIER } from '../data/catalog.js?v=2026.10.11-1';
+import toast from './toast.js?v=2026.10.11-2';
+import modals from './modal.js?v=2026.10.11-2';
+import { TV_CATALOG, MOVIE_CATALOG, ANIME_CATALOG, TOP_TIER } from '../data/catalog.js?v=2026.10.11-2';
 
-import { TMDB_IDS } from '../data/tmdb-ids.js?v=2026.10.11-1';
-import { openGameViewer } from './game-viewer.js?v=2026.10.11-1';
+import { TMDB_IDS } from '../data/tmdb-ids.js?v=2026.10.11-2';
+import { openGameViewer } from './game-viewer.js?v=2026.10.11-2';
 
-import { launchViaAboutBlank } from './about-blank-launcher.js?v=2026.10.11-1';
-import { localHubApi } from '../local-api.js?v=2026.10.11-1';
+import { launchViaAboutBlank } from './about-blank-launcher.js?v=2026.10.11-2';
+import { localHubApi } from '../local-api.js?v=2026.10.11-2';
 
 const $ = (s, r) => (r || document).querySelector(s);
 const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -1095,14 +1095,27 @@ function buildSettingsPlus(app) {
 // popup/blank-window failure modes. launchContent is viewer-first now, so it
 // also wires the Pop-out button straight to the popup path (no recursion).
 function openInHub(url, title) {
+    // file:// clips (hub running from disk) and other non-http(s) URLs:
+    // launchContent only takes http(s), so they go straight to the in-hub
+    // viewer, which plays media files via the media-player page.
+    if (!/^https?:/i.test(url)) {
+        try { openGameViewer({ title, url, mirrors: [url] }); return; }
+        catch (e) { /* fall through */ }
+    }
     try {
-        window.app.launchContent(url, 'about-blank', title);
-    } catch (e) {
+        // launchContent returns false (not throws) for URLs it cannot take
+        // — e.g. file:// media clips when the hub runs from disk. Fall
+        // through to the direct viewer in that case instead of silently
+        // opening nothing.
+        const ok = window.app.launchContent(url, 'about-blank', title);
+        if (ok) return;
+    } catch (e) { /* fall through to the direct viewer */ }
+    try {
         try { openGameViewer({ title, url, mirrors: [url] }); }
         catch (err) {
             try { launchViaAboutBlank(url, title); } catch (e2) {}
         }
-    }
+    } catch (e) {}
 }
 
 function buildMedia(app, mod) {
