@@ -1360,7 +1360,7 @@
          website markup. Edit the SOURCES (css/style.css, js/*.js), then run
          py bump_version.py && py build_index.py (regenerates js/bundle.js and
          standalone.html — never hand-edit those). -->
-    <script>window.HUB_VERSION = '2026.10.11-6';</script>
+    <script>window.HUB_VERSION = '2026.10.11-7';</script>
     <script>
     /* Start-screen failsafe (plain script, no modules): the overlay can never
        trap the hub, even if app.js is stale, cached, or fails to boot. */
@@ -1378,9 +1378,8 @@
         ready(function () {
             var ov = document.getElementById('initial-overlay');
             if (!ov) return;
-            try {
-                if (localStorage.getItem('hub_initial_dismissed') === 'true') dismiss();
-            } catch (e) {}
+            // No auto-dismiss: the splash shows on EVERY load so the user
+            // always picks a mirror — nothing proceeds automatically.
             ov.addEventListener('click', function (e) {
                 var card = e.target.closest ? e.target.closest('.mirror-card') : null;
                 var logo = e.target.closest ? e.target.closest('#quantum-logo') : null;
@@ -1416,10 +1415,10 @@
     (function () {
         var s = document.createElement('script');
         if (location.protocol === 'file:') {
-            s.src = 'js/bundle.js?v=2026.10.11-6';
+            s.src = 'js/bundle.js?v=2026.10.11-7';
         } else {
             s.type = 'module';
-            s.src = 'js/app.js?v=2026.10.11-6';
+            s.src = 'js/app.js?v=2026.10.11-7';
         }
         (document.body || document.documentElement).appendChild(s);
     })();
