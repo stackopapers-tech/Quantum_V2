@@ -13,8 +13,8 @@
  * JS-only overlay: no index.html changes required.
  */
 
-import { probeFirstReachable } from './mirror-loader.js?v=2026.10.11-2';
-import { isMediaUrl, mediaFrameUrl } from './about-blank-launcher.js?v=2026.10.11-2';
+import { probeFirstReachable } from './mirror-loader.js?v=2026.10.11-4';
+import { isMediaUrl, mediaFrameUrl } from './about-blank-launcher.js?v=2026.10.11-4';
 
 let activeViewer = null;
 
@@ -117,6 +117,81 @@ export function openGameViewer(opts) {
         b.style.textAlign = 'center';
     });
 
+    // Universal pause: every media viewer (streams, direct clips, trailers)
+    // gets a ⏸/▶ toolbar button. Same-origin clips (the hub's media-player
+    // page) pause for real; YouTube obeys postMessage commands (trailer
+    // embeds carry enablejsapi=1); cross-origin streams can't be driven by
+    // script (browser security), so the button drops the click-shield,
+    // focuses the player and leaves the user one click from the player's
+    // own pause. Games never match any mode below — no button for them.
+    let pauseBtn = null, pauseMode = null, ytPlaying = true;
+    try {
+        if (isMediaUrl(primary)) pauseMode = 'media';
+        else if (/youtube\.com\/embed|youtube-nocookie\.com\/embed/.test(primary)) pauseMode = 'youtube';
+        else if (opts.shield === true || (opts.tv && typeof opts.tv.rebuild === 'function')) pauseMode = 'stream';
+    } catch (e) { pauseMode = null; }
+
+    const syncPauseIcon = () => {
+        if (!pauseBtn) return;
+        if (pauseMode === 'media') {
+            try {
+                const v = frame.contentDocument?.getElementById('v');
+                if (v) { pauseBtn.textContent = v.paused ? '▶' : '⏸'; return; }
+            } catch (e) { /* opaque origin (file://) — keep last icon */ }
+            return;
+        }
+        if (pauseMode === 'youtube') pauseBtn.textContent = ytPlaying ? '⏸' : '▶';
+    };
+    const onPauseBtn = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (closed) return;
+        if (pauseMode === 'media') {
+            try {
+                const v = frame.contentDocument?.getElementById('v');
+                if (v) {
+                    if (v.paused) { v.play().catch(() => {}); } else { v.pause(); }
+                    setTimeout(syncPauseIcon, 60);
+                    return;
+                }
+            } catch (err) { /* opaque origin — fall through to focus */ }
+            try { frame.focus(); frame.contentWindow?.focus(); } catch (err) {}
+            setStatus('Use the player controls below the video to pause.');
+            return;
+        }
+        if (pauseMode === 'youtube') {
+            try {
+                ytPlaying = !ytPlaying;
+                frame.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: ytPlaying ? 'playVideo' : 'pauseVideo', args: '' }), '*');
+            } catch (err) {}
+            syncPauseIcon();
+            return;
+        }
+        // Cross-origin streams (and any fallback): hand control to the
+        // player — drop the shield, focus the frame, one click from pause.
+        // While the player is still loading its first frame, keep the
+        // shield up (that's the ad-redirect window) and say so.
+        try {
+            if (shield) {
+                if (shieldOn && !playerReady && !frameLoaded) {
+                    setStatus('Player still loading — pause unlocks when it’s ready.');
+                    return;
+                }
+                shieldOn = false; shieldTold = false; shieldSync();
+            }
+        } catch (err) {}
+        try { frame.focus(); frame.contentWindow?.focus(); } catch (err) {}
+        setStatus('Player controls are live — click the video to pause.');
+    };
+    if (pauseMode) {
+        pauseBtn = btn('⏸', 'Pause / resume');
+        pauseBtn.style.font = '15px system-ui, sans-serif';
+        pauseBtn.style.padding = '3px 9px';
+        pauseBtn.style.minWidth = '30px';
+        pauseBtn.style.textAlign = 'center';
+        pauseBtn.addEventListener('click', onPauseBtn);
+    }
+
     const spacer = document.createElement('span');
     spacer.style.cssText = 'flex:1;';
 
@@ -173,6 +248,7 @@ export function openGameViewer(opts) {
     bar.appendChild(spacer);
     bar.appendChild(fsBtn);
     bar.appendChild(refreshBtn);
+    if (pauseBtn) bar.appendChild(pauseBtn);
     if (onPopOut) bar.appendChild(popBtn);
     bar.appendChild(openBtn);
     bar.appendChild(closeBtn);
@@ -217,7 +293,7 @@ export function openGameViewer(opts) {
     // redirect. The hub cannot pause a cross-origin player itself, so the bar
     // hands control back ("Pass clicks") where the player's own click-to-pause
     // works natively.
-    let shield = null, shieldBar = null, shieldOn = false, shieldTold = false, vsDisarm = null;
+    let shield = null, shieldBar = null, shieldOn = false, shieldTold = false, vsDisarm = null, playerReady = false;
     if (opts.shield === true) {
         shield = document.createElement('div');
         shield.setAttribute('aria-label', 'Click shield active');
@@ -257,9 +333,12 @@ export function openGameViewer(opts) {
             const d = ev.data;
             if (!d || typeof d !== 'object') return;
             if ((d.type === 'PLAYER_TITLE' || d.type === 'TV_INFO') && shieldOn) {
+                playerReady = true;
                 shieldOn = false;
                 shieldTold = false;
                 shieldSync();
+            } else if (d.type === 'PLAYER_TITLE' || d.type === 'TV_INFO') {
+                playerReady = true;
             }
         };
         window.addEventListener('message', vsDisarm);
@@ -298,7 +377,7 @@ export function openGameViewer(opts) {
     document.body.appendChild(overlay);
 
     const statusEl = loading.querySelector('.gv-status');
-    let closed = false;
+    let closed = false, frameLoaded = false;
 
     function setStatus(msg) {
         if (statusEl) statusEl.textContent = msg;
@@ -306,6 +385,8 @@ export function openGameViewer(opts) {
 
     function showFrame(url, idx) {
         if (closed) return;
+        frameLoaded = false;
+        playerReady = false;
         if (isMediaUrl(url)) {
             let acc = '';
             try {
@@ -384,6 +465,24 @@ export function openGameViewer(opts) {
             if (!document.fullscreenElement) box.requestFullscreen();
             else document.exitFullscreen();
         } catch (e) {}
+    });
+
+    // Keep the pause icon truthful for same-origin clips: re-sync after
+    // every navigation and mirror every native play/pause flip.
+    frame.addEventListener('load', () => {
+        frameLoaded = true;
+        if (closed) return;
+        if (pauseMode === 'youtube') { ytPlaying = true; syncPauseIcon(); return; }
+        if (pauseMode !== 'media') return;
+        try {
+            const v = frame.contentDocument?.getElementById('v');
+            if (v && !v.dataset.qpause) {
+                v.dataset.qpause = '1';
+                v.addEventListener('play', syncPauseIcon);
+                v.addEventListener('pause', syncPauseIcon);
+            }
+        } catch (e) {}
+        setTimeout(syncPauseIcon, 500);
     });
 
     function doPopOut() {

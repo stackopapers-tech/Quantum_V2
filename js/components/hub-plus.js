@@ -3,15 +3,15 @@
    favorites, random, ratings, GOTD, streaks, i18n, lite, txt backup,
    updates, feedback, media previews, similar, ranks, forms, install,
    stats, polls, profiles, social (friends/chat/block/report). */
-import toast from './toast.js?v=2026.10.11-2';
-import modals from './modal.js?v=2026.10.11-2';
-import { TV_CATALOG, MOVIE_CATALOG, ANIME_CATALOG, TOP_TIER } from '../data/catalog.js?v=2026.10.11-2';
+import toast from './toast.js?v=2026.10.11-4';
+import modals from './modal.js?v=2026.10.11-4';
+import { TV_CATALOG, MOVIE_CATALOG, ANIME_CATALOG, TOP_TIER } from '../data/catalog.js?v=2026.10.11-4';
 
-import { TMDB_IDS } from '../data/tmdb-ids.js?v=2026.10.11-2';
-import { openGameViewer } from './game-viewer.js?v=2026.10.11-2';
+import { TMDB_IDS } from '../data/tmdb-ids.js?v=2026.10.11-4';
+import { openGameViewer } from './game-viewer.js?v=2026.10.11-4';
 
-import { launchViaAboutBlank } from './about-blank-launcher.js?v=2026.10.11-2';
-import { localHubApi } from '../local-api.js?v=2026.10.11-2';
+import { launchViaAboutBlank } from './about-blank-launcher.js?v=2026.10.11-4';
+import { localHubApi } from '../local-api.js?v=2026.10.11-4';
 
 const $ = (s, r) => (r || document).querySelector(s);
 const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -1376,7 +1376,9 @@ function openBlockedSite(app, url, label) {
 function openTitleUrl(app, title, kind) {
     const q = encodeURIComponent(title);
     if (kind === 'trailer') {
-        app.launchContent(`https://www.youtube.com/embed?listType=search&list=${q}+trailer`, 'about-blank', `${title} — trailer`);
+        // enablejsapi=1 lets the viewer's pause button drive the trailer
+        // via postMessage (pauseVideo/playVideo) — no API library needed.
+        app.launchContent(`https://www.youtube.com/embed?listType=search&list=${q}+trailer&enablejsapi=1`, 'about-blank', `${title} — trailer`);
         return;
     }
     openBlockedSite(app, `https://www.justwatch.com/us/search?q=${q}`, `${title} — where to watch`);
