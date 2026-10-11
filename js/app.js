@@ -1,28 +1,28 @@
 // (c) Quantum Hub — proprietary hub build. All rights reserved.
 // Quantum Hub — core application: catalog, themes, launch engine, settings.
-import { DEFAULT_SETTINGS, DEFAULT_MIRRORS, DEFAULT_GAMES, DEMO_MEDIA, PROXY_DATA, DEFAULT_COLLECTIONS, ACHIEVEMENT_DEFS, DEFAULT_SOUND_PACKS } from './data/defaults.js?v=2026.10.11-5';
-import { TV_CATALOG, MOVIE_CATALOG, ANIME_CATALOG, TOP_TIER } from './data/catalog.js?v=2026.10.11-5';
-import toast from './components/toast.js?v=2026.10.11-5';
-import modals from './components/modal.js?v=2026.10.11-5';
-import { AboutBlankLauncher, launchViaAboutBlank, normalizeHttpUrl, isValidHttpUrl } from './components/about-blank-launcher.js?v=2026.10.11-5';
-import { MirrorLoader, MIRROR_SETS, expandUnblockedMirrors, mirrorCandidates, mirrorUrlGuesses } from './components/mirror-loader.js?v=2026.10.11-5';
-import { POLARIS_GAMES } from './data/polaris-games.js?v=2026.10.11-5';
-import { GAMESITE_GAMES } from './data/gamesite-games.js?v=2026.10.11-5';
-import { GMS55_GAMES } from './data/gms55-games.js?v=2026.10.11-5';
-import { PASTED_GAMES } from './data/pasted-games.js?v=2026.10.11-5';
-import { ESCAPE_ROAD_GAMES } from './data/escape-road-games.js?v=2026.10.11-5';
-import { SELENITE_GAMES } from './data/selenite-games.js?v=2026.10.11-5';
-import { DOTNET_GAMES } from './data/dotnet-games.js?v=2026.10.11-5';
-import { PETEZAH_GAMES } from './data/petezah-games.js?v=2026.10.11-5';
-import { AI_SKILLS, AI_DESIGN_SYSTEMS } from './data/ai-skills.js?v=2026.10.11-5';
-import { openGameViewer } from './components/game-viewer.js?v=2026.10.11-5';
-import { PasswordPolicy, FailedAttemptTracker, SecurityPolicy, defaultPasswordPolicy, defaultFailedTracker } from './components/password-policy.js?v=2026.10.11-5';
-import { userDB } from './components/user-db.js?v=2026.10.11-5';
-import { initHubPlus } from './components/hub-plus.js?v=2026.10.11-5';
-import { initMusicDeck } from './components/music-deck.js?v=2026.10.11-5';
-import { applyAnimatedBg } from './components/animated-bg.js?v=2026.10.11-5';
-import './components/stealth.js?v=2026.10.11-5';
-import { localApi, localInbox } from './local-api.js?v=2026.10.11-5';
+import { DEFAULT_SETTINGS, DEFAULT_MIRRORS, DEFAULT_GAMES, DEMO_MEDIA, PROXY_DATA, DEFAULT_COLLECTIONS, ACHIEVEMENT_DEFS, DEFAULT_SOUND_PACKS } from './data/defaults.js?v=2026.10.11-6';
+import { TV_CATALOG, MOVIE_CATALOG, ANIME_CATALOG, TOP_TIER } from './data/catalog.js?v=2026.10.11-6';
+import toast from './components/toast.js?v=2026.10.11-6';
+import modals from './components/modal.js?v=2026.10.11-6';
+import { AboutBlankLauncher, launchViaAboutBlank, normalizeHttpUrl, isValidHttpUrl } from './components/about-blank-launcher.js?v=2026.10.11-6';
+import { MirrorLoader, MIRROR_SETS, expandUnblockedMirrors, mirrorCandidates, mirrorUrlGuesses } from './components/mirror-loader.js?v=2026.10.11-6';
+import { POLARIS_GAMES } from './data/polaris-games.js?v=2026.10.11-6';
+import { GAMESITE_GAMES } from './data/gamesite-games.js?v=2026.10.11-6';
+import { GMS55_GAMES } from './data/gms55-games.js?v=2026.10.11-6';
+import { PASTED_GAMES } from './data/pasted-games.js?v=2026.10.11-6';
+import { ESCAPE_ROAD_GAMES } from './data/escape-road-games.js?v=2026.10.11-6';
+import { SELENITE_GAMES } from './data/selenite-games.js?v=2026.10.11-6';
+import { DOTNET_GAMES } from './data/dotnet-games.js?v=2026.10.11-6';
+import { PETEZAH_GAMES } from './data/petezah-games.js?v=2026.10.11-6';
+import { AI_SKILLS, AI_DESIGN_SYSTEMS } from './data/ai-skills.js?v=2026.10.11-6';
+import { openGameViewer } from './components/game-viewer.js?v=2026.10.11-6';
+import { PasswordPolicy, FailedAttemptTracker, SecurityPolicy, defaultPasswordPolicy, defaultFailedTracker } from './components/password-policy.js?v=2026.10.11-6';
+import { userDB } from './components/user-db.js?v=2026.10.11-6';
+import { initHubPlus } from './components/hub-plus.js?v=2026.10.11-6';
+import { initMusicDeck } from './components/music-deck.js?v=2026.10.11-6';
+import { applyAnimatedBg } from './components/animated-bg.js?v=2026.10.11-6';
+import './components/stealth.js?v=2026.10.11-6';
+import { localApi, localInbox } from './local-api.js?v=2026.10.11-6';
 
 class GameHubApplication {
     constructor() {
@@ -102,7 +102,6 @@ class GameHubApplication {
             { fn: () => this.bindNavigation(), name: 'Navigation' },
             { fn: () => this.renderGamesGrid(), name: 'GameGrid' },
             { fn: () => this.renderMirrorsConfigTable(), name: 'MirrorTable' },
-            { fn: () => this.autoPickMirror(), name: 'MirrorAutoPick' },
             { fn: () => this.setupInitialScreen(), name: 'InitialScreen' },
             { fn: () => this.initCommandPalette(), name: 'CmdPalette' },
             { fn: () => this.initKeyboardShortcuts(), name: 'Shortcuts' },
@@ -2200,7 +2199,11 @@ false, messagesContainer);
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> LAUNCHING…';
         }
         try {
-            this.launchContent(mirror.url, 'about-blank', mirror.name);
+            // Mirrors are destinations: open for real in a cloaked
+            // about:blank tab — never the in-hub viewer, never silent
+            // (popup blocks fall back to anchor/modal, never nothing).
+            launchViaAboutBlank(mirror.url, mirror.name);
+            try { this.usedMirrors.add(mirror.id); this.checkAchievements(); } catch (e) {}
         } finally {
             setTimeout(() => {
                 if (btn) {
@@ -2209,46 +2212,6 @@ false, messagesContainer);
                 }
             }, 250);
         }
-    }
-
-    async autoPickMirror() {
-        const candidates = (this.mirrors || []).filter(m => m.enabled !== false);
-        if (candidates.length === 0) return;
-        toast.show('Picking fastest mirror…', 'info', 2000);
-        let firstUnknown = null;
-        for (const m of candidates) {
-            const t0 = Date.now();
-            try {
-                const g = await fetch(m.url, { method: 'GET', mode: 'cors', credentials: 'omit', cache: 'no-cache', signal: AbortSignal.timeout(6000) });
-                const ok = g.ok;
-                try { await g.arrayBuffer(); } catch (e2) {}
-                m.latency = `${Date.now() - t0}ms`;
-                if (ok) {
-                    this.settings.defaultMirrorId = m.id;
-                    this.saveSettings();
-                    this.saveMirrors();
-                    this.renderMirrorsConfigTable();
-                    toast.show(`Mirror picked: ${m.name}`, 'success', 3000);
-                    try { this.usedMirrors.add(m.id); } catch (e) {}
-                    return m;
-                }
-            } catch (e) {
-                m.latency = 'unverified';
-                if (!firstUnknown) firstUnknown = m;
-            }
-        }
-        if (firstUnknown) {
-            this.settings.defaultMirrorId = firstUnknown.id;
-            this.saveSettings();
-            this.saveMirrors();
-            this.renderMirrorsConfigTable();
-            toast.show(`Mirror picked (unverified): ${firstUnknown.name}`, 'success', 3000);
-            try { this.usedMirrors.add(firstUnknown.id); } catch (e) {}
-            return firstUnknown;
-        }
-        this.renderMirrorsConfigTable();
-        toast.show('No mirror reachable — check your connection.', 'error', 5000);
-        return null;
     }
 
     testMirror(mirrorId) {
@@ -2296,8 +2259,26 @@ false, messagesContainer);
         }
 
         overlay.querySelectorAll('.mirror-card').forEach(card => {
-            card.addEventListener('click', () => this.dismissInitialScreen());
+            card.addEventListener('click', () => this.chooseInitialMirror(card.dataset.mirrorId));
         });
+    }
+
+    chooseInitialMirror(mirrorId) {
+        // The user picks — nothing auto-picks on load. The choice becomes
+        // the default mirror, opens for real in a cloaked about:blank tab,
+        // and the splash gives way to the main hub interface.
+        try {
+            const m = (this.mirrors || []).find(x => x.id === mirrorId);
+            if (m) {
+                this.settings.defaultMirrorId = m.id;
+                this.saveSettings();
+                const sel = document.getElementById('setting-default-mirror');
+                if (sel) sel.value = m.id;
+                toast.show(`Mirror selected: ${m.name}`, 'success', 2500);
+                launchViaAboutBlank(m.url, m.name);
+            }
+        } catch (e) {}
+        this.dismissInitialScreen();
     }
 
     dismissInitialScreen() {

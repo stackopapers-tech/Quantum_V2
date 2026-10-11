@@ -99,15 +99,30 @@ export const DEFAULT_MIRRORS = [
         launchMode: 'about-blank'
     },
 
+    {
+        id: 'hub-netlify',
+        name: 'Quantum Hub — Netlify Mirror',
+        description: 'Full hub deployment on Netlify (same build, alternate host). Pick it when the primary host is blocked.',
+        url: 'https://quantum2v.netlify.app/',
+        icon: 'bolt',
+        status: 'Available',
+        latency: 'unverified',
+        enabled: true,
+        launchMode: 'about-blank'
+    },
+
 ];
 
 // MIRROR RULE (enforced):
-// raw.githack.com and rawcdn.githack.com are the ONLY mirrors that work
+// raw.githack.com and rawcdn.githack.com are the ONLY CDN probe mirrors
 // (user-verified 2026-10-04): every other CDN host was removed from
 // DEFAULT_MIRRORS, ALLOWED_CDN_BASES and every catalog's mirrors[] array.
 // Both built-in entries use jQuery 3.7.1 (MIT) as the probe file.
 // Prohibited as mirrors: jsDelivr family, Statically, cdnjs, Bunny,
 // raw.githubusercontent (serve .html as text/plain) and other game sites.
+//
+// Exception (user-requested): hub-netlify is a full hub DEPLOYMENT mirror,
+// not a CDN probe — an alternate host serving the same build.
 //
 // Per-game mirrors are generated at launch time (mirror-loader.js
 // mirrorCandidates/mirrorUrlGuesses): html game entries fan out across the
