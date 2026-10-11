@@ -5,7 +5,7 @@
    volume. Inspired by SimpMusic (maxrave-dev/SimpMusic). Everything plays
    here inside the hub — no popups, no installs. */
 
-import toast from './toast.js?v=2026.10.11-7';
+import toast from './toast.js?v=2026.10.11-8';
 
 const $ = (s, r) => (r || document).querySelector(s);
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')

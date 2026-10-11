@@ -129,23 +129,16 @@ proxy, cache, rewrite, fetch, or relay traffic on anyone's behalf, and it does
 **not** bypass network, school, workplace, ISP, or browser restrictions. Each
 URL belongs to its own site and is opened as an ordinary outbound link.
 
-### Built-in mirrors (CDN-only)
+### Built-in mirrors
 
 | Mirror | URL |
 | --- | --- |
-| jsDelivr CDN | `https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js` |
-| Quantil jsDelivr | `https://quantil.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js` |
-| Gcore jsDelivr | `https://gcore.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js` |
-| Fastly Origin jsDelivr | `https://originfastly.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js` |
-| B-CDN jsDelivr | `https://jsdelivr.b-cdn.net/npm/jquery@3.7.1/dist/jquery.min.js` |
-| Omnicrosoft jsDelivr | `https://jsd.omnicrosoft.cn/npm/jquery@3.7.1/dist/jquery.min.js` |
-| JSDMirror | `https://cdn.jsdmirror.com/npm/jquery@3.7.1/dist/jquery.min.js` |
-| Statically CDN | `https://cdn.statically.io/gh/jquery/jquery-dist/3.7.1/dist/jquery.min.js` |
-| cdnjs Cloudflare | `https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js` |
+| Quantum Hub — Netlify Mirror | `https://quantum2v.netlify.app/` |
 | Custom Mirror | yours to edit |
 
-Built-in mirrors are CDN/static-hosting sources only. Vercel, GitHub Pages,
-and other game sites are prohibited as mirrors. The proxy-panel launch nodes
+The built-in mirror is a full hub deployment on an alternate host (user-requested).
+Vercel, GitHub Pages, jsDelivr family, Statically, cdnjs and other game sites
+are prohibited as mirrors. The proxy-panel launch nodes
 (YukiOS, Nebula, Mizu Math, UnblockZone) are separate user-requested launch
 destinations, not mirrors.
 
@@ -170,7 +163,7 @@ Settings → Routing Gateways: add, edit, remove, enable/disable, set the defaul
 reorder, and choose a launch mode per mirror. Everything persists to
 `localStorage` under `hub_mirrors`.
 
-Retired built-in IDs (`jsdelivr`, `cdnjs`, `mirror-test`, `netlify`, `vercel`,
+Retired built-in IDs (`jsdelivr`, `cdnjs`, `mirror-test`, `vercel`,
 `cloudflare-pages`) and leftover demo URLs (`example.com`, `httpbin.org`) are
 purged automatically on load, so an old profile can't resurrect a dead entry.
 

@@ -10,7 +10,7 @@ export const DEFAULT_SETTINGS = {
     audioFeedback: true,
     particlesEnabled: true,
     defaultLaunchBehavior: 'about-blank', // 'about-blank', 'new-tab', 'same-tab'
-    defaultMirrorId: 'cdn-githack',
+    defaultMirrorId: 'hub-netlify',
     linksOpenNewTab: true,
     // New features
     viewMode: 'grid', // 'grid', 'list', 'compact'
@@ -76,30 +76,6 @@ export const DEFAULT_SOUND_PACKS = {
 export const DEFAULT_MIRRORS = [
 
     {
-        id: 'cdn-githack',
-        name: 'Githack Raw CDN',
-        description: 'jQuery 3.7.1 via Githack raw proxy (raw.githack.com, proper MIME, non-jsDelivr domain). Verified 200.',
-        url: 'https://raw.githack.com/jquery/jquery-dist/3.7.1/dist/jquery.min.js',
-        icon: 'archive',
-        status: 'Available',
-        latency: '24ms',
-        enabled: true,
-        launchMode: 'about-blank'
-    },
-
-    {
-        id: 'cdn-rawcdn',
-        name: 'Githack Cloudflare Edge',
-        description: 'jQuery 3.7.1 via rawcdn.githack.com (Cloudflare edge of the same Githack service). Verified 200, CORS=*.',
-        url: 'https://rawcdn.githack.com/jquery/jquery-dist/3.7.1/dist/jquery.min.js',
-        icon: 'cloud',
-        status: 'Available',
-        latency: 'unverified',
-        enabled: true,
-        launchMode: 'about-blank'
-    },
-
-    {
         id: 'hub-netlify',
         name: 'Quantum Hub — Netlify Mirror',
         description: 'Full hub deployment on Netlify (same build, alternate host). Pick it when the primary host is blocked.',
@@ -114,15 +90,10 @@ export const DEFAULT_MIRRORS = [
 ];
 
 // MIRROR RULE (enforced):
-// raw.githack.com and rawcdn.githack.com are the ONLY CDN probe mirrors
-// (user-verified 2026-10-04): every other CDN host was removed from
-// DEFAULT_MIRRORS, ALLOWED_CDN_BASES and every catalog's mirrors[] array.
-// Both built-in entries use jQuery 3.7.1 (MIT) as the probe file.
+// DEFAULT_MIRRORS holds hub DEPLOYMENT mirrors only (user-requested — the
+// githack CDN probe entries were removed 2026-10-11).
 // Prohibited as mirrors: jsDelivr family, Statically, cdnjs, Bunny,
 // raw.githubusercontent (serve .html as text/plain) and other game sites.
-//
-// Exception (user-requested): hub-netlify is a full hub DEPLOYMENT mirror,
-// not a CDN probe — an alternate host serving the same build.
 //
 // Per-game mirrors are generated at launch time (mirror-loader.js
 // mirrorCandidates/mirrorUrlGuesses): html game entries fan out across the

@@ -48,46 +48,6 @@
                 <i class="fas fa-shield-alt text-accent"></i> SELECT A MIRROR TO START
             </h2>
             <div class="mirror-selector-grid">
-                <div class="mirror-card cursor-pointer" data-mirror-id="cdn-githack">
-                    <div class="mirror-header">
-                        <div class="mirror-title-wrap">
-                            <div class="mirror-icon-box">
-                                <i class="fas fa-archive"></i>
-                            </div>
-                            <div>
-                                <div class="mirror-name">Githack Raw CDN</div>
-                                <div class="text-xs text-gray-400 mt-0.5">https://raw.githack.com/jquery/jquery-dist/3.7.1/dist/jquery.min.js</div>
-                            </div>
-                        </div>
-                        <span class="mirror-badge status-ok">Available</span>
-                    </div>
-                    <div class="mirror-description">jQuery 3.7.1 via Githack raw proxy (raw.githack.com, proper MIME, non-jsDelivr domain). Verified 200.</div>
-                    <div class="mirror-meta">
-                        <span><i class="fas fa-bolt text-yellow-500"></i> Latency: 24ms</span>
-                        <span><i class="fas fa-rocket text-blue-500"></i> about:blank</span>
-                    </div>
-                </div>
-
-                <div class="mirror-card cursor-pointer" data-mirror-id="cdn-rawcdn">
-                    <div class="mirror-header">
-                        <div class="mirror-title-wrap">
-                            <div class="mirror-icon-box">
-                                <i class="fas fa-cloud"></i>
-                            </div>
-                            <div>
-                                <div class="mirror-name">Githack Cloudflare Edge</div>
-                                <div class="text-xs text-gray-400 mt-0.5">https://rawcdn.githack.com/jquery/jquery-dist/3.7.1/dist/jquery.min.js</div>
-                            </div>
-                        </div>
-                        <span class="mirror-badge status-ok">Available</span>
-                    </div>
-                    <div class="mirror-description">jQuery 3.7.1 via rawcdn.githack.com (Cloudflare edge of the same Githack service). Verified 200, CORS=*.</div>
-                    <div class="mirror-meta">
-                        <span><i class="fas fa-bolt text-yellow-500"></i> Latency: unverified</span>
-                        <span><i class="fas fa-rocket text-blue-500"></i> about:blank</span>
-                    </div>
-                </div>
-
                 <div class="mirror-card cursor-pointer" data-mirror-id="hub-netlify">
                     <div class="mirror-header">
                         <div class="mirror-title-wrap">
@@ -1360,7 +1320,7 @@
          website markup. Edit the SOURCES (css/style.css, js/*.js), then run
          py bump_version.py && py build_index.py (regenerates js/bundle.js and
          standalone.html — never hand-edit those). -->
-    <script>window.HUB_VERSION = '2026.10.11-7';</script>
+    <script>window.HUB_VERSION = '2026.10.11-8';</script>
     <script>
     /* Start-screen failsafe (plain script, no modules): the overlay can never
        trap the hub, even if app.js is stale, cached, or fails to boot. */
@@ -1415,10 +1375,10 @@
     (function () {
         var s = document.createElement('script');
         if (location.protocol === 'file:') {
-            s.src = 'js/bundle.js?v=2026.10.11-7';
+            s.src = 'js/bundle.js?v=2026.10.11-8';
         } else {
             s.type = 'module';
-            s.src = 'js/app.js?v=2026.10.11-7';
+            s.src = 'js/app.js?v=2026.10.11-8';
         }
         (document.body || document.documentElement).appendChild(s);
     })();
