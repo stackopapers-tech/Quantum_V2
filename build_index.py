@@ -59,12 +59,243 @@ ALLOWED_DUPES = {"$", "esc", "ap", "vol"}
 # Optional minifiers for GENERATED output only — the js/ and css/
 # sources stay readable for editing. Falls back to identity when
 # the minifier is not installed.
+#
+# rjsmin predates ES6 template literals: a backtick string holding an
+# apostrophe (don't), a quote, or a // URL makes its scanner desync and
+# it eats real code (seen live: `https://vidsrc.me/...` collapsed into
+# `https:w.kind===...`, a fatal SyntaxError). It also mangles regex
+# literals with escaped slashes (seen live: /^https?:\/\/(?:...)\//i
+# truncated into an "Invalid regular expression flags" SyntaxError).
+# So template literals AND regex literals are pulled out into placeholders
+# BEFORE rjsmin runs and restored after, then the round-trip is verified
+# (same literal list in, same list out). Misreading a division as a regex
+# is harmless (exact text is restored); the prev-char/keyword heuristic
+# below is biased toward regex for that reason.
+def _extract_sensitive(code):
+    n = len(code)
+    out = []
+    literals = []  # [(placeholder, text)] in source order
+    counter = 0
+
+    def placeholder():
+        nonlocal counter
+        while True:
+            key = "__QTMPL_%d__" % counter
+            counter += 1
+            if key not in code:
+                return key
+
+    def consume_string(i, quote):
+        j = i + 1
+        while j < n:
+            c = code[j]
+            if c == "\\":
+                j += 2
+                continue
+            if c == quote:
+                return j + 1
+            if c == "\n" and quote in "'\"":
+                return j  # unterminated — emit as-is, do not swallow lines
+            j += 1
+        return j
+
+    def consume_line_comment(i):
+        j = code.find("\n", i)
+        return n if j == -1 else j
+
+    def consume_block_comment(i):
+        j = code.find("*/", i + 2)
+        return n if j == -1 else j + 2
+
+    def consume_regex(i):
+        j = i + 1
+        in_class = False
+        while j < n:
+            c = code[j]
+            if c == "\\":
+                j += 2
+                continue
+            if c == "[":
+                in_class = True
+            elif c == "]":
+                in_class = False
+            elif c == "/" and not in_class:
+                j += 1
+                while j < n and ("a" <= code[j] <= "z"):
+                    j += 1  # flags
+                return j
+            elif c == "\n":
+                return i + 1  # not a regex after all
+            j += 1
+        return j
+
+    REGEX_AFTER = set("({[,=:!&|?+-*~^%<>;}")  # prev char => '/' opens a regex
+    REGEX_WORDS = {"return", "typeof", "instanceof", "in", "of", "new",
+                   "delete", "void", "throw", "case", "do", "else",
+                   "yield", "await"}
+
+    def consume_template(i):
+        # i at opening backtick; handles escapes, ${} (nested strings,
+        # nested templates, comments, regexes) and nested backticks.
+        j = i + 1
+        while j < n:
+            c = code[j]
+            if c == "\\":
+                j += 2
+                continue
+            if c == "`":
+                return code[i:j + 1], j + 1
+            if c == "$" and code[j + 1:j + 2] == "{":
+                j = consume_expr(j + 2)
+                continue
+            j += 1
+        return code[i:], n
+
+    def consume_expr(k):
+        # k just after '${'; returns index just past the matching '}'.
+        depth = 1
+        prev = "{"
+        last_word = ""
+        while k < n:
+            d = code[k]
+            if d == "\\":
+                k += 2
+                prev = "s"
+                continue
+            if d in "'\"":
+                k = consume_string(k, d)
+                prev = "s"
+                last_word = ""
+                continue
+            if d == "`":
+                _, k = consume_template(k)
+                prev = "s"
+                last_word = ""
+                continue
+            if d == "/" and code[k + 1:k + 2] == "/":
+                k = consume_line_comment(k)
+                prev = " "
+                continue
+            if d == "/" and code[k + 1:k + 2] == "*":
+                k = consume_block_comment(k)
+                prev = " "
+                continue
+            if d == "/":
+                if prev in REGEX_AFTER or last_word in REGEX_WORDS:
+                    k = consume_regex(k)
+                else:
+                    k += 1
+                prev = "s"
+                last_word = ""
+                continue
+            if d == "{":
+                depth += 1
+                prev = "{"
+                last_word = ""
+                k += 1
+                continue
+            if d == "}":
+                depth -= 1
+                k += 1
+                if depth == 0:
+                    return k
+                prev = "}"
+                last_word = ""
+                continue
+            if d.isspace():
+                k += 1
+                continue
+            if d.isalnum() or d in "_$":
+                last_word = last_word + d if prev == "w" else d
+                prev = "w"
+            else:
+                prev = d
+                last_word = ""
+            k += 1
+        return k
+
+    i = 0
+    prev = ";"
+    last_word = ""
+    while i < n:
+        c = code[i]
+        if c in "'\"":
+            j = consume_string(i, c)
+            out.append(code[i:j])
+            i = j
+            prev = "s"
+            last_word = ""
+            continue
+        if c == "/" and code[i + 1:i + 2] == "/":
+            j = consume_line_comment(i)
+            out.append(code[i:j])
+            i = j
+            continue
+        if c == "/" and code[i + 1:i + 2] == "*":
+            j = consume_block_comment(i)
+            out.append(code[i:j])
+            i = j
+            prev = " "
+            continue
+        if c == "/":
+            if prev in REGEX_AFTER or last_word in REGEX_WORDS:
+                j = consume_regex(i)
+                if j > i + 1:
+                    key = placeholder()
+                    literals.append((key, code[i:j]))
+                    out.append(key)
+                    i = j
+                else:
+                    out.append(c)
+                    i += 1
+            else:
+                out.append(c)
+                i += 1
+            prev = "s"
+            last_word = ""
+            continue
+        if c == "`":
+            lit, j = consume_template(i)
+            key = placeholder()
+            literals.append((key, lit))
+            out.append(key)
+            i = j
+            prev = "s"
+            last_word = ""
+            continue
+        out.append(c)
+        if c.isspace():
+            pass
+        elif c.isalnum() or c in "_$":
+            last_word = last_word + c if prev == "w" else c
+            prev = "w"
+        else:
+            prev = c
+            last_word = ""
+        i += 1
+    return "".join(out), literals
+
+
 def _minify_js(code):
     try:
         import rjsmin
-        return rjsmin.jsmin(code)
     except Exception:
         return code
+    skeleton, literals = _extract_sensitive(code)
+    minified = rjsmin.jsmin(skeleton)
+    for key, lit in literals:
+        if minified.count(key) != 1:
+            raise SystemExit(
+                "BUILD FAIL: placeholder %s lost in minification" % key)
+        minified = minified.replace(key, lit, 1)
+    # Round-trip guard: the bundle must carry the exact same template
+    # literals and regex literals, in order. Catches any future
+    # minifier mangling (this exact bug shipped a dead file:// build).
+    check = _extract_sensitive(minified)[1]
+    if [lit for _, lit in check] != [lit for _, lit in literals]:
+        raise SystemExit(
+            "BUILD FAIL: literals altered by minification")
+    return minified
 
 
 def _minify_css(code):

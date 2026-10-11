@@ -1341,7 +1341,7 @@
          website markup. Edit the SOURCES (css/style.css, js/*.js), then run
          py bump_version.py && py build_index.py (regenerates js/bundle.js and
          standalone.html — never hand-edit those). -->
-    <script>window.HUB_VERSION = '2026.10.10-26';</script>
+    <script>window.HUB_VERSION = '2026.10.11-1';</script>
     <script>
     /* Start-screen failsafe (plain script, no modules): the overlay can never
        trap the hub, even if app.js is stale, cached, or fails to boot. */
@@ -1524,7 +1524,11 @@ showGameForm(game=null,onSubmit){const isEdit=!!game;const artworkPresets=['http
                     </div>
                     <div class="text-[10px] text-gray-500 mb-1 font-semibold uppercase">Or choose from visual presets:</div>
                     <div class="flex gap-2 overflow-x-auto pb-1 preset-scroll">
-                        ${artworkPresets.map(url => `<button type="button"class="preset-art-btn flex-shrink-0 w-20 h-12 rounded border border-gray-800 overflow-hidden relative transition hover:border-accent"data-url="${url}"><div class="w-full h-full bg-cover bg-center"style="background-image: url('${url}')"></div></button>`).join('')}
+                        ${artworkPresets.map(url => `
+                            <button type="button" class="preset-art-btn flex-shrink-0 w-20 h-12 rounded border border-gray-800 overflow-hidden relative transition hover:border-accent" data-url="${url}">
+                                <div class="w-full h-full bg-cover bg-center" style="background-image: url('${url}')"></div>
+                            </button>
+                        `).join('')}
                     </div>
                 </div>
 
@@ -1556,8 +1560,8 @@ onSubmit(data);this.close();}});const presetBtns=this.overlay.querySelectorAll('
 if(fileInput){fileInput.addEventListener('change',()=>{const f=fileInput.files&&fileInput.files[0];if(!f)return;if(f.size>2*1024*1024){alert('Image is larger than 2MB and may exceed localStorage quota. Consider using a URL instead.');}
 const reader=new FileReader();reader.onload=()=>{imgInput.value=reader.result;updatePreview(reader.result);};reader.readAsDataURL(f);});}}}
 const modals=new ModalManager();const ESCAPE_MAP={'&':'&','<':'<','>':'>','"':'"','\'':'&apos;',};function escapeHtml(str){return String(str).replace(/[&<>"']/g,ch=>ESCAPE_MAP[ch]);}
-function generateId(prefix){return`${prefix}_${Math.random().toString(36).slice(2, 9)}`;}
-function isMediaUrl(url){return/\.(mp4|webm|ogv?|mov|m4v|mkv|m4a|mp3|wav|aac)(\?|#|$)/i.test(String(url||''));}
+function generateId(prefix){return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;}
+function isMediaUrl(url){return /\.(mp4|webm|ogv?|mov|m4v|mkv|m4a|mp3|wav|aac)(\?|#|$)/i.test(String(url||''));}
 function mediaFrameUrl(url,label,accent){const bust='c=1';try{const base=new URL('.',location.href).href;let u='media-player.html?'+bust+'&u='+encodeURIComponent(url)+'&t='+encodeURIComponent(label||'Media');if(accent)u+='&a='+encodeURIComponent(accent);return new URL(u,base).href;}catch(e){return url;}}
 function isValidHttpUrl(url){try{const u=new URL(url);return u.protocol==='http:'||u.protocol==='https:';}catch(_){return false;}}
 function normalizeHttpUrl(url){let u=String(url||'').trim();if(!u)return'';if(!/^([a-zA-Z][a-zA-Z0-9+.-]*:)/.test(u)){u='https://'+u;}
@@ -1615,7 +1619,7 @@ if(typeof module!=='undefined'&&module.exports){module.exports={AboutBlankLaunch
 let activeViewer=null;function hostOf(url){try{const u=new URL(url);if(u.pathname.startsWith('/relay/raw/')){const m=u.pathname.slice('/relay/raw/'.length).match(/^https?:\/\/([^/]+)/);return m?`relay→${m[1]}`:'relay';}
 if(u.pathname==='/relay')return'relay';return u.hostname;}catch(e){return url;}}
 function closeGameViewer(){if(activeViewer){activeViewer.close();activeViewer=null;}}
-function openGameViewer(opts){closeGameViewer();const title=opts.title||'Game';const primary=opts.url;let mirrors=(opts.mirrors&&opts.mirrors.length>0)?opts.mirrors:[primary];const onPopOut=typeof opts.onPopOut==='function'?opts.onPopOut:null;const imageUrl=opts.imageUrl||null;const safeTitle=String(title).replace(/</g,'&lt;');const overlay=document.createElement('div');overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label',safeTitle);overlay.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:1rem;font-family:system-ui,sans-serif;';const box=document.createElement('div');box.style.cssText='background:#0b0d12;border:1px solid var(--accent);border-radius:12px;width:min(1100px,100%);height:min(720px,92vh);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.6);';const bar=document.createElement('div');bar.style.cssText='display:flex;align-items:center;gap:8px;padding:10px 12px;background:#111;border-bottom:1px solid #222;color:var(--accent);font:12px monospace;flex-shrink:0;';const nameEl=document.createElement('span');nameEl.style.cssText='font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';nameEl.textContent=title;const brandEl=document.createElement('span');brandEl.style.cssText='font-weight:700;color:var(--accent);white-space:nowrap;letter-spacing:1px;';brandEl.textContent='◈ QUANTUM';const mirrorSel=document.createElement('select');mirrorSel.setAttribute('aria-label','Mirror host');mirrorSel.style.cssText='margin-left:8px;background:#000;color:var(--accent);border:1px solid #333;border-radius:4px;font:11px monospace;padding:4px;max-width:260px;';const mirrorLabels=(opts.mirrorLabels&&typeof opts.mirrorLabels==='object')?opts.mirrorLabels:{};const labelFor=(u)=>mirrorLabels[u]||null;mirrors.forEach((m,i)=>{const o=document.createElement('option');o.value=String(i);const tag=labelFor(m);o.textContent=`${i === 0 ? '★ ' : ''}${tag ? `${tag}·` : ''}${hostOf(m)}`;mirrorSel.appendChild(o);});const btn=(label,titleAttr)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.title=titleAttr||label;b.style.cssText='background:transparent;color:#888;border:1px solid #333;border-radius:4px;font:11px monospace;padding:5px 10px;cursor:pointer;white-space:nowrap;';return b;};const fsBtn=btn('⛶','Toggle fullscreen');const refreshBtn=btn('↻','Reload current mirror');const popBtn=btn('↗ Pop-out','Open in stealth about:blank popup');const openBtn=btn('Open directly','Open game URL in a new tab');const closeBtn=btn('✕','Close viewer (Esc)');[fsBtn,refreshBtn,closeBtn].forEach((b)=>{b.style.font='15px system-ui, sans-serif';b.style.padding='3px 9px';b.style.minWidth='30px';b.style.textAlign='center';});const spacer=document.createElement('span');spacer.style.cssText='flex:1;';bar.appendChild(brandEl);bar.appendChild(nameEl);bar.appendChild(mirrorSel);if(opts.tv&&typeof opts.tv.rebuild==='function'){const mkNum=(labelTxt,val,min)=>{const wrap=document.createElement('label');wrap.style.cssText='display:flex;align-items:center;gap:4px;color:#888;font:11px monospace;white-space:nowrap;';wrap.textContent=labelTxt+' ';const inp=document.createElement('input');inp.type='number';inp.min=String(min);inp.value=String(val);inp.style.cssText='width:3.2rem;background:#000;color:var(--accent);border:1px solid #333;border-radius:4px;font:11px monospace;padding:3px 4px;';wrap.appendChild(inp);return{wrap,inp};};const sCtl=mkNum('S',opts.tv.s||1,1);const eCtl=mkNum('E',opts.tv.e||1,1);const applyEp=()=>{const s2=Math.max(1,parseInt(sCtl.inp.value,10)||1);const e2=Math.max(1,parseInt(eCtl.inp.value,10)||1);sCtl.inp.value=String(s2);eCtl.inp.value=String(e2);if(s2===opts.tv.s&&e2===opts.tv.e&&frame.style.display==='block')return;opts.tv.s=s2;opts.tv.e=e2;try{mirrors=opts.tv.rebuild(s2,e2)||mirrors;}catch(err){return;}
+function openGameViewer(opts){closeGameViewer();const title=opts.title||'Game';const primary=opts.url;let mirrors=(opts.mirrors&&opts.mirrors.length>0)?opts.mirrors:[primary];const onPopOut=typeof opts.onPopOut==='function'?opts.onPopOut:null;const imageUrl=opts.imageUrl||null;const safeTitle=String(title).replace(/</g,'&lt;');const overlay=document.createElement('div');overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label',safeTitle);overlay.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:1rem;font-family:system-ui,sans-serif;';const box=document.createElement('div');box.style.cssText='background:#0b0d12;border:1px solid var(--accent);border-radius:12px;width:min(1100px,100%);height:min(720px,92vh);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.6);';const bar=document.createElement('div');bar.style.cssText='display:flex;align-items:center;gap:8px;padding:10px 12px;background:#111;border-bottom:1px solid #222;color:var(--accent);font:12px monospace;flex-shrink:0;';const nameEl=document.createElement('span');nameEl.style.cssText='font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';nameEl.textContent=title;const brandEl=document.createElement('span');brandEl.style.cssText='font-weight:700;color:var(--accent);white-space:nowrap;letter-spacing:1px;';brandEl.textContent='◈ QUANTUM';const mirrorSel=document.createElement('select');mirrorSel.setAttribute('aria-label','Mirror host');mirrorSel.style.cssText='margin-left:8px;background:#000;color:var(--accent);border:1px solid #333;border-radius:4px;font:11px monospace;padding:4px;max-width:260px;';const mirrorLabels=(opts.mirrorLabels&&typeof opts.mirrorLabels==='object')?opts.mirrorLabels:{};const labelFor=(u)=>mirrorLabels[u]||null;mirrors.forEach((m,i)=>{const o=document.createElement('option');o.value=String(i);const tag=labelFor(m);o.textContent=`${i === 0 ? '★ ' : ''}${tag ? `${tag} · ` : ''}${hostOf(m)}`;mirrorSel.appendChild(o);});const btn=(label,titleAttr)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.title=titleAttr||label;b.style.cssText='background:transparent;color:#888;border:1px solid #333;border-radius:4px;font:11px monospace;padding:5px 10px;cursor:pointer;white-space:nowrap;';return b;};const fsBtn=btn('⛶','Toggle fullscreen');const refreshBtn=btn('↻','Reload current mirror');const popBtn=btn('↗ Pop-out','Open in stealth about:blank popup');const openBtn=btn('Open directly','Open game URL in a new tab');const closeBtn=btn('✕','Close viewer (Esc)');[fsBtn,refreshBtn,closeBtn].forEach((b)=>{b.style.font='15px system-ui, sans-serif';b.style.padding='3px 9px';b.style.minWidth='30px';b.style.textAlign='center';});const spacer=document.createElement('span');spacer.style.cssText='flex:1;';bar.appendChild(brandEl);bar.appendChild(nameEl);bar.appendChild(mirrorSel);if(opts.tv&&typeof opts.tv.rebuild==='function'){const mkNum=(labelTxt,val,min)=>{const wrap=document.createElement('label');wrap.style.cssText='display:flex;align-items:center;gap:4px;color:#888;font:11px monospace;white-space:nowrap;';wrap.textContent=labelTxt+' ';const inp=document.createElement('input');inp.type='number';inp.min=String(min);inp.value=String(val);inp.style.cssText='width:3.2rem;background:#000;color:var(--accent);border:1px solid #333;border-radius:4px;font:11px monospace;padding:3px 4px;';wrap.appendChild(inp);return{wrap,inp};};const sCtl=mkNum('S',opts.tv.s||1,1);const eCtl=mkNum('E',opts.tv.e||1,1);const applyEp=()=>{const s2=Math.max(1,parseInt(sCtl.inp.value,10)||1);const e2=Math.max(1,parseInt(eCtl.inp.value,10)||1);sCtl.inp.value=String(s2);eCtl.inp.value=String(e2);if(s2===opts.tv.s&&e2===opts.tv.e&&frame.style.display==='block')return;opts.tv.s=s2;opts.tv.e=e2;try{mirrors=opts.tv.rebuild(s2,e2)||mirrors;}catch(err){return;}
 const idx=parseInt(mirrorSel.value,10)||0;frame.style.display='none';loading.style.display='flex';hint.style.display='none';if(shield){shield.style.pointerEvents='auto';}
 setStatus(`Loading S${s2}E${e2}…`);showFrame(mirrors[Math.min(idx,mirrors.length-1)],Math.min(idx,mirrors.length-1));};[sCtl,eCtl].forEach((c)=>{c.inp.addEventListener('change',applyEp);c.inp.addEventListener('keydown',(ev)=>{if(ev.key==='Enter')applyEp();ev.stopPropagation();});});bar.appendChild(sCtl.wrap);bar.appendChild(eCtl.wrap);const epBtn=btn('▶','Load this episode');epBtn.addEventListener('click',(ev)=>{ev.preventDefault();applyEp();});bar.appendChild(epBtn);}
 bar.appendChild(spacer);bar.appendChild(fsBtn);bar.appendChild(refreshBtn);if(onPopOut)bar.appendChild(popBtn);bar.appendChild(openBtn);bar.appendChild(closeBtn);const stage=document.createElement('div');stage.style.cssText='position:relative;flex:1;background:#000;min-height:0;';const loading=document.createElement('div');loading.style.cssText='position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--accent);font:13px monospace;';loading.innerHTML='<div class="gv-spinner"></div><div class="gv-status">Probing mirrors…</div>';const style=document.createElement('style');style.textContent='.gv-spinner{border:3px solid #1a1a3a;border-top-color:var(--accent);border-radius:50%;width:40px;height:40px;animation:gvspin 1s linear infinite}@keyframes gvspin{to{transform:rotate(360deg)}}';const frame=document.createElement('iframe');frame.setAttribute('allow','autoplay; fullscreen; gamepad');frame.setAttribute('allowfullscreen','');if(opts.sandbox!==false){frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-pointer-lock');}
@@ -1633,7 +1637,7 @@ document.addEventListener('keydown',onKey);overlay.addEventListener('click',(e)=
 try{frame.src='about:blank';}catch(e){}
 overlay.remove();style.remove();if(activeViewer===api)activeViewer=null;}};closeBtn.addEventListener('click',()=>api.close());activeViewer=api;load();return api;}
 {openGameViewer,closeGameViewer};function probeImage(url,timeoutMs=8000){return new Promise(resolve=>{let done=false;const finish=ok=>{if(done)return;done=true;clearTimeout(t);resolve(ok);};const t=setTimeout(()=>finish(false),timeoutMs);try{const img=new Image();img.onload=()=>finish(true);img.onerror=()=>finish(false);img.src=url;}catch(e){finish(false);}});}
-function isNetworkErr(err){if(!err)return true;if(err.name==='TypeError'||err.name==='AbortError')return true;return/abort|fetch|network|cors|failed to fetch|load failed/i.test(err.message||'');}
+function isNetworkErr(err){if(!err)return true;if(err.name==='TypeError'||err.name==='AbortError')return true;return /abort|fetch|network|cors|failed to fetch|load failed/i.test(err.message||'');}
 function looksLikeHtmlDoc(text){const s=String(text||'').replace(/^\uFEFF/,'').replace(/^\s+/,'').toLowerCase();return s.startsWith('<!doctype html')||s.startsWith('<html');}
 class MirrorLoader{constructor(mirrors,options={}){this.mirrors=mirrors||[];this.target=options.target||'_blank';this.timeoutMs=options.timeoutMs||10000;this.cacheKey=options.cacheKey||'hub_working_cdn';this._label=options.label||'Game';this.onProgress=options.onProgress||(()=>{});this.onSuccess=options.onSuccess||(()=>{});this.onError=options.onError||(()=>{});this._aborted=false;this._win=null;}
 abort(){this._aborted=true;}
@@ -1660,7 +1664,7 @@ _showError(win,message){try{win.document.open();win.document.write(this._getErro
 _hubAccent(){try{const raw=localStorage.getItem('hub_settings');if(raw){const v=JSON.parse(raw).accentColor;if(typeof v==='string'&&/^#[0-9a-fA-F]{6}$/.test(v.trim()))return v.trim();}
 const css=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();if(/^#[0-9a-fA-F]{6}$/.test(css))return css;}catch(e){}
 return'#39ff14';}
-_getLoadingHTML(current,total,message){const percent=Math.round((current/total)*100);const safe=String(message).replace(/</g,'&lt;');const acc=this._hubAccent();return`<!DOCTYPE html>
+_getLoadingHTML(current,total,message){const percent=Math.round((current/total)*100);const safe=String(message).replace(/</g,'&lt;');const acc=this._hubAccent();return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Quantum • Loading…</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -1681,7 +1685,7 @@ body{font:14px 'Segoe UI',sans-serif;background:#0b0d12;color:${acc};height:100v
 <button class="cancel" onclick="window.close()">Cancel</button>
 </div></body></html>`;}
 _getIframeHTML(url,label='Game'){const safeUrl=String(url).replace(/&/g,'&amp;').replace(/"/g,'&quot;');const safeLabel=String(label).replace(/</g,'&lt;');const acc=this._hubAccent();let frameSrc=safeUrl;if(isMediaUrl(url)){const p=mediaFrameUrl(url,label,acc);frameSrc=String(p).replace(/&/g,'&amp;').replace(/"/g,'&quot;');}
-return`<!DOCTYPE html>
+return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Quantum • ${safeLabel}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -1704,7 +1708,7 @@ function ap(){var nv=vol.value/100;try{fr.contentWindow.postMessage({type:'qvol'
 try{var d=fr.contentDocument;if(d)d.querySelectorAll('video,audio').forEach(function(el){try{el.volume=nv}catch(e){}})}catch(e){}}
 vol.addEventListener('input',ap);ap();setTimeout(ap,600);setTimeout(ap,1800);setTimeout(ap,4000)})();<\/script>
 </body></html>`;}
-_getErrorHTML(message,failures=[]){const safe=String(message).replace(/</g,'&lt;');const acc=this._hubAccent();const list=failures.slice(0,10).map(f=>`<li>${String(f).replace(/</g, '&lt;')}</li>`).join('');return`<!DOCTYPE html>
+_getErrorHTML(message,failures=[]){const safe=String(message).replace(/</g,'&lt;');const acc=this._hubAccent();const list=failures.slice(0,10).map(f=>`<li>${String(f).replace(/</g, '&lt;')}</li>`).join('');return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Quantum • Load Failed</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -1724,7 +1728,7 @@ button:hover{filter:brightness(1.15)}
 </div></body></html>`;}}
 const UNBLOCKED_HOSTS=['raw.githack.com'];const JSDELIVR_HOSTS=new Set(['quantil.jsdelivr.net','gcore.jsdelivr.net','originfastly.jsdelivr.net','fastly.jsdelivr.net','testingcf.jsdelivr.net','jsdelivr.b-cdn.net','jsd.onmicrosoft.cn','cdn.jsdmirror.com']);function splitGhUrl(ghUrl){const m=String(ghUrl).match(/^https:\/\/[^/]+\/gh\/([^/]+)\/([^/@]+)(?:@([^/]+))?\/(.*)$/);if(!m)return null;return{user:m[1],repo:m[2],version:m[3]||'',path:m[4]};}
 function branchOf(version){if(!version||version==='latest')return'main';return version;}
-function buildForHost(host,parts){const{user,repo,version,path}=parts;if(host==='raw.githack.com'){return`https://raw.githack.com/${user}/${repo}/${branchOf(version)}/${path}`;}
+function buildForHost(host,parts){const{user,repo,version,path}=parts;if(host==='raw.githack.com'){return `https://raw.githack.com/${user}/${repo}/${branchOf(version)}/${path}`;}
 return null;}
 function expandUnblockedMirrors(quantilUrl){const parts=splitGhUrl(quantilUrl);if(!parts)return[quantilUrl];return[buildForHost('raw.githack.com',parts)].filter(Boolean);}
 function githackCandidates(url){const u=String(url||'').trim();const out=[];const push=(p)=>{const h='https://raw.githack.com/'+p;if(out.indexOf(h)===-1)out.push(h);};if(!/^https?:\/\//i.test(u))return out;if(/^https:\/\/raw\.githack\.com\//i.test(u))return[u];if(/^https:\/\/rawcdn\.githack\.com\//i.test(u))return[u.replace(/^https:\/\/rawcdn\.githack\.com/i,'https://raw.githack.com')];let m=u.match(/^https?:\/\/raw\.githubusercontent\.com\/([^/?#]+)\/([^/?#]+)\/([^/?#]+)\/(.*)$/i);if(m){push(`${m[1]}/${m[2]}/${m[3]}/${m[4]}`);return out;}
@@ -1779,7 +1783,7 @@ this._saveStore(store);return{locked:false,remainingAttempts:this.maxAttempts-en
 recordSuccess(identifier){const key=identifier.toLowerCase();const store=this._getStore();if(store[key]){delete store[key];this._saveStore(store);}}
 isLocked(identifier){const key=identifier.toLowerCase();const store=this._getStore();const entry=store[key];if(!entry)return{locked:false,remainingAttempts:this.maxAttempts,lockedUntil:null};if(entry.lockedUntil&&entry.lockedUntil>Date.now()){return{locked:true,remainingAttempts:0,lockedUntil:entry.lockedUntil};}
 return{locked:false,remainingAttempts:Math.max(0,this.maxAttempts-(entry.attempts||0)),lockedUntil:null};}
-getLockoutMessage(identifier){const status=this.isLocked(identifier);if(!status.locked)return null;const minutes=Math.ceil((status.lockedUntil-Date.now())/60000);return`Too many failed attempts. Try again in ${minutes} minute${minutes !== 1 ? 's' : ''}.`;}}
+getLockoutMessage(identifier){const status=this.isLocked(identifier);if(!status.locked)return null;const minutes=Math.ceil((status.lockedUntil-Date.now())/60000);return `Too many failed attempts. Try again in ${minutes} minute${minutes !== 1 ? 's' : ''}.`;}}
 const SecurityPolicy={session:{defaultTimeout:24*60*60*1000,rememberTimeout:30*24*60*60*1000,absoluteTimeout:90*24*60*60*1000,rotateThreshold:12*60*60*1000},password:{requireChangeOnBreach:true,minAge:0,historyCount:5,breachCheckEnabled:true},rateLimit:{login:{max:10,window:15*60*1000},register:{max:3,window:60*60*1000},passwordReset:{max:2,window:60*60*1000}},storage:{encryptSensitive:true,clearOnLogout:true,clearOnLockout:false},paste:{allowPaste:true,allowDragDrop:true,warnOnPaste:false}};const defaultPasswordPolicy=new PasswordPolicy();const defaultFailedTracker=new FailedAttemptTracker();{PasswordPolicy,FailedAttemptTracker,SecurityPolicy,defaultPasswordPolicy,defaultFailedTracker,COMMON_PASSWORDS,KEYBOARD_PATTERNS};const DB_NAME='quantum_hub';const DB_VERSION=1;const STORE_NAME='users';const LEGACY_KEY='hub_users';function hasIndexedDB(){try{return typeof indexedDB!=='undefined'&&indexedDB!==null;}catch(e){return false;}}
 function wrapRequest(request){return new Promise((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error||new Error('IndexedDB request failed'));});}
 class UserDatabase{constructor(){this._dbPromise=null;this._useFallback=!hasIndexedDB();this._fallbackCache=null;}
@@ -1907,106 +1911,38 @@ function buildGamesHeader(app){const bar=$('.glass-panel.p-4.mb-6');if(!bar||$('
         <button id="q-random-btn" class="btn-outline text-xs px-3 py-1.5"><i class="fas fa-dice"></i> ${t(app, 'random')}</button>
         <span id="q-streak" class="text-xs font-mono text-gray-400"></span>`;bar.parentNode.insertBefore(row,bar.nextSibling);const pick=()=>app.games[Math.floor(Math.random()*app.games.length)];$('#q-random-btn').addEventListener('click',()=>{const g=pick();if(g)app.launchGameById(g.id);});const today=new Date().toISOString().slice(0,10);const st=store.get('hub_streak',{count:0,last:''});if(st.last!==today){const y=new Date(Date.now()-864e5).toISOString().slice(0,10);st.count=(st.last===y)?st.count+1:1;st.last=today;store.set('hub_streak',st);if(st.count>1)setTimeout(()=>toast.show(`Daily streak: ${st.count} days!`,'success'),2500);}
 const chip=$('#q-streak');if(chip)chip.innerHTML=`<i class="fas fa-fire text-accent"></i> ${st.count}-day streak`;}
-const COMP_CATS=['FPS','IO','RACING','SPORTS','ACTION','FIGHTING','ARCADE','ENDLESS RUNNER','PLATFORMER'];function starRow(app,gameId){const cur=app.gameStats[gameId]?.rating||0;let html=`<div class="q-stars" data-game="${esc(gameId)}" title="Rate this game">`;for(let i=1;i<=5;i++)html+=`<button data-star="${i}" class="${i <= cur ? 'lit' : ''}"><i class="fas fa-star"></i></button>`;html+=`<span class="text-[11px] text-gray-500 ml-2">${cur ? `${cur}/5` : 'unrated'}</span></div>`;
-    return html;
-}
-function bindStars(app, root) {
-    $$('.q-stars button', root).forEach((b) => b.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const row = b.closest('.q-stars');
-        const gid = row.dataset.game;
-        const v = parseInt(b.dataset.star, 10);
-        if (!app.gameStats[gid]) app.gameStats[gid] = { launches: 0, playTime: 0, lastPlayed: null, rating: 0 };
-        app.gameStats[gid].rating = v;
-        try { app.saveGameStats && app.saveGameStats(); } catch (err) {}
-        $$('button', row).forEach((x) => x.classList.toggle('lit', parseInt(x.dataset.star, 10) <= v));
-        const lbl = row.querySelector('span'); if (lbl) lbl.textContent = `${v}/5`;
-        toast.show(`Rated ${v}/5.`, 'success');
-    }));
-}
-function enhanceDetailModal(app, gameId) {
-    const game = app.games.find((g) => g.id === gameId);
-    if (!game) return;
-    const panel = $('.modal-panel') || $('.modal-overlay .glass-panel') || $('.modal-overlay');
-    if (!panel || panel.querySelector('.q-detail-extra')) return;
-    // games with no picture get the Rayquaza art everywhere in the modal
-    if (needsArt(game)) {
-        panel.querySelectorAll('img').forEach((im) => {
-            if (!im.src.includes('rayquaza-quantum')) im.src = UNNAMED_ART;
-        });
-    }
-    const box = document.createElement('div');
-    box.className = 'q-detail-extra mt-4 pt-4 border-t border-white/10 space-y-4';
-    const sims = app.games.filter((g) => g.id !== gameId && g.category === game.category).slice(0, 6);
-    box.innerHTML = `<div><div class="text-xs font-bold text-gray-400 uppercase mb-2">Your rating</div>${starRow(app,gameId)}</div>${sims.length?`<div>
+const COMP_CATS=['FPS','IO','RACING','SPORTS','ACTION','FIGHTING','ARCADE','ENDLESS RUNNER','PLATFORMER'];function starRow(app,gameId){const cur=app.gameStats[gameId]?.rating||0;let html=`<div class="q-stars" data-game="${esc(gameId)}" title="Rate this game">`;for(let i=1;i<=5;i++)html+=`<button data-star="${i}" class="${i <= cur ? 'lit' : ''}"><i class="fas fa-star"></i></button>`;html+=`<span class="text-[11px] text-gray-500 ml-2">${cur ? `${cur}/5` : 'unrated'}</span></div>`;return html;}
+function bindStars(app,root){$$('.q-stars button',root).forEach((b)=>b.addEventListener('click',(e)=>{e.stopPropagation();const row=b.closest('.q-stars');const gid=row.dataset.game;const v=parseInt(b.dataset.star,10);if(!app.gameStats[gid])app.gameStats[gid]={launches:0,playTime:0,lastPlayed:null,rating:0};app.gameStats[gid].rating=v;try{app.saveGameStats&&app.saveGameStats();}catch(err){}
+$$('button',row).forEach((x)=>x.classList.toggle('lit',parseInt(x.dataset.star,10)<=v));const lbl=row.querySelector('span');if(lbl)lbl.textContent=`${v}/5`;toast.show(`Rated ${v}/5.`,'success');}));}
+function enhanceDetailModal(app,gameId){const game=app.games.find((g)=>g.id===gameId);if(!game)return;const panel=$('.modal-panel')||$('.modal-overlay .glass-panel')||$('.modal-overlay');if(!panel||panel.querySelector('.q-detail-extra'))return;if(needsArt(game)){panel.querySelectorAll('img').forEach((im)=>{if(!im.src.includes('rayquaza-quantum'))im.src=UNNAMED_ART;});}
+const box=document.createElement('div');box.className='q-detail-extra mt-4 pt-4 border-t border-white/10 space-y-4';const sims=app.games.filter((g)=>g.id!==gameId&&g.category===game.category).slice(0,6);box.innerHTML=`
+        <div>
+            <div class="text-xs font-bold text-gray-400 uppercase mb-2">Your rating</div>
+            ${starRow(app, gameId)}
+        </div>
+        ${sims.length ? `<div>
             <div class="text-xs font-bold text-gray-400 uppercase mb-2">Similar games</div>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                ${sims.map((g) => `<button class="q-sim glass-panel p-2 flex items-center gap-2 text-left"data-id="${esc(g.id)}"><span class="text-xs text-white truncate">${esc(g.name)}</span></button>`).join('')}
-            </div></div>`:''}
-${COMP_CATS.includes(game.category)?`<div>
+                ${sims.map((g) => `<button class="q-sim glass-panel p-2 flex items-center gap-2 text-left" data-id="${esc(g.id)}">
+                    <span class="text-xs text-white truncate">${esc(g.name)}</span></button>`).join('')}
+            </div></div>` : ''}
+        ${COMP_CATS.includes(game.category) ? `<div>
             <div class="text-xs font-bold text-gray-400 uppercase mb-2">Competitive ranks — top 5</div>
             <div id="q-ranks" class="text-xs text-gray-400">Loading ranks…</div>
-            ${app.isLoggedIn && app.isLoggedIn() ? `<div class="flex gap-2 mt-2"><input id="q-score-input"type="number"min="0"class="form-input text-xs"placeholder="Your score"><button id="q-score-send"class="btn-premium text-xs px-3">POST SCORE</button></div>` : '<div class="text-[11px] text-gray-600">Log in to post a score.</div>'}
-        </div>`:''}`;
-    panel.appendChild(box);
-    bindStars(app, box);
-    $$('.q-sim', box).forEach((b) => b.addEventListener('click', () => {
-        try { modals.close(); } catch (e) {}
-        app.showGameDetail(b.dataset.id);
-    }));
-    const rk = $('#q-ranks', box);
-    if (rk) {
-        api(app, 'scores-top', { game: gameId }).then((j) => {
-            const top = j.top || [];
-            rk.innerHTML = top.length
-                ? top.map((r, i) => `<div class="flex justify-between py-0.5"><span>#${i+1}${esc(r.user)}</span><span class="font-mono text-white">${r.score}</span></div>`).join('')
-                : 'No scores yet — be the first.';
-        }).catch(() => { rk.textContent = 'Ranks need the hub server (offline mode).'; });
-        $('#q-score-send', box)?.addEventListener('click', async () => {
-            const v = parseInt($('#q-score-input', box).value, 10);
-            if (Number.isNaN(v)) { toast.show('Enter a score.', 'error'); return; }
-            try { await api(app, 'scores-submit', { game: gameId, score: v }); toast.show('Score posted.', 'success'); enhanceRefreshRanks(app, gameId); }
-            catch (e) { toast.show(e.message, 'error'); }
-        });
-    }
-}
-async function enhanceRefreshRanks(app, gameId) {
-    try {
-        const j = await api(app, 'scores-top', { game: gameId });
-        const rk = $('#q-ranks');
-        if (rk) rk.innerHTML = (j.top || []).map((r, i) => `<div class="flex justify-between py-0.5"><span>#${i+1}${esc(r.user)}</span><span class="font-mono text-white">${r.score}</span></div>`).join('') || 'No scores yet.';
-    } catch (e) {}
-}
-
-/* ---------- account panel: profile, personal stats, social ---------- */
-function personalStats(app) {
-    const st = app.gameStats || {};
-    const ids = Object.keys(st);
-    const launches = ids.reduce((a, id) => a + (st[id].launches || 0), 0);
-    const playTime = ids.reduce((a, id) => a + (st[id].playTime || 0), 0);
-    const favs = favsGet().size;
-    const streak = store.get('hub_streak', { count: 0 }).count || 0;
-    const rated = ids.filter((id) => (st[id].rating || 0) > 0).length;
-    const mins = Math.floor(playTime / 60);
-    return { launches, playTime: mins >= 60 ? `${(mins/60).toFixed(1)}h` : `${mins}m`, favs, streak, rated, games: ids.length };
-}
-function renderAccountPlus(app) {
-    const host = $('#account-content');
-    if (!host) return;
-    const logged = !!(app.isLoggedIn && app.isLoggedIn());
-    const flag = logged ? '1' : '0';
-    const existing = host.querySelector('#q-account-plus');
-    // Render once per auth STATE: the boot-time box is always the logged-out
-    // one (session restore is async), so a login/logout must replace it —
-    // otherwise the profile/friends/polls section can never appear.
-    if (existing && existing.dataset.logged === flag) return;
-    if (existing) existing.remove();
-    const box = document.createElement('div');
-    box.id = 'q-account-plus';
-    box.className = 'mt-4 pt-4 border-t border-white/10 space-y-4';
-    box.dataset.logged = flag;
-    const s = personalStats(app);
-    box.innerHTML = `<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">${[['Launches',s.launches],['Play time',s.playTime],['Favorites',s.favs],['Streak',`${s.streak}d`],['Rated',s.rated],['Games tried',s.games]].map(([k,v])=>`<div class="glass-panel p-2"><div class="text-lg font-bold text-white">${v}</div><div class="text-[10px] text-gray-500 uppercase">${k}</div></div>`).join('')}</div>${logged?`
+            ${app.isLoggedIn && app.isLoggedIn() ? `<div class="flex gap-2 mt-2">
+                <input id="q-score-input" type="number" min="0" class="form-input text-xs" placeholder="Your score">
+                <button id="q-score-send" class="btn-premium text-xs px-3">POST SCORE</button></div>` : '<div class="text-[11px] text-gray-600">Log in to post a score.</div>'}
+        </div>` : ''}`;panel.appendChild(box);bindStars(app,box);$$('.q-sim',box).forEach((b)=>b.addEventListener('click',()=>{try{modals.close();}catch(e){}
+app.showGameDetail(b.dataset.id);}));const rk=$('#q-ranks',box);if(rk){api(app,'scores-top',{game:gameId}).then((j)=>{const top=j.top||[];rk.innerHTML=top.length?top.map((r,i)=>`<div class="flex justify-between py-0.5"><span>#${i + 1} ${esc(r.user)}</span><span class="font-mono text-white">${r.score}</span></div>`).join(''):'No scores yet — be the first.';}).catch(()=>{rk.textContent='Ranks need the hub server (offline mode).';});$('#q-score-send',box)?.addEventListener('click',async()=>{const v=parseInt($('#q-score-input',box).value,10);if(Number.isNaN(v)){toast.show('Enter a score.','error');return;}
+try{await api(app,'scores-submit',{game:gameId,score:v});toast.show('Score posted.','success');enhanceRefreshRanks(app,gameId);}
+catch(e){toast.show(e.message,'error');}});}}
+async function enhanceRefreshRanks(app,gameId){try{const j=await api(app,'scores-top',{game:gameId});const rk=$('#q-ranks');if(rk)rk.innerHTML=(j.top||[]).map((r,i)=>`<div class="flex justify-between py-0.5"><span>#${i + 1} ${esc(r.user)}</span><span class="font-mono text-white">${r.score}</span></div>`).join('')||'No scores yet.';}catch(e){}}
+function personalStats(app){const st=app.gameStats||{};const ids=Object.keys(st);const launches=ids.reduce((a,id)=>a+(st[id].launches||0),0);const playTime=ids.reduce((a,id)=>a+(st[id].playTime||0),0);const favs=favsGet().size;const streak=store.get('hub_streak',{count:0}).count||0;const rated=ids.filter((id)=>(st[id].rating||0)>0).length;const mins=Math.floor(playTime/60);return{launches,playTime:mins>=60?`${(mins / 60).toFixed(1)}h`:`${mins}m`,favs,streak,rated,games:ids.length};}
+function renderAccountPlus(app){const host=$('#account-content');if(!host)return;const logged=!!(app.isLoggedIn&&app.isLoggedIn());const flag=logged?'1':'0';const existing=host.querySelector('#q-account-plus');if(existing&&existing.dataset.logged===flag)return;if(existing)existing.remove();const box=document.createElement('div');box.id='q-account-plus';box.className='mt-4 pt-4 border-t border-white/10 space-y-4';box.dataset.logged=flag;const s=personalStats(app);box.innerHTML=`
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
+            ${[['Launches', s.launches], ['Play time', s.playTime], ['Favorites', s.favs], ['Streak', `${s.streak}d`], ['Rated', s.rated], ['Games tried', s.games]].map(([k, v]) => `<div class="glass-panel p-2"><div class="text-lg font-bold text-white">${v}</div><div class="text-[10px] text-gray-500 uppercase">${k}</div></div>`).join('')}
+        </div>
+        ${logged ? `
         <div>
             <div class="text-xs font-bold text-gray-400 uppercase mb-2">Profile (no NSFW — filtered)</div>
             <div class="flex flex-col gap-2">
@@ -2066,391 +2002,156 @@ function renderAccountPlus(app) {
                 <input id="q-poll-opts" class="form-input text-xs" placeholder="Options, comma separated">
                 <button id="q-poll-new" class="btn-outline text-xs px-3">CREATE</button>
             </div>
-        </div>`:'<div class="text-xs text-gray-500">Log in to unlock profiles, friends, chat, polls and ranks.</div>'}`;
-    host.appendChild(box);
-    if (!logged) return;
-    const reload = () => loadSocial(app);
-    $('#q-profile-save').addEventListener('click', async () => {
-        const display = $('#q-display').value, bio = $('#q-bio').value, color = $('#q-color').value;
-        if (!cleanText(`${display}${bio}`)) { toast.show('Profile text blocked (keep it clean).', 'error'); return; }
-        try { await api(app, 'profile-set', { display, bio, color }); toast.show('Profile saved.', 'success'); }
-        catch (e) { toast.show(e.message, 'error'); }
-    });
-    $('#q-profile-view').addEventListener('click', async () => {
-        try {
-            const j = await api(app, 'profile-get', {});
-            $('#q-profile-card').innerHTML = `<span style="color:${esc(j.color)}">◈</span><b class="text-white">${esc(j.display||j.username)}</b><span class="text-gray-600">@${esc(j.username)}</span><br>${esc(j.bio||'No bio yet.')}`;
-            if (j.display) $('#q-display').value = j.display;
-            if (j.bio) $('#q-bio').value = j.bio;
-            if (j.color) $('#q-color').value = j.color;
-        } catch (e) { toast.show(e.message, 'error'); }
-    });
-    $('#q-user-go').addEventListener('click', async () => {
-        const q = $('#q-user-search').value.trim();
-        if (q.length < 2) return;
-        try {
-            const j = await api(app, 'users-search', { q });
-            $('#q-user-results').innerHTML = j.users.length ? j.users.map((u) => `<div class="flex items-center justify-between glass-panel px-2 py-1"><span class="text-white">${esc(u.username)}</span><span class="flex gap-1"><button class="btn-outline text-[10px] px-2 py-0.5"data-add="${esc(u.username)}">ADD</button><button class="btn-outline text-[10px] px-2 py-0.5"data-chat="${esc(u.username)}">CHAT</button><button class="btn-outline text-[10px] px-2 py-0.5"data-block="${esc(u.username)}">BLOCK</button></span></div>`).join('') : '<div class="text-gray-600">No users found.</div>';
-            $$('#q-user-results [data-add]').forEach((b) => b.addEventListener('click', async () => {
-                try { await api(app, 'friends', { action: 'request', user: b.dataset.add }); toast.show('Request sent.', 'success'); reload(); }
-                catch (e) { toast.show(e.message, 'error'); }
-            }));
-            $$('#q-user-results [data-chat]').forEach((b) => b.addEventListener('click', () => openChat(app, b.dataset.chat)));
-            $$('#q-user-results [data-block]').forEach((b) => b.addEventListener('click', async () => {
-                try { await api(app, 'block', { action: 'block', user: b.dataset.block }); toast.show('User blocked.', 'success'); reload(); }
-                catch (e) { toast.show(e.message, 'error'); }
-            }));
-        } catch (e) { toast.show(e.message, 'error'); }
-    });
-    $('#q-report-send').addEventListener('click', async () => {
-        const target = $('#q-report-user').value.trim();
-        if (!target) { toast.show('Enter a username.', 'error'); return; }
-        try {
-            await api(app, 'report', { target, kind: $('#q-report-kind').value, detail: $('#q-report-detail').value });
-            toast.show('Report received.', 'success');
-        } catch (e) { toast.show(e.message, 'error'); }
-    });
-    $('#q-poll-new').addEventListener('click', async () => {
-        const question = $('#q-poll-q').value.trim();
-        const options = $('#q-poll-opts').value.split(',').map((s) => s.trim()).filter(Boolean);
-        if (!cleanText(`${question}${options.join(' ')}`)) { toast.show('Poll text blocked.', 'error'); return; }
-        try { await api(app, 'polls-create', { question, options }); toast.show('Poll created.', 'success'); loadPolls(app); }
-        catch (e) { toast.show(e.message, 'error'); }
-    });
-    $('#q-chat-send').addEventListener('click', sendChat);
-    $('#q-chat-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
-    // Emote picker (Vortex-style): one tap appends the emote to the draft.
-    const erow = $('#q-emote-row');
-    if (erow && !erow.dataset.q) {
-        erow.dataset.q = '1';
-        const EMOTES = ['😀', '😂', '😍', '🔥', '👍', '👎', '🎮', '🍿', '😢', '😮', '💀', '👏', '🙏', '💯', '❤️', '⭐', '🎉', '🤔'];
-        erow.innerHTML = EMOTES.map((m) => `<button type="button"class="text-lg leading-none p-1 hover:scale-125 transition"data-e="${m}">${m}</button>`).join('');
-        erow.addEventListener('click', (e) => {
-            const b = e.target.closest ? e.target.closest('[data-e]') : null;
-            if (!b) return;
-            const inp = $('#q-chat-input');
-            if (inp) { inp.value += b.dataset.e; inp.focus(); }
-        });
-        $('#q-chat-emotes').addEventListener('click', () => {
-            erow.classList.toggle('hidden');
-            erow.classList.toggle('flex');
-        });
-    }
-    async function sendChat() {
-        const who = $('#q-chat-who').textContent;
-        const body = $('#q-chat-input').value.trim();
-        if (!who || !body) return;
-        if (!cleanText(body)) { toast.show('Message blocked (keep it clean).', 'error'); return; }
-        try { await api(app, 'chat-send', { user: who, body }); $('#q-chat-input').value = ''; openChat(app, who); }
-        catch (e) { toast.show(e.message, 'error'); }
-    }
-    loadSocial(app); loadPolls(app);
-}
-async function openChat(app, who) {
-    $('#q-chat').classList.remove('hidden');
-    $('#q-chat-who').textContent = who;
-    try {
-        const j = await api(app, 'chat-history', { user: who });
-        $('#q-chat-log').innerHTML = j.messages.map((m) => `<div class="${m.me ? 'text-right' : ''}"><span class="text-gray-500">${esc(m.me?'you':m.from)}:</span><span class="text-gray-200">${esc(m.body)}</span></div>`).join('') || '<div class="text-gray-600">No messages yet.</div>';
-        $('#q-chat-log').scrollTop = 1e6;
-    } catch (e) { toast.show(e.message, 'error'); }
-}
-async function loadSocial(app) {
-    try {
-        const j = await api(app, 'friends', { action: 'list' });
-        $('#q-friends').innerHTML = j.friends.length ? j.friends.map((f) => `<div class="flex items-center justify-between glass-panel px-2 py-1"><span class="text-white">${esc(f.username)}</span><span class="flex gap-1"><button class="btn-outline text-[10px] px-2 py-0.5"data-c="${esc(f.username)}">CHAT</button><button class="btn-outline text-[10px] px-2 py-0.5"data-r="${esc(f.username)}">REMOVE</button></span></div>`).join('') : '<div class="text-gray-600">No friends yet.</div>';
-        $('#q-requests').innerHTML = j.incoming.length ? j.incoming.map((f) => `<div class="flex items-center justify-between glass-panel px-2 py-1"><span class="text-white">${esc(f.username)}</span><span class="flex gap-1"><button class="btn-outline text-[10px] px-2 py-0.5"data-a="${esc(f.username)}">ACCEPT</button><button class="btn-outline text-[10px] px-2 py-0.5"data-d="${esc(f.username)}">DECLINE</button></span></div>`).join('') : '<div class="text-gray-600">No requests.</div>';
-        $$('#q-friends [data-c]').forEach((b) => b.addEventListener('click', () => openChat(app, b.dataset.c)));
-        $$('#q-friends [data-r]').forEach((b) => b.addEventListener('click', async () => {
-            await api(app, 'friends', { action: 'remove', user: b.dataset.r }); loadSocial(app);
-        }));
-        $$('#q-requests [data-a]').forEach((b) => b.addEventListener('click', async () => {
-            await api(app, 'friends', { action: 'accept', user: b.dataset.a }); toast.show('Friend added.', 'success'); loadSocial(app);
-        }));
-        $$('#q-requests [data-d]').forEach((b) => b.addEventListener('click', async () => {
-            await api(app, 'friends', { action: 'decline', user: b.dataset.d }); loadSocial(app);
-        }));
-    } catch (e) {}
-    try {
-        const b = await api(app, 'blocks-list', {});
-        $('#q-blocks').innerHTML = b.blocked.length ? b.blocked.map((u) => `<div class="flex items-center justify-between glass-panel px-2 py-1"><span>${esc(u)}</span><button class="btn-outline text-[10px] px-2 py-0.5"data-u="${esc(u)}">UNBLOCK</button></div>`).join('') : 'Nobody blocked.';
-        $$('#q-blocks [data-u]').forEach((x) => x.addEventListener('click', async () => {
-            await api(app, 'block', { action: 'unblock', user: x.dataset.u }); loadSocial(app);
-        }));
-    } catch (e) {}
-}
-async function loadPolls(app) {
-    try {
-        const j = await api(app, 'polls-list', {});
-        $('#q-polls').innerHTML = j.polls.map((p) => {
-            const total = p.counts.reduce((a, b) => a + b, 0) || 1;
-            return `<div class="glass-panel p-2"><div class="text-xs text-white font-bold mb-1">${esc(p.question)}</div>${p.options.map((o,i)=>{const pct=Math.round((p.counts[i]/total)*100);return`<button class="w-full text-left mb-1" data-poll="${p.id}" data-opt="${i}">
+        </div>` : '<div class="text-xs text-gray-500">Log in to unlock profiles, friends, chat, polls and ranks.</div>'}`;host.appendChild(box);if(!logged)return;const reload=()=>loadSocial(app);$('#q-profile-save').addEventListener('click',async()=>{const display=$('#q-display').value,bio=$('#q-bio').value,color=$('#q-color').value;if(!cleanText(`${display} ${bio}`)){toast.show('Profile text blocked (keep it clean).','error');return;}
+try{await api(app,'profile-set',{display,bio,color});toast.show('Profile saved.','success');}
+catch(e){toast.show(e.message,'error');}});$('#q-profile-view').addEventListener('click',async()=>{try{const j=await api(app,'profile-get',{});$('#q-profile-card').innerHTML=`<span style="color:${esc(j.color)}">◈</span> <b class="text-white">${esc(j.display || j.username)}</b> <span class="text-gray-600">@${esc(j.username)}</span><br>${esc(j.bio || 'No bio yet.')}`;if(j.display)$('#q-display').value=j.display;if(j.bio)$('#q-bio').value=j.bio;if(j.color)$('#q-color').value=j.color;}catch(e){toast.show(e.message,'error');}});$('#q-user-go').addEventListener('click',async()=>{const q=$('#q-user-search').value.trim();if(q.length<2)return;try{const j=await api(app,'users-search',{q});$('#q-user-results').innerHTML=j.users.length?j.users.map((u)=>`<div class="flex items-center justify-between glass-panel px-2 py-1">
+                <span class="text-white">${esc(u.username)}</span>
+                <span class="flex gap-1">
+                    <button class="btn-outline text-[10px] px-2 py-0.5" data-add="${esc(u.username)}">ADD</button>
+                    <button class="btn-outline text-[10px] px-2 py-0.5" data-chat="${esc(u.username)}">CHAT</button>
+                    <button class="btn-outline text-[10px] px-2 py-0.5" data-block="${esc(u.username)}">BLOCK</button>
+                </span></div>`).join(''):'<div class="text-gray-600">No users found.</div>';$$('#q-user-results [data-add]').forEach((b)=>b.addEventListener('click',async()=>{try{await api(app,'friends',{action:'request',user:b.dataset.add});toast.show('Request sent.','success');reload();}
+catch(e){toast.show(e.message,'error');}}));$$('#q-user-results [data-chat]').forEach((b)=>b.addEventListener('click',()=>openChat(app,b.dataset.chat)));$$('#q-user-results [data-block]').forEach((b)=>b.addEventListener('click',async()=>{try{await api(app,'block',{action:'block',user:b.dataset.block});toast.show('User blocked.','success');reload();}
+catch(e){toast.show(e.message,'error');}}));}catch(e){toast.show(e.message,'error');}});$('#q-report-send').addEventListener('click',async()=>{const target=$('#q-report-user').value.trim();if(!target){toast.show('Enter a username.','error');return;}
+try{await api(app,'report',{target,kind:$('#q-report-kind').value,detail:$('#q-report-detail').value});toast.show('Report received.','success');}catch(e){toast.show(e.message,'error');}});$('#q-poll-new').addEventListener('click',async()=>{const question=$('#q-poll-q').value.trim();const options=$('#q-poll-opts').value.split(',').map((s)=>s.trim()).filter(Boolean);if(!cleanText(`${question} ${options.join(' ')}`)){toast.show('Poll text blocked.','error');return;}
+try{await api(app,'polls-create',{question,options});toast.show('Poll created.','success');loadPolls(app);}
+catch(e){toast.show(e.message,'error');}});$('#q-chat-send').addEventListener('click',sendChat);$('#q-chat-input').addEventListener('keydown',(e)=>{if(e.key==='Enter')sendChat();});const erow=$('#q-emote-row');if(erow&&!erow.dataset.q){erow.dataset.q='1';const EMOTES=['😀','😂','😍','🔥','👍','👎','🎮','🍿','😢','😮','💀','👏','🙏','💯','❤️','⭐','🎉','🤔'];erow.innerHTML=EMOTES.map((m)=>`<button type="button" class="text-lg leading-none p-1 hover:scale-125 transition" data-e="${m}">${m}</button>`).join('');erow.addEventListener('click',(e)=>{const b=e.target.closest?e.target.closest('[data-e]'):null;if(!b)return;const inp=$('#q-chat-input');if(inp){inp.value+=b.dataset.e;inp.focus();}});$('#q-chat-emotes').addEventListener('click',()=>{erow.classList.toggle('hidden');erow.classList.toggle('flex');});}
+async function sendChat(){const who=$('#q-chat-who').textContent;const body=$('#q-chat-input').value.trim();if(!who||!body)return;if(!cleanText(body)){toast.show('Message blocked (keep it clean).','error');return;}
+try{await api(app,'chat-send',{user:who,body});$('#q-chat-input').value='';openChat(app,who);}
+catch(e){toast.show(e.message,'error');}}
+loadSocial(app);loadPolls(app);}
+async function openChat(app,who){$('#q-chat').classList.remove('hidden');$('#q-chat-who').textContent=who;try{const j=await api(app,'chat-history',{user:who});$('#q-chat-log').innerHTML=j.messages.map((m)=>`<div class="${m.me ? 'text-right' : ''}"><span class="text-gray-500">${esc(m.me ? 'you' : m.from)}:</span> <span class="text-gray-200">${esc(m.body)}</span></div>`).join('')||'<div class="text-gray-600">No messages yet.</div>';$('#q-chat-log').scrollTop=1e6;}catch(e){toast.show(e.message,'error');}}
+async function loadSocial(app){try{const j=await api(app,'friends',{action:'list'});$('#q-friends').innerHTML=j.friends.length?j.friends.map((f)=>`<div class="flex items-center justify-between glass-panel px-2 py-1">
+            <span class="text-white">${esc(f.username)}</span>
+            <span class="flex gap-1"><button class="btn-outline text-[10px] px-2 py-0.5" data-c="${esc(f.username)}">CHAT</button>
+            <button class="btn-outline text-[10px] px-2 py-0.5" data-r="${esc(f.username)}">REMOVE</button></span></div>`).join(''):'<div class="text-gray-600">No friends yet.</div>';$('#q-requests').innerHTML=j.incoming.length?j.incoming.map((f)=>`<div class="flex items-center justify-between glass-panel px-2 py-1">
+            <span class="text-white">${esc(f.username)}</span>
+            <span class="flex gap-1"><button class="btn-outline text-[10px] px-2 py-0.5" data-a="${esc(f.username)}">ACCEPT</button>
+            <button class="btn-outline text-[10px] px-2 py-0.5" data-d="${esc(f.username)}">DECLINE</button></span></div>`).join(''):'<div class="text-gray-600">No requests.</div>';$$('#q-friends [data-c]').forEach((b)=>b.addEventListener('click',()=>openChat(app,b.dataset.c)));$$('#q-friends [data-r]').forEach((b)=>b.addEventListener('click',async()=>{await api(app,'friends',{action:'remove',user:b.dataset.r});loadSocial(app);}));$$('#q-requests [data-a]').forEach((b)=>b.addEventListener('click',async()=>{await api(app,'friends',{action:'accept',user:b.dataset.a});toast.show('Friend added.','success');loadSocial(app);}));$$('#q-requests [data-d]').forEach((b)=>b.addEventListener('click',async()=>{await api(app,'friends',{action:'decline',user:b.dataset.d});loadSocial(app);}));}catch(e){}
+try{const b=await api(app,'blocks-list',{});$('#q-blocks').innerHTML=b.blocked.length?b.blocked.map((u)=>`<div class="flex items-center justify-between glass-panel px-2 py-1">
+            <span>${esc(u)}</span><button class="btn-outline text-[10px] px-2 py-0.5" data-u="${esc(u)}">UNBLOCK</button></div>`).join(''):'Nobody blocked.';$$('#q-blocks [data-u]').forEach((x)=>x.addEventListener('click',async()=>{await api(app,'block',{action:'unblock',user:x.dataset.u});loadSocial(app);}));}catch(e){}}
+async function loadPolls(app){try{const j=await api(app,'polls-list',{});$('#q-polls').innerHTML=j.polls.map((p)=>{const total=p.counts.reduce((a,b)=>a+b,0)||1;return `<div class="glass-panel p-2"><div class="text-xs text-white font-bold mb-1">${esc(p.question)}</div>
+                ${p.options.map((o, i) => {
+                    const pct = Math.round((p.counts[i] / total) * 100);
+                    return `<button class="w-full text-left mb-1" data-poll="${p.id}" data-opt="${i}">
                         <div class="flex justify-between text-[11px] text-gray-300"><span>${p.mine === i ? '◈ ' : ''}${esc(o)}</span><span>${pct}% (${p.counts[i]})</span></div>
                         <div class="h-1.5 bg-white/5 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${pct}%;background:var(--accent)"></div></div>
-                    </button>`;}).join('')}</div>`;
-        }).join('') || '<div class="text-gray-600 text-xs">No polls yet.</div>';
-        $$('#q-polls [data-poll]').forEach((b) => b.addEventListener('click', async () => {
-            try { await api(app, 'polls-vote', { id: b.dataset.poll, opt: parseInt(b.dataset.opt, 10) }); loadPolls(app); }
-            catch (e) { toast.show(e.message, 'error'); }
-        }));
-    } catch (e) { $('#q-polls').innerHTML = '<div class="text-gray-600 text-xs">Polls need the hub server.</div>'; }
-}
-
-/* ---------- settings: lite, auto-theme, language, dock, txt backup, updates, feedback, install ---------- */
-function applyLite(app) {
-    const lite = !!app.settings.lite;
-    document.documentElement.classList.toggle('q-lite', lite);
-    if (lite) {
-        document.body.classList.add('animations-none');
-        document.body.classList.remove('animations-reduced');
-        try { window.QuantumStealth?.setPerfMode?.(true); } catch (e) {}
-        const cv = $('#particles-canvas'); if (cv) cv.style.display = 'none';
-    } else {
-        document.body.classList.remove('animations-none');
-        const cv = $('#particles-canvas'); if (cv) cv.style.display = '';
-    }
-}
-function buildSettingsPlus(app) {
-    const host = $('#settings-account')?.parentElement;
-    if (!host || $('#q-settings-plus')) return;
-    const box = document.createElement('div');
-    box.id = 'q-settings-plus';
-    box.className = 'glass-panel p-6 space-y-4';
-    box.innerHTML = `<h4 class="text-md font-bold text-white font-logo flex items-center gap-2"><i class="fas fa-sliders text-accent"></i><span data-i18n="hubExtras">HUB EXTRAS</span></h4><div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs"><label class="flex items-center justify-between gap-2 text-gray-300"><span data-i18n="liteMode">Lite mode(strip animations&effects)</span><input id="q-lite"type="checkbox"class="w-4 h-4"${app.settings.lite?'checked':''}></label><label class="flex items-center justify-between gap-2 text-gray-300"><span data-i18n="autoTheme">Auto theme by time</span><select id="q-autotheme"class="form-select text-xs w-32"><option value="off"data-i18n="off">Off</option><option value="time"data-i18n="byTime">By time</option></select></label><label class="flex items-center justify-between gap-2 text-gray-300"><span data-i18n="language">Language</span><select id="q-lang"class="form-select text-xs w-32"><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="ja">日本語</option><option value="zh">中文</option></select></label><label class="flex items-center justify-between gap-2 text-gray-300"><span data-i18n="dockPos">Dock position</span><select id="q-dockpos"class="form-select text-xs w-32"><option value="bottom"data-i18n="bottom">Bottom</option><option value="left"data-i18n="left">Left</option><option value="right"data-i18n="right">Right</option><option value="free"data-i18n="unlocked">Unlocked(drag)</option></select></label><label class="flex items-center justify-between gap-2 text-gray-300"><span data-i18n="sidePos">Sidebar side</span><select id="q-sidepos"class="form-select text-xs w-32"><option value="left"data-i18n="left">Left</option><option value="right"data-i18n="right">Right</option></select></label></div><div class="flex flex-wrap gap-2"><button id="q-txt-down"class="btn-outline text-xs px-3 py-2"><i class="fas fa-download"></i><span data-i18n="txtSettings">SETTINGS.TXT</span></button><button id="q-data-down"class="btn-outline text-xs px-3 py-2"><i class="fas fa-hdd"></i><span data-i18n="txtData">MY DATA FILE</span></button><button id="q-updates"class="btn-outline text-xs px-3 py-2"><i class="fas fa-bell"></i><span data-i18n="updates">UPDATES</span></button><button id="q-news"class="btn-outline text-xs px-3 py-2"><i class="fas fa-newspaper"></i><span data-i18n="news">EVENTS&NEWS</span></button><button id="q-feedback"class="btn-outline text-xs px-3 py-2"><i class="fas fa-comment"></i><span data-i18n="feedback">FEEDBACK</span></button><button id="q-install"class="btn-premium text-xs px-3 py-2"><i class="fas fa-arrow-down"></i><span data-i18n="install">INSTALL APP</span></button></div><div><div class="text-[11px] text-gray-500 mb-1"data-i18n="importHint">Paste a settings.txt to import</div><textarea id="q-txt-paste"class="form-textarea h-20 font-mono text-[10px]"placeholder="Paste settings file content here…"></textarea><button id="q-txt-import"class="btn-outline text-xs px-3 py-1.5 mt-2"><span data-i18n="txtImport">IMPORT.TXT</span></button></div>`;
-    host.appendChild(box);
-    $('#q-autotheme').value = app.settings.autoTheme || 'off';
-    $('#q-lang').value = app.settings.language || 'en';
-    $('#q-dockpos').value = app.settings.dockPosition || 'bottom';
-    $('#q-sidepos').value = app.settings.sidebarSide || 'left';
-    $('#q-lite').addEventListener('change', (e) => {
-        app.settings.lite = e.target.checked; app.saveSettings(); applyLite(app);
-        toast.show(e.target.checked ? 'Lite mode ON.' : 'Lite mode OFF.', 'success');
-    });
-    $('#q-autotheme').addEventListener('change', (e) => {
-        app.settings.autoTheme = e.target.value; app.saveSettings();
-        store.set('q_theme_manual', false); autoThemeTick(app);
-    });
-    const setLang = (v) => {
-        app.settings.language = v; app.saveSettings(); applyI18n(app);
-        toast.show(t(app, 'langApplied'), 'success');
-    };
-    $('#q-lang').addEventListener('change', (e) => setLang(e.target.value));
-    const sl = $('#setting-language');
-    if (sl && !sl.dataset.q) {
-        sl.dataset.q = '1';
-        sl.value = app.settings.language || 'en';
-        sl.addEventListener('change', (e) => setLang(e.target.value));
-    }
-    $('#q-dockpos').addEventListener('change', (e) => {
-        app.settings.dockPosition = e.target.value; app.saveSettings();
-        dockCookieSave(app); applyDockPosition(app);
-        toast.show(`Dock:${e.target.value}.`, 'success');
-    });
-    $('#q-sidepos').addEventListener('change', (e) => {
-        app.settings.sidebarSide = e.target.value; app.saveSettings();
-        dockCookieSave(app); applyDockPosition(app);
-    });
-    const collectSettings = () => ({ settings: app.settings, favorites: Array.from(favsGet()), streak: store.get('hub_streak', null), exported_at: new Date().toISOString() });
-    const download = (name, text) => {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
-        a.download = name; a.click();
-        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    };
-    $('#q-txt-down').addEventListener('click', () => {
-        download('quantum-settings.txt', `QUANTUM_HUB_SETTINGS v1\n${JSON.stringify(collectSettings(),null,2)}`);
-        toast.show('Settings .txt downloaded.', 'success');
-    });
-    $('#q-data-down').addEventListener('click', () => {
-        download('quantum-mydata.txt', `QUANTUM_HUB_DATA v1\n${JSON.stringify({...collectSettings(),stats:app.gameStats},null,2)}`);
-        toast.show('Data file downloaded.', 'success');
-    });
-    $('#q-txt-import').addEventListener('click', () => {
-        try {
-            const raw = $('#q-txt-paste').value;
-            const json = JSON.parse(raw.slice(raw.indexOf('{')));
-            if (json.settings) { app.settings = { ...app.settings, ...json.settings }; app.saveSettings(); app.applyVisuals(); applyLite(app); applyDockPosition(app); applyI18n(app); }
-            if (json.favorites) favsSet(new Set(json.favorites));
-            if (json.streak) store.set('hub_streak', json.streak);
-            toast.show('Settings imported.', 'success');
-        } catch (e) { toast.show('Invalid settings file.', 'error'); }
-    });
-    $('#q-updates').addEventListener('click', () => modals.open(`<h2 class="text-xl font-bold text-white font-logo mb-3"><i class="fas fa-bell text-accent"></i>HUB UPDATES</h2><div class="space-y-2 text-xs text-gray-300"><div class="glass-panel p-3"><b class="text-white">Basics pack</b>— volume,clock,battery,weather,online count,day/night,dock&sidebar move,working login,hover favorites,random+lucky,star ratings,similar games,ranks,profiles,stats,polls,friends,chat,blocks,reports,feedback,forms,install,lite mode,.txt backup,Netflix previews,i18n,auto-theme.</div><div class="glass-panel p-3"><b class="text-white">Catalog wave</b>— 84 gamesite+264 fifty-five-GMS games with per-game CDN mirrors.</div><div class="glass-panel p-3"><b class="text-white">Quantum pass</b>— full-scheme theming,per-game artwork,branded popups.</div></div>`));
-    $('#q-news').addEventListener('click', async () => {
-        let pollLine = 'No active polls right now.';
-        try {
-            const j = await api(app, 'polls-list', {});
-            if (j.polls?.length) {
-                const p = j.polls[0];
-                const total = p.counts.reduce((a, b) => a + b, 0);
-                const lead = p.options[p.counts.indexOf(Math.max(...p.counts))];
-                pollLine = `Latest poll:"${p.question}"— leading:${lead}(${total}votes).`;
-            }
-        } catch (e) { pollLine = 'Polls need the hub server (offline mode).'; }
-        const gotd = (() => { try { const g = gameOfDay(app); return g ? g.name : '—'; } catch (e) { return '—'; } })();
-        const day = new Date().toISOString().slice(0, 10);
-        modals.open(`<h2 class="text-xl font-bold text-white font-logo mb-3"><i class="fas fa-newspaper text-accent"></i>EVENTS&NEWS</h2><div class="space-y-2 text-xs text-gray-300"><div class="glass-panel p-3"><div class="text-[10px] text-gray-500 uppercase mb-1">Today · ${day}</div><b class="text-white">Game of the day:${esc(gotd)}</b><br>One featured pick,fresh every morning.</div><div class="glass-panel p-3"><div class="text-[10px] text-gray-500 uppercase mb-1">Community</div>${esc(pollLine)}</div><div class="glass-panel p-3"><div class="text-[10px] text-gray-500 uppercase mb-1">Event · FPS Friday</div>Post your best FPS scores on the competitive ranks boards every Friday — top 5 make the card.</div><div class="glass-panel p-3"><div class="text-[10px] text-gray-500 uppercase mb-1">Event · Racing Weekend</div>Weekend time-trials on RACING titles.Fastest posted scores take the leaderboard.</div><div class="glass-panel p-3"><div class="text-[10px] text-gray-500 uppercase mb-1">Shipped</div>Basics pack is live:volume,clock,battery,weather,online count,day/night,dock&sidebar move,working login,hover favorites,random+lucky,ratings,similar games,ranks,profiles,stats,polls,friends,chat,blocks,reports,feedback,forms,install,lite mode,.txt backup,previews,languages,auto-theme.</div></div>`);
-    });
-    $('#q-feedback').addEventListener('click', () => modals.open(`<h2 class="text-xl font-bold text-white font-logo mb-3"><i class="fas fa-comment text-accent"></i>SEND FEEDBACK</h2><textarea id="q-fb-text"class="form-textarea h-28 text-xs"maxlength="2000"placeholder="Tell us what to improve…"></textarea><button id="q-fb-send"class="btn-premium text-xs px-4 py-2 mt-3">SUBMIT</button>`, {
-        '#q-fb-send': async () => {
-            const body = $('#q-fb-text').value.trim();
-            if (!body) return;
-            if (!cleanText(body)) { toast.show('Feedback blocked (keep it clean).', 'error'); return; }
-            try { await api(app, 'feedback', { body }); toast.show('Feedback sent.', 'success'); modals.close(); }
-            catch (e) { toast.show(e.message, 'error'); }
-        },
-    }));
-    $('#q-install').addEventListener('click', async () => {
-        if (window._qInstallPrompt) {
-            window._qInstallPrompt.prompt();
-            await window._qInstallPrompt.userChoice;
-            window._qInstallPrompt = null;
-        } else toast.show('No install prompt available in this browser.', 'info');
-    });
-}
-
-/* ---------- media grids + Netflix-style hover previews ---------- */
-// Playable media opens inside the hub viewer (an iframe overlay) — fewer
-// popup/blank-window failure modes. launchContent is viewer-first now, so it
-// also wires the Pop-out button straight to the popup path (no recursion).
-function openInHub(url, title) {
-    try {
-        window.app.launchContent(url, 'about-blank', title);
-    } catch (e) {
-        try { openGameViewer({ title, url, mirrors: [url] }); }
-        catch (err) {
-            try { launchViaAboutBlank(url, title); } catch (e2) {}
-        }
-    }
-}
-
-function buildMedia(app, mod) {
-    const movies = $('.movie-grid'), tv = $('.tv-grid'), pods = $('.podcast-grid');
-    if (!movies && !tv && !pods) return;
-    if (movies && !movies.dataset.q) {
-        movies.dataset.q = '1';
-        movies.innerHTML = mod.movies.map((m, i) => `<div class="media-card"data-mi="${i}"><div class="media-art"style="background-image:url('${esc(m.thumb)}')">${m.url&&(m.url.indexOf('media/')===0||/\.mp4($|\?)/i.test(m.url))?`<video class="media-preview" muted loop playsinline preload="none" src="${esc(m.url)}"></video>`:''}<span class="media-play"><i class="fas fa-play"></i></span></div><div class="media-meta"><div class="media-title">${esc(m.title)}</div><div class="media-sub">${esc(m.year||'')}· ${esc(m.genre||'')}· ${esc(m.duration||'')}</div></div></div>`).join('');
-        movies.addEventListener('click', (e) => {
-            const card = e.target.closest('.media-card'); if (!card) return;
-            const m = mod.movies[parseInt(card.dataset.mi, 10)];
-            if (m) {
-                // Local clips (media/*.mp4) need an absolute http URL to launch.
-                const u = /^https?:/i.test(m.url) ? m.url : new URL(m.url, location.href).href;
-                openInHub(u, m.title);
-            }
-        });
-        movies.addEventListener('mouseover', (e) => {
-            const card = e.target.closest('.media-card'); if (!card) return;
-            const v = card.querySelector('video.media-preview');
-            if (v) { try { v.volume = app.settings.volume ?? 0.8; } catch (err) {} }
-            if (v && v.paused) { v.play().catch(() => {}); }
-        });
-        movies.addEventListener('mouseout', (e) => {
-            const card = e.target.closest('.media-card'); if (!card) return;
-            const v = card.querySelector('video.media-preview');
-            if (v && !v.paused) { v.pause(); }
-        });
-    }
-    if (tv && !tv.dataset.q) {
-        tv.dataset.q = '1';
-        // No TV demos left (pre-1980 clips removed): hide the whole section
-        // instead of leaving an empty grid under its header.
-        if (!mod.tv.length) {
-            const sec = tv.parentElement;
-            if (sec) sec.style.display = 'none';
-            return;
-        }
-        tv.innerHTML = mod.tv.map((s, i) => `<div class="media-card"data-tvi="${i}"><div class="media-art"style="background-image:url('${esc(s.thumb)}')"><span class="media-play"><i class="fas fa-play"></i></span></div><div class="media-meta"><div class="media-title">${esc(s.title)}</div><div class="media-sub">${esc(s.season||'')}· ${esc(s.episodes||'')}· ★ ${esc(s.rating||'')}</div></div></div>`).join('');
-        tv.addEventListener('click', (e) => {
-            const card = e.target.closest('.media-card'); if (!card) return;
-            const s = mod.tv[parseInt(card.dataset.tvi, 10)];
-            if (!s) return;
-            if (s.url) {
-                // Playable episodes open in the in-hub viewer (less error-prone than popups).
-                const u = /^https?:/i.test(s.url) ? s.url : new URL(s.url, location.href).href;
-                openInHub(u, s.title);
-            } else {
-                openTitleInfo(app, s.title, 'TV');
-            }
-        });
-    }
-    const playTrack = (s) => {
-        const box = $('.audio-player-box');
-        let audio = box?.querySelector('audio');
-        if (!audio && box) { audio = document.createElement('audio'); audio.preload = 'metadata'; box.appendChild(audio); }
-        if (!audio) return;
-        audio.src = s.file; audio.volume = app.settings.volume ?? 0.8; audio.play().catch(() => {});
-        $('#ambient-track-title').textContent = s.title;
-        $('#ambient-track-artist').textContent = s.artist || '';
-        const btn = $('.audio-btn.play-pause'); if (btn) btn.innerHTML = '<i class="fas fa-pause"></i>';
-        audio.ontimeupdate = () => {
-            const f = $('#ambient-progress-fill');
-            if (f && audio.duration) f.style.width = `${(audio.currentTime/audio.duration)*100}%`;
-        };
-        audio.onended = () => { if (btn) btn.innerHTML = '<i class="fas fa-play"></i>'; };
-    };
-    if (pods && !pods.dataset.q) {
-        pods.dataset.q = '1';
-        pods.innerHTML = mod.music.map((s, i) => `<button class="glass-panel p-3 flex items-center gap-3 text-left w-full q-track"data-ti="${i}"><img src="${esc(s.thumb)}"class="w-10 h-10 rounded-lg"alt=""><div class="flex-1 min-w-0"><div class="text-xs text-white font-bold truncate">${esc(s.title)}</div><div class="text-[11px] text-gray-500">${esc(s.artist||'')}· ${esc(s.duration||'')}</div></div><i class="fas fa-play text-accent"></i></button>`).join('');
-        pods.addEventListener('click', (e) => {
-            const b = e.target.closest('.q-track'); if (!b) return;
-            playTrack(mod.music[parseInt(b.dataset.ti, 10)]);
-        });
-    }
-    /* Music tracks grid (was never rendered — section sat empty) */
-    const music = $('.music-grid');
-    if (music && !music.dataset.q) {
-        music.dataset.q = '1';
-        music.innerHTML = mod.music.map((s, i) => `<button class="glass-panel p-3 flex items-center gap-3 text-left w-full q-track"data-ti="${i}"><img src="${esc(s.thumb)}"class="w-10 h-10 rounded-lg"alt=""><div class="flex-1 min-w-0"><div class="text-xs text-white font-bold truncate">${esc(s.title)}</div><div class="text-[11px] text-gray-500">${esc(s.artist||'')}· ${esc(s.duration||'')}</div></div><i class="fas fa-play text-accent"></i></button>`).join('');
-        music.addEventListener('click', (e) => {
-            const b = e.target.closest('.q-track'); if (!b) return;
-            playTrack(mod.music[parseInt(b.dataset.ti, 10)]);
-        });
-    }
-    /* Favorites strip (was never rendered either) */
-    const favs = $('.favorites-grid');
-    if (favs && !favs.dataset.q) {
-        favs.dataset.q = '1';
-        const drawFavs = () => {
-            const items = (mod.favorites || []).filter(f => f && cleanText(f.title));
-            favs.innerHTML = items.length ? items.map((f, i) => `<div class="media-card"data-fi="${i}"><div class="media-art"><span class="media-play"><i class="fas fa-${f.type === 'Game' ? 'gamepad' : 'film'}"></i></span></div><div class="media-meta"><div class="media-title">${esc(f.title)}</div><div class="media-sub">${esc(f.type||'')}</div></div></div>`).join('') : '<div class="text-xs text-gray-500">No favorites yet.</div>';
-        };
-        drawFavs();
-        favs.addEventListener('click', (e) => {
-            const card = e.target.closest('.media-card'); if (!card) return;
-            const f = (mod.favorites || [])[parseInt(card.dataset.fi, 10)];
-            if (!f) return;
-            if (f.type === 'Media') openTitleInfo(app, f.title, 'Movie');
-            else { const el = $('.nav-item[data-target="panel-games"]'); if (el) el.click(); toast.show(`${f.title}— open it from the games grid.`, 'info'); }
-        });
-    }
-}
-
-/* ---------- title catalogs (TV / Movies / Anime) with working clicks ---------- */
-function openTitleInfo(app, title, type) {
-    const tier = TOP_TIER.find(t => t.title === title);
-    const w = TMDB_IDS[title];
-    modals.open(`<div class="text-center"><div class="text-xs font-bold text-accent tracking-widest uppercase mb-1">${esc(type)}${tier?` · TIER ${tier.tier}`:''}</div><h3 class="text-2xl font-bold text-white font-logo mb-2">${esc(title)}</h3><p class="text-gray-400 text-xs mb-5">${esc(t(app,'watchBlurb'))}</p><div class="flex flex-wrap gap-3 justify-center">${w?`<button class="btn-premium px-5 py-2 text-xs q-play">${esc(t(app, 'watchNow'))}</button>`:''}<button class="btn-outline px-5 py-2 text-xs q-watch"data-kind="watch">${esc(t(app,'whereWatch'))}</button><button class="btn-outline px-5 py-2 text-xs q-watch2"data-kind="trailer">${esc(t(app,'trailer'))}</button></div>${w&&w.kind==='tv'?`<div class="flex gap-3 justify-center mt-3 text-xs text-gray-400">
+                    </button>`;
+                }).join('')}</div>`;}).join('')||'<div class="text-gray-600 text-xs">No polls yet.</div>';$$('#q-polls [data-poll]').forEach((b)=>b.addEventListener('click',async()=>{try{await api(app,'polls-vote',{id:b.dataset.poll,opt:parseInt(b.dataset.opt,10)});loadPolls(app);}
+catch(e){toast.show(e.message,'error');}}));}catch(e){$('#q-polls').innerHTML='<div class="text-gray-600 text-xs">Polls need the hub server.</div>';}}
+function applyLite(app){const lite=!!app.settings.lite;document.documentElement.classList.toggle('q-lite',lite);if(lite){document.body.classList.add('animations-none');document.body.classList.remove('animations-reduced');try{window.QuantumStealth?.setPerfMode?.(true);}catch(e){}
+const cv=$('#particles-canvas');if(cv)cv.style.display='none';}else{document.body.classList.remove('animations-none');const cv=$('#particles-canvas');if(cv)cv.style.display='';}}
+function buildSettingsPlus(app){const host=$('#settings-account')?.parentElement;if(!host||$('#q-settings-plus'))return;const box=document.createElement('div');box.id='q-settings-plus';box.className='glass-panel p-6 space-y-4';box.innerHTML=`
+        <h4 class="text-md font-bold text-white font-logo flex items-center gap-2"><i class="fas fa-sliders text-accent"></i> <span data-i18n="hubExtras">HUB EXTRAS</span></h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <label class="flex items-center justify-between gap-2 text-gray-300"><span data-i18n="liteMode">Lite mode (strip animations & effects)</span>
+                <input id="q-lite" type="checkbox" class="w-4 h-4" ${app.settings.lite ? 'checked' : ''}></label>
+            <label class="flex items-center justify-between gap-2 text-gray-300"><span data-i18n="autoTheme">Auto theme by time</span>
+                <select id="q-autotheme" class="form-select text-xs w-32">
+                    <option value="off" data-i18n="off">Off</option><option value="time" data-i18n="byTime">By time</option>
+                </select></label>
+            <label class="flex items-center justify-between gap-2 text-gray-300"><span data-i18n="language">Language</span>
+                <select id="q-lang" class="form-select text-xs w-32">
+                    <option value="en">English</option><option value="es">Español</option>
+                    <option value="fr">Français</option><option value="de">Deutsch</option>
+                    <option value="ja">日本語</option><option value="zh">中文</option>
+                </select></label>
+            <label class="flex items-center justify-between gap-2 text-gray-300"><span data-i18n="dockPos">Dock position</span>
+                <select id="q-dockpos" class="form-select text-xs w-32">
+                    <option value="bottom" data-i18n="bottom">Bottom</option><option value="left" data-i18n="left">Left</option>
+                    <option value="right" data-i18n="right">Right</option><option value="free" data-i18n="unlocked">Unlocked (drag)</option>
+                </select></label>
+            <label class="flex items-center justify-between gap-2 text-gray-300"><span data-i18n="sidePos">Sidebar side</span>
+                <select id="q-sidepos" class="form-select text-xs w-32">
+                    <option value="left" data-i18n="left">Left</option><option value="right" data-i18n="right">Right</option>
+                </select></label>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <button id="q-txt-down" class="btn-outline text-xs px-3 py-2"><i class="fas fa-download"></i> <span data-i18n="txtSettings">SETTINGS .TXT</span></button>
+            <button id="q-data-down" class="btn-outline text-xs px-3 py-2"><i class="fas fa-hdd"></i> <span data-i18n="txtData">MY DATA FILE</span></button>
+            <button id="q-updates" class="btn-outline text-xs px-3 py-2"><i class="fas fa-bell"></i> <span data-i18n="updates">UPDATES</span></button>
+            <button id="q-news" class="btn-outline text-xs px-3 py-2"><i class="fas fa-newspaper"></i> <span data-i18n="news">EVENTS & NEWS</span></button>
+            <button id="q-feedback" class="btn-outline text-xs px-3 py-2"><i class="fas fa-comment"></i> <span data-i18n="feedback">FEEDBACK</span></button>
+            <button id="q-install" class="btn-premium text-xs px-3 py-2"><i class="fas fa-arrow-down"></i> <span data-i18n="install">INSTALL APP</span></button>
+        </div>
+        <div>
+            <div class="text-[11px] text-gray-500 mb-1" data-i18n="importHint">Paste a settings .txt to import</div>
+            <textarea id="q-txt-paste" class="form-textarea h-20 font-mono text-[10px]" placeholder="Paste settings file content here…"></textarea>
+            <button id="q-txt-import" class="btn-outline text-xs px-3 py-1.5 mt-2"><span data-i18n="txtImport">IMPORT .TXT</span></button>
+        </div>`;host.appendChild(box);$('#q-autotheme').value=app.settings.autoTheme||'off';$('#q-lang').value=app.settings.language||'en';$('#q-dockpos').value=app.settings.dockPosition||'bottom';$('#q-sidepos').value=app.settings.sidebarSide||'left';$('#q-lite').addEventListener('change',(e)=>{app.settings.lite=e.target.checked;app.saveSettings();applyLite(app);toast.show(e.target.checked?'Lite mode ON.':'Lite mode OFF.','success');});$('#q-autotheme').addEventListener('change',(e)=>{app.settings.autoTheme=e.target.value;app.saveSettings();store.set('q_theme_manual',false);autoThemeTick(app);});const setLang=(v)=>{app.settings.language=v;app.saveSettings();applyI18n(app);toast.show(t(app,'langApplied'),'success');};$('#q-lang').addEventListener('change',(e)=>setLang(e.target.value));const sl=$('#setting-language');if(sl&&!sl.dataset.q){sl.dataset.q='1';sl.value=app.settings.language||'en';sl.addEventListener('change',(e)=>setLang(e.target.value));}
+$('#q-dockpos').addEventListener('change',(e)=>{app.settings.dockPosition=e.target.value;app.saveSettings();dockCookieSave(app);applyDockPosition(app);toast.show(`Dock: ${e.target.value}.`,'success');});$('#q-sidepos').addEventListener('change',(e)=>{app.settings.sidebarSide=e.target.value;app.saveSettings();dockCookieSave(app);applyDockPosition(app);});const collectSettings=()=>({settings:app.settings,favorites:Array.from(favsGet()),streak:store.get('hub_streak',null),exported_at:new Date().toISOString()});const download=(name,text)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);};$('#q-txt-down').addEventListener('click',()=>{download('quantum-settings.txt',`QUANTUM_HUB_SETTINGS v1\n${JSON.stringify(collectSettings(), null, 2)}`);toast.show('Settings .txt downloaded.','success');});$('#q-data-down').addEventListener('click',()=>{download('quantum-mydata.txt',`QUANTUM_HUB_DATA v1\n${JSON.stringify({ ...collectSettings(), stats: app.gameStats }, null, 2)}`);toast.show('Data file downloaded.','success');});$('#q-txt-import').addEventListener('click',()=>{try{const raw=$('#q-txt-paste').value;const json=JSON.parse(raw.slice(raw.indexOf('{')));if(json.settings){app.settings={...app.settings,...json.settings};app.saveSettings();app.applyVisuals();applyLite(app);applyDockPosition(app);applyI18n(app);}
+if(json.favorites)favsSet(new Set(json.favorites));if(json.streak)store.set('hub_streak',json.streak);toast.show('Settings imported.','success');}catch(e){toast.show('Invalid settings file.','error');}});$('#q-updates').addEventListener('click',()=>modals.open(`
+        <h2 class="text-xl font-bold text-white font-logo mb-3"><i class="fas fa-bell text-accent"></i> HUB UPDATES</h2>
+        <div class="space-y-2 text-xs text-gray-300">
+            <div class="glass-panel p-3"><b class="text-white">Basics pack</b> — volume, clock, battery, weather, online count, day/night, dock & sidebar move, working login, hover favorites, random + lucky, star ratings, similar games, ranks, profiles, stats, polls, friends, chat, blocks, reports, feedback, forms, install, lite mode, .txt backup, Netflix previews, i18n, auto-theme.</div>
+            <div class="glass-panel p-3"><b class="text-white">Catalog wave</b> — 84 gamesite + 264 fifty-five-GMS games with per-game CDN mirrors.</div>
+            <div class="glass-panel p-3"><b class="text-white">Quantum pass</b> — full-scheme theming, per-game artwork, branded popups.</div>
+        </div>`));$('#q-news').addEventListener('click',async()=>{let pollLine='No active polls right now.';try{const j=await api(app,'polls-list',{});if(j.polls?.length){const p=j.polls[0];const total=p.counts.reduce((a,b)=>a+b,0);const lead=p.options[p.counts.indexOf(Math.max(...p.counts))];pollLine=`Latest poll: "${p.question}" — leading: ${lead} (${total} votes).`;}}catch(e){pollLine='Polls need the hub server (offline mode).';}
+const gotd=(()=>{try{const g=gameOfDay(app);return g?g.name:'—';}catch(e){return'—';}})();const day=new Date().toISOString().slice(0,10);modals.open(`
+        <h2 class="text-xl font-bold text-white font-logo mb-3"><i class="fas fa-newspaper text-accent"></i> EVENTS & NEWS</h2>
+        <div class="space-y-2 text-xs text-gray-300">
+            <div class="glass-panel p-3"><div class="text-[10px] text-gray-500 uppercase mb-1">Today · ${day}</div>
+                <b class="text-white">Game of the day: ${esc(gotd)}</b><br>One featured pick, fresh every morning.</div>
+            <div class="glass-panel p-3"><div class="text-[10px] text-gray-500 uppercase mb-1">Community</div>${esc(pollLine)}</div>
+            <div class="glass-panel p-3"><div class="text-[10px] text-gray-500 uppercase mb-1">Event · FPS Friday</div>
+                Post your best FPS scores on the competitive ranks boards every Friday — top 5 make the card.</div>
+            <div class="glass-panel p-3"><div class="text-[10px] text-gray-500 uppercase mb-1">Event · Racing Weekend</div>
+                Weekend time-trials on RACING titles. Fastest posted scores take the leaderboard.</div>
+            <div class="glass-panel p-3"><div class="text-[10px] text-gray-500 uppercase mb-1">Shipped</div>
+                Basics pack is live: volume, clock, battery, weather, online count, day/night, dock & sidebar move, working login, hover favorites, random + lucky, ratings, similar games, ranks, profiles, stats, polls, friends, chat, blocks, reports, feedback, forms, install, lite mode, .txt backup, previews, languages, auto-theme.</div>
+        </div>`);});$('#q-feedback').addEventListener('click',()=>modals.open(`
+        <h2 class="text-xl font-bold text-white font-logo mb-3"><i class="fas fa-comment text-accent"></i> SEND FEEDBACK</h2>
+        <textarea id="q-fb-text" class="form-textarea h-28 text-xs" maxlength="2000" placeholder="Tell us what to improve…"></textarea>
+        <button id="q-fb-send" class="btn-premium text-xs px-4 py-2 mt-3">SUBMIT</button>`,{'#q-fb-send':async()=>{const body=$('#q-fb-text').value.trim();if(!body)return;if(!cleanText(body)){toast.show('Feedback blocked (keep it clean).','error');return;}
+try{await api(app,'feedback',{body});toast.show('Feedback sent.','success');modals.close();}
+catch(e){toast.show(e.message,'error');}},}));$('#q-install').addEventListener('click',async()=>{if(window._qInstallPrompt){window._qInstallPrompt.prompt();await window._qInstallPrompt.userChoice;window._qInstallPrompt=null;}else toast.show('No install prompt available in this browser.','info');});}
+function openInHub(url,title){try{window.app.launchContent(url,'about-blank',title);}catch(e){try{openGameViewer({title,url,mirrors:[url]});}
+catch(err){try{launchViaAboutBlank(url,title);}catch(e2){}}}}
+function buildMedia(app,mod){const movies=$('.movie-grid'),tv=$('.tv-grid'),pods=$('.podcast-grid');if(!movies&&!tv&&!pods)return;if(movies&&!movies.dataset.q){movies.dataset.q='1';movies.innerHTML=mod.movies.map((m,i)=>`<div class="media-card" data-mi="${i}">
+            <div class="media-art" style="background-image:url('${esc(m.thumb)}')">
+                ${m.url && (m.url.indexOf('media/') === 0 || /\.mp4($|\?)/i.test(m.url)) ? `<video class="media-preview" muted loop playsinline preload="none" src="${esc(m.url)}"></video>` : ''}
+                <span class="media-play"><i class="fas fa-play"></i></span>
+            </div>
+            <div class="media-meta"><div class="media-title">${esc(m.title)}</div>
+            <div class="media-sub">${esc(m.year || '')} · ${esc(m.genre || '')} · ${esc(m.duration || '')}</div></div>
+        </div>`).join('');movies.addEventListener('click',(e)=>{const card=e.target.closest('.media-card');if(!card)return;const m=mod.movies[parseInt(card.dataset.mi,10)];if(m){const u=/^https?:/i.test(m.url)?m.url:new URL(m.url,location.href).href;openInHub(u,m.title);}});movies.addEventListener('mouseover',(e)=>{const card=e.target.closest('.media-card');if(!card)return;const v=card.querySelector('video.media-preview');if(v){try{v.volume=app.settings.volume??0.8;}catch(err){}}
+if(v&&v.paused){v.play().catch(()=>{});}});movies.addEventListener('mouseout',(e)=>{const card=e.target.closest('.media-card');if(!card)return;const v=card.querySelector('video.media-preview');if(v&&!v.paused){v.pause();}});}
+if(tv&&!tv.dataset.q){tv.dataset.q='1';if(!mod.tv.length){const sec=tv.parentElement;if(sec)sec.style.display='none';return;}
+tv.innerHTML=mod.tv.map((s,i)=>`<div class="media-card" data-tvi="${i}"><div class="media-art" style="background-image:url('${esc(s.thumb)}')">
+            <span class="media-play"><i class="fas fa-play"></i></span></div>
+            <div class="media-meta"><div class="media-title">${esc(s.title)}</div>
+            <div class="media-sub">${esc(s.season || '')} · ${esc(s.episodes || '')} · ★ ${esc(s.rating || '')}</div></div></div>`).join('');tv.addEventListener('click',(e)=>{const card=e.target.closest('.media-card');if(!card)return;const s=mod.tv[parseInt(card.dataset.tvi,10)];if(!s)return;if(s.url){const u=/^https?:/i.test(s.url)?s.url:new URL(s.url,location.href).href;openInHub(u,s.title);}else{openTitleInfo(app,s.title,'TV');}});}
+const playTrack=(s)=>{const box=$('.audio-player-box');let audio=box?.querySelector('audio');if(!audio&&box){audio=document.createElement('audio');audio.preload='metadata';box.appendChild(audio);}
+if(!audio)return;audio.src=s.file;audio.volume=app.settings.volume??0.8;audio.play().catch(()=>{});$('#ambient-track-title').textContent=s.title;$('#ambient-track-artist').textContent=s.artist||'';const btn=$('.audio-btn.play-pause');if(btn)btn.innerHTML='<i class="fas fa-pause"></i>';audio.ontimeupdate=()=>{const f=$('#ambient-progress-fill');if(f&&audio.duration)f.style.width=`${(audio.currentTime / audio.duration) * 100}%`;};audio.onended=()=>{if(btn)btn.innerHTML='<i class="fas fa-play"></i>';};};if(pods&&!pods.dataset.q){pods.dataset.q='1';pods.innerHTML=mod.music.map((s,i)=>`<button class="glass-panel p-3 flex items-center gap-3 text-left w-full q-track" data-ti="${i}">
+            <img src="${esc(s.thumb)}" class="w-10 h-10 rounded-lg" alt=""><div class="flex-1 min-w-0">
+            <div class="text-xs text-white font-bold truncate">${esc(s.title)}</div>
+            <div class="text-[11px] text-gray-500">${esc(s.artist || '')} · ${esc(s.duration || '')}</div></div>
+            <i class="fas fa-play text-accent"></i></button>`).join('');pods.addEventListener('click',(e)=>{const b=e.target.closest('.q-track');if(!b)return;playTrack(mod.music[parseInt(b.dataset.ti,10)]);});}
+const music=$('.music-grid');if(music&&!music.dataset.q){music.dataset.q='1';music.innerHTML=mod.music.map((s,i)=>`<button class="glass-panel p-3 flex items-center gap-3 text-left w-full q-track" data-ti="${i}">
+            <img src="${esc(s.thumb)}" class="w-10 h-10 rounded-lg" alt=""><div class="flex-1 min-w-0">
+            <div class="text-xs text-white font-bold truncate">${esc(s.title)}</div>
+            <div class="text-[11px] text-gray-500">${esc(s.artist || '')} · ${esc(s.duration || '')}</div></div>
+            <i class="fas fa-play text-accent"></i></button>`).join('');music.addEventListener('click',(e)=>{const b=e.target.closest('.q-track');if(!b)return;playTrack(mod.music[parseInt(b.dataset.ti,10)]);});}
+const favs=$('.favorites-grid');if(favs&&!favs.dataset.q){favs.dataset.q='1';const drawFavs=()=>{const items=(mod.favorites||[]).filter(f=>f&&cleanText(f.title));favs.innerHTML=items.length?items.map((f,i)=>`<div class="media-card" data-fi="${i}">
+                <div class="media-art"><span class="media-play"><i class="fas fa-${f.type === 'Game' ? 'gamepad' : 'film'}"></i></span></div>
+                <div class="media-meta"><div class="media-title">${esc(f.title)}</div><div class="media-sub">${esc(f.type || '')}</div></div>
+            </div>`).join(''):'<div class="text-xs text-gray-500">No favorites yet.</div>';};drawFavs();favs.addEventListener('click',(e)=>{const card=e.target.closest('.media-card');if(!card)return;const f=(mod.favorites||[])[parseInt(card.dataset.fi,10)];if(!f)return;if(f.type==='Media')openTitleInfo(app,f.title,'Movie');else{const el=$('.nav-item[data-target="panel-games"]');if(el)el.click();toast.show(`${f.title} — open it from the games grid.`,'info');}});}}
+function openTitleInfo(app,title,type){const tier=TOP_TIER.find(t=>t.title===title);const w=TMDB_IDS[title];modals.open(`
+        <div class="text-center">
+            <div class="text-xs font-bold text-accent tracking-widest uppercase mb-1">${esc(type)}${tier ? ` · TIER ${tier.tier}` : ''}</div>
+            <h3 class="text-2xl font-bold text-white font-logo mb-2">${esc(title)}</h3>
+            <p class="text-gray-400 text-xs mb-5">${esc(t(app, 'watchBlurb'))}</p>
+            <div class="flex flex-wrap gap-3 justify-center">
+                ${w ? `<button class="btn-premium px-5 py-2 text-xs q-play">${esc(t(app, 'watchNow'))}</button>` : ''}
+                <button class="btn-outline px-5 py-2 text-xs q-watch" data-kind="watch">${esc(t(app, 'whereWatch'))}</button>
+                <button class="btn-outline px-5 py-2 text-xs q-watch2" data-kind="trailer">${esc(t(app, 'trailer'))}</button>
+            </div>
+            ${w && w.kind === 'tv' ? `<div class="flex gap-3 justify-center mt-3 text-xs text-gray-400">
                 <label>${esc(t(app, 'epgTitle'))} <input id="q-watch-s" type="number" min="1" value="1" class="form-input text-xs" style="width:4.5rem;display:inline-block"></label>
                 <label>${esc(t(app, 'epgEp'))} <input id="q-watch-e" type="number" min="1" value="1" class="form-input text-xs" style="width:4.5rem;display:inline-block"></label>
-            </div>`:''}</div>`, {
-        '.q-watch': (e, el) => { openTitleUrl(app, title, el.dataset.kind); },
-        '.q-watch2': (e, el) => { openTitleUrl(app, title, el.dataset.kind); },
-        '.q-play': () => { openWatch(app, title); },
-    });
-}
-
-/* VidSrc embeds need a TMDB id (TMDB_IDS — every id verified: correct
-   title+year and actually carried by the player backend). Three separate
-   infrastructures so one blocklist entry can't kill them all: vidsrc.me,
-   multiembed.mov, videasy. Opens UNSANDBOXED: stream embeds detect
-   frameElement.hasAttribute('sandbox') and bounce to an error page, so the
-   sandbox attribute is dropped for WATCH only (games stay locked down).
-   Tradeoff: an unsandboxed player can pop ads — close the viewer if so. */
-function watchEmbeds(w, s, e) {
-    const path = w.kind === 'tv' ? `tv/${w.id}/${s}/${e}` : `movie/${w.id}`;
-    return [
-        `https:w.kind==='tv'?`https://multiembed.mov/?video_id=${w.id}&tmdb=1&s=${s}&e=${e}`:`https://multiembed.mov/?video_id=${w.id}&tmdb=1`,w.kind==='tv'?`https://player.videasy.net/tv/${w.id}/${s}/${e}`:`https://player.videasy.net/movie/${w.id}`,];}
+            </div>` : ''}
+        </div>`,{'.q-watch':(e,el)=>{openTitleUrl(app,title,el.dataset.kind);},'.q-watch2':(e,el)=>{openTitleUrl(app,title,el.dataset.kind);},'.q-play':()=>{openWatch(app,title);},});}
+function watchEmbeds(w,s,e){const path=w.kind==='tv'?`tv/${w.id}/${s}/${e}`:`movie/${w.id}`;return[`https://vidsrc.me/embed/${path}`,w.kind==='tv'?`https://multiembed.mov/?video_id=${w.id}&tmdb=1&s=${s}&e=${e}`:`https://multiembed.mov/?video_id=${w.id}&tmdb=1`,w.kind==='tv'?`https://player.videasy.net/tv/${w.id}/${s}/${e}`:`https://player.videasy.net/movie/${w.id}`,];}
 function probeWatchHosts(){const probes=[{host:'vidsrc.me',kind:'script',url:'https://vidsrc.me/assets/sbx.js'},{host:'multiembed.mov',kind:null},{host:'player.videasy.net',kind:'image',url:'https://player.videasy.net/logo.png'},];const tryOne=(p,ms)=>new Promise((resolve)=>{if(!p.kind){resolve('unknown');return;}
 let done=false;const finish=(state)=>{if(!done){done=true;resolve(state);}};const timer=setTimeout(()=>finish('unknown'),ms);try{const el=document.createElement(p.kind==='image'?'img':'script');el.onload=()=>{clearTimeout(timer);finish('live');};el.onerror=()=>{clearTimeout(timer);finish('dead');};el.src=p.url+(p.url.indexOf('?')===-1?'?_=':'&_=')+Date.now();document.body.appendChild(el);setTimeout(()=>{try{el.remove();}catch(e2){}},ms+500);}catch(e){clearTimeout(timer);finish('unknown');}});return Promise.race([Promise.all(probes.map((p)=>tryOne(p,4000))),new Promise((resolve)=>setTimeout(()=>resolve(probes.map((p)=>'unknown')),4500)),]).then((states)=>probes.map((p,i)=>({host:p.host,state:(states||[])[i]||'unknown'})));}
 async function openWatch(app,title){const w=TMDB_IDS[title];if(!w){toast.show(t(app,'noStream'),'error');return;}
@@ -2487,11 +2188,11 @@ function buildFormsTool(app){const side=$('.tool-menu-container')||$('.tool-side
         </div>
         <div id="q-forms-list" class="space-y-3"></div>`;grid.appendChild(panel);const draw=()=>{const forms=store.get('hub_forms',[]);$('#q-forms-list').innerHTML=forms.length?forms.map((f,fi)=>`
             <div class="glass-panel p-4"><div class="text-sm text-white font-bold mb-2">${esc(f.title)}</div>
-            ${f.fields.map((fld, i) => `<input class="form-input text-xs mb-2"data-ff="${fi}-${i}"placeholder="${esc(fld)}">`).join('')}
+            ${f.fields.map((fld, i) => `<input class="form-input text-xs mb-2" data-ff="${fi}-${i}" placeholder="${esc(fld)}">`).join('')}
             <div class="flex gap-2"><button class="btn-premium text-xs px-3 py-1.5" data-fsub="${fi}">SUBMIT</button>
             <button class="btn-outline text-xs px-3 py-1.5" data-fview="${fi}">RESPONSES (${f.responses.length})</button>
             <button class="btn-outline text-xs px-3 py-1.5" data-fdel="${fi}">DELETE</button></div>
-            <div class="q-fresp text-xs text-gray-400 mt-2" id="q-fresp-${fi}"></div></div>`).join(''):'<div class="text-xs text-gray-500">No forms yet — create one above.</div>';$$('#q-forms-list [data-fsub]').forEach((b)=>b.addEventListener('click',()=>{const forms2=store.get('hub_forms',[]);const f=forms2[parseInt(b.dataset.fsub,10)];const ans=f.fields.map((fld,i)=>$(`[data-ff="${b.dataset.fsub}-${i}"]`)?.value||'');f.responses.push({at:Date.now(),ans});store.set('hub_forms',forms2);draw();toast.show('Response saved.','success');}));$$('#q-forms-list [data-fview]').forEach((b)=>b.addEventListener('click',()=>{const forms2=store.get('hub_forms',[]);const f=forms2[parseInt(b.dataset.fview,10)];$(`#q-fresp-${b.dataset.fview}`).innerHTML=f.responses.length?f.responses.map((r)=>`<div class="py-1 border-b border-white/5">${r.ans.map((a, i) => `<b>${esc(f.fields[i])}:</b>${esc(a)}`).join(' · ')}</div>`).join(''):'No responses yet.';}));$$('#q-forms-list [data-fdel]').forEach((b)=>b.addEventListener('click',()=>{const forms2=store.get('hub_forms',[]);forms2.splice(parseInt(b.dataset.fdel,10),1);store.set('hub_forms',forms2);draw();}));};$('#q-form-make').addEventListener('click',()=>{const title=$('#q-form-title').value.trim();const fields=$('#q-form-fields').value.split(',').map((s)=>s.trim()).filter(Boolean).slice(0,12);if(!title||!fields.length){toast.show('Title + at least one field.','error');return;}
+            <div class="q-fresp text-xs text-gray-400 mt-2" id="q-fresp-${fi}"></div></div>`).join(''):'<div class="text-xs text-gray-500">No forms yet — create one above.</div>';$$('#q-forms-list [data-fsub]').forEach((b)=>b.addEventListener('click',()=>{const forms2=store.get('hub_forms',[]);const f=forms2[parseInt(b.dataset.fsub,10)];const ans=f.fields.map((fld,i)=>$(`[data-ff="${b.dataset.fsub}-${i}"]`)?.value||'');f.responses.push({at:Date.now(),ans});store.set('hub_forms',forms2);draw();toast.show('Response saved.','success');}));$$('#q-forms-list [data-fview]').forEach((b)=>b.addEventListener('click',()=>{const forms2=store.get('hub_forms',[]);const f=forms2[parseInt(b.dataset.fview,10)];$(`#q-fresp-${b.dataset.fview}`).innerHTML=f.responses.length?f.responses.map((r)=>`<div class="py-1 border-b border-white/5">${r.ans.map((a, i) => `<b>${esc(f.fields[i])}:</b> ${esc(a)}`).join(' · ')}</div>`).join(''):'No responses yet.';}));$$('#q-forms-list [data-fdel]').forEach((b)=>b.addEventListener('click',()=>{const forms2=store.get('hub_forms',[]);forms2.splice(parseInt(b.dataset.fdel,10),1);store.set('hub_forms',forms2);draw();}));};$('#q-form-make').addEventListener('click',()=>{const title=$('#q-form-title').value.trim();const fields=$('#q-form-fields').value.split(',').map((s)=>s.trim()).filter(Boolean).slice(0,12);if(!title||!fields.length){toast.show('Title + at least one field.','error');return;}
 if(!cleanText(`${title} ${fields.join(' ')}`)){toast.show('Form text blocked.','error');return;}
 const forms=store.get('hub_forms',[]);forms.push({title,fields,responses:[]});store.set('hub_forms',forms);$('#q-form-title').value='';$('#q-form-fields').value='';draw();});draw();}
 function buildSuggestButton(app){if($('#q-suggest-fab'))return;const b=document.createElement('button');b.id='q-suggest-fab';b.className='q-suggest-fab';b.title='Suggest a game or feature';b.innerHTML='<i class="fas fa-lightbulb"></i>';b.addEventListener('click',()=>modals.open(`
@@ -2506,26 +2207,27 @@ function initHubPlus(app,media){try{buildStatusBar(app);applyDockPosition(app);m
 const origFilter=app.getFilteredGames.bind(app);app.getFilteredGames=()=>{const favs=$('#game-favorites-only')?.checked||false;if(!favs)return origFilter();const favSet=favsGet();const all=app.games.filter((g)=>favSet.has(g.id));const search=$('#game-search-input')?.value.toLowerCase().trim()||'';const cat=$('#game-category-filter')?.value||'all';return all.filter((g)=>(!search||g.name.toLowerCase().includes(search))&&(cat==='all'||g.category===cat));};const origGrid=app.renderGamesGrid.bind(app);app.renderGamesGrid=()=>{origGrid();enhanceGameCards(app);unnamedSweep(app);};buildGamesHeader(app);enhanceGameCards(app);const origDetail=app.showGameDetail.bind(app);app.showGameDetail=(id)=>{origDetail(id);enhanceDetailModal(app,id);};renderAccountPlus(app);buildSettingsPlus(app);if(media)buildMedia(app,media);try{buildCatalogs(app);}catch(e){console.error('catalog grids failed:',e);}
 try{buildMediaSearch(app);}catch(e){console.error('media search failed:',e);}
 buildFormsTool(app);buildSuggestButton(app);applyLite(app);autoThemeTick(app);setInterval(()=>autoThemeTick(app),60000);const beat=async()=>{try{const j=await api(app,'heartbeat',{});const el=$('#q-online');if(el)el.textContent=j.online;}catch(e){}};if(app.isLoggedIn&&app.isLoggedIn())beat();setInterval(()=>{if(app.isLoggedIn&&app.isLoggedIn())beat();},45000);window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault();window._qInstallPrompt=e;});const origAuth=app.updateAuthUI.bind(app);app.updateAuthUI=()=>{origAuth();renderAccountPlus(app);};window.app=window.app||app;applyI18n(app);return true;}catch(e){console.error('hub-plus failed:',e);return false;}}
-const initMusicDeck=(function(){'use strict';const $=(s,r)=>(r||document).querySelector(s);const esc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');const ARCHIVE_SEARCH='https://archive.org/advancedsearch.php';const ARCHIVE_META='https://archive.org/metadata/';const DEFAULT_ART='https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80';const CLASSICS=[{id:'MapleLeafRag',title:'Maple Leaf Rag',artist:'Scott Joplin'},{id:'RagtimePianoSCOTTJOPLIN.TheEntertainer1902',title:'The Entertainer',artist:'Scott Joplin'},{id:'FredericChopinNocturneOp.9No.1InBFlatMinor',title:'Nocturne Op. 9, No. 1',artist:'Frederic Chopin'},{id:'FredericChopinNocturneNo.2InEFlatMajorOp.9No.2FromBlueLagoon',title:'Nocturne Op. 9, No. 2',artist:'Frederic Chopin'},{id:'The_Four_Seasons_Vivaldi-10361',title:'The Four Seasons',artist:'Antonio Vivaldi'},{id:'TCHAIKOVSKYNutcrackerBalletcomplete',title:'The Nutcracker (complete)',artist:'Pyotr Tchaikovsky'},];const MUSIC_SOURCES=[{name:'Internet Archive Audio',tag:'FREE',url:'https://archive.org/details/audio',desc:'Millions of free audio items — the live search above queries this.'},{name:'Free Music Archive',tag:'FREE',url:'https://freemusicarchive.org',desc:'Creative-commons music from independent artists.'},{name:'Jamendo Music',tag:'FREE',url:'https://www.jamendo.com',desc:'Free and legal music streaming and downloads.'},{name:'Musopen',tag:'CLASSICAL',url:'https://musopen.org',desc:'Public-domain classical recordings and sheet music.'},{name:'Archive Netlabels',tag:'FREE',url:'https://archive.org/details/netlabels',desc:'Net-label releases, all free to stream and download.'},];const fmtTime=(sec)=>{if(!isFinite(sec)||sec<0)return'0:00';const m=Math.floor(sec/60),s=Math.floor(sec%60);return`${m}:${String(s).padStart(2, '0')}`;};const parseLen=(l)=>{if(l==null||l==='')return 0;if(typeof l==='number')return isFinite(l)?l:0;const str=String(l);if(str.includes(':')){const p=str.split(':').map(Number);if(p.some(n=>!isFinite(n)))return 0;return p.length===3?p[0]*3600+p[1]*60+p[2]:p[0]*60+p[1];}
+const initMusicDeck=(function(){'use strict';const $=(s,r)=>(r||document).querySelector(s);const esc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');const ARCHIVE_SEARCH='https://archive.org/advancedsearch.php';const ARCHIVE_META='https://archive.org/metadata/';const DEFAULT_ART='https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80';const CLASSICS=[{id:'MapleLeafRag',title:'Maple Leaf Rag',artist:'Scott Joplin'},{id:'RagtimePianoSCOTTJOPLIN.TheEntertainer1902',title:'The Entertainer',artist:'Scott Joplin'},{id:'FredericChopinNocturneOp.9No.1InBFlatMinor',title:'Nocturne Op. 9, No. 1',artist:'Frederic Chopin'},{id:'FredericChopinNocturneNo.2InEFlatMajorOp.9No.2FromBlueLagoon',title:'Nocturne Op. 9, No. 2',artist:'Frederic Chopin'},{id:'The_Four_Seasons_Vivaldi-10361',title:'The Four Seasons',artist:'Antonio Vivaldi'},{id:'TCHAIKOVSKYNutcrackerBalletcomplete',title:'The Nutcracker (complete)',artist:'Pyotr Tchaikovsky'},];const MUSIC_SOURCES=[{name:'Internet Archive Audio',tag:'FREE',url:'https://archive.org/details/audio',desc:'Millions of free audio items — the live search above queries this.'},{name:'Free Music Archive',tag:'FREE',url:'https://freemusicarchive.org',desc:'Creative-commons music from independent artists.'},{name:'Jamendo Music',tag:'FREE',url:'https://www.jamendo.com',desc:'Free and legal music streaming and downloads.'},{name:'Musopen',tag:'CLASSICAL',url:'https://musopen.org',desc:'Public-domain classical recordings and sheet music.'},{name:'Archive Netlabels',tag:'FREE',url:'https://archive.org/details/netlabels',desc:'Net-label releases, all free to stream and download.'},];const fmtTime=(sec)=>{if(!isFinite(sec)||sec<0)return'0:00';const m=Math.floor(sec/60),s=Math.floor(sec%60);return `${m}:${String(s).padStart(2, '0')}`;};const parseLen=(l)=>{if(l==null||l==='')return 0;if(typeof l==='number')return isFinite(l)?l:0;const str=String(l);if(str.includes(':')){const p=str.split(':').map(Number);if(p.some(n=>!isFinite(n)))return 0;return p.length===3?p[0]*3600+p[1]*60+p[2]:p[0]*60+p[1];}
 const n=parseFloat(str);return isFinite(n)?n:0;};const archiveFileUrl=(ident,name)=>`https://archive.org/download/${ident}/${String(name).split('/').map(encodeURIComponent).join('/')}`;const archiveThumb=(ident)=>`https://archive.org/services/img/${ident}`;function initMusicDeck(app,media){const panel=$('#panel-music');if(!panel||panel.dataset.q)return;panel.dataset.q='1';const audio=$('#music-audio');const playBtn=$('#music-play'),playIcon=$('#music-play-icon'),playLabel=$('#music-play-label');const prevBtn=$('#music-prev'),nextBtn=$('#music-next');const nowTitle=$('#music-now-title'),nowArtist=$('#music-now-artist'),artBox=$('#music-art');const bar=$('#music-progress-bar'),fill=$('#music-progress-fill');const timeCur=$('#music-time-cur'),timeDur=$('#music-time-dur');const input=$('#music-search'),count=$('#music-search-count');const hcount=$('#music-results-count');const resultsWrap=$('#music-results-wrap'),resultsGrid=$('#music-results');const featuredGrid=$('#music-featured'),sourcesGrid=$('#music-sources');const ms=$('#q-music-volume'),msl=$('#q-music-volume-val');if(!audio||!playBtn||!input)return;const state={queue:[],index:-1,track:null,results:[],loading:false};const applyVol=(v)=>{v=Math.min(1,Math.max(0,Number(v)||0));try{audio.volume=v;}catch(e){}
 document.querySelectorAll('video, audio').forEach(el=>{try{el.volume=v;}catch(e){}});document.querySelectorAll('iframe').forEach(fr=>{try{const d=fr.contentDocument;if(d)d.querySelectorAll('video, audio').forEach(el=>{try{el.volume=v;}catch(e){}});}catch(e){}});};if(ms){ms.value=Math.round((app.settings.volume??0.8)*100);msl.textContent=ms.value+'%';ms.addEventListener('input',()=>{const v=ms.value/100;app.settings.volume=v;try{app.saveSettings();}catch(e){}
 msl.textContent=ms.value+'%';const sv=$('#q-volume');if(sv)sv.value=ms.value;const mv=$('#q-media-volume');if(mv)mv.value=ms.value;const ml=$('#q-media-volume-val');if(ml)ml.textContent=ms.value+'%';applyVol(v);});const follow=(el)=>el&&el.addEventListener('input',()=>{ms.value=el.value;msl.textContent=el.value+'%';applyVol(el.value/100);});follow($('#q-volume'));follow($('#q-media-volume'));}
 const setNow=(title,artist)=>{nowTitle.textContent=title;nowArtist.textContent=artist||'';};const refreshPlay=()=>{const playing=!!(state.track&&!audio.paused);playIcon.className=`fas fa-${playing ? 'pause' : 'play'}`;playLabel.textContent=playing?'PAUSE':'PLAY';};const playCurrent=()=>{const t=state.queue[state.index];if(!t)return;state.track=t;audio.src=t.file;audio.volume=Math.min(1,Math.max(0,Number(app.settings.volume??0.8)||0));setNow(t.title,t.artist||'');try{artBox.style.backgroundImage=`url('${t.art || DEFAULT_ART}')`;}catch(e){}
 fill.style.width='0%';timeCur.textContent='0:00';timeDur.textContent=t.duration?fmtTime(t.duration):'0:00';audio.play().then(refreshPlay).catch(err=>{console.error('music deck: play failed',err);refreshPlay();toast.show('Playback was blocked — hit PLAY to start the deck.','warning');});};const loadQueue=(tracks,index)=>{if(!tracks||!tracks.length)return;state.queue=tracks;state.index=Math.min(Math.max(index|0,0),tracks.length-1);playCurrent();};const step=(delta)=>{if(!state.queue.length)return;let i=state.index+delta;if(i<0)i=state.queue.length-1;if(i>=state.queue.length)i=0;state.index=i;playCurrent();};audio.addEventListener('play',refreshPlay);audio.addEventListener('pause',refreshPlay);audio.addEventListener('ended',()=>step(1));audio.addEventListener('loadedmetadata',()=>{timeDur.textContent=isFinite(audio.duration)?fmtTime(audio.duration):timeDur.textContent;});audio.addEventListener('timeupdate',()=>{if(audio.duration&&isFinite(audio.duration)){fill.style.width=`${(audio.currentTime / audio.duration) * 100}%`;timeCur.textContent=fmtTime(audio.currentTime);}});audio.addEventListener('error',()=>{if(!state.track)return;refreshPlay();setNow('Playback error',`${state.track.title} — stream unavailable, try Next`);});bar.addEventListener('click',(e)=>{if(!audio.duration||!isFinite(audio.duration))return;const r=bar.getBoundingClientRect();const p=Math.min(1,Math.max(0,(e.clientX-r.left)/r.width));audio.currentTime=p*audio.duration;});playBtn.addEventListener('click',()=>{if(!state.track){playFeatured(0);return;}
 if(audio.paused){audio.play().then(refreshPlay).catch(()=>toast.show('Playback blocked by the browser.','warning'));}else{audio.pause();}});prevBtn.addEventListener('click',()=>step(-1));nextBtn.addEventListener('click',()=>step(1));async function openArchiveItem(ident,title,artist){setNow(`Loading ${title}…`,artist||'archive.org');try{const res=await fetch(ARCHIVE_META+ident);if(!res.ok)throw new Error(`HTTP ${res.status}`);const j=await res.json();const meta=j.metadata||{};const creator=Array.isArray(meta.creator)?meta.creator[0]:(meta.creator||'');const files=(j.files||[]).filter(f=>f&&/mp3/i.test(String(f.format||'')));if(!files.length)throw new Error('no MP3 files in item');const tracks=files.map(f=>({title:String(f.name||'').split('/').pop().replace(/\.mp3$/i,''),artist:artist||creator||'',duration:parseLen(f.length),file:archiveFileUrl(ident,f.name),art:archiveThumb(ident),}));loadQueue(tracks,0);}catch(e){console.error('music deck: archive item failed',ident,e);setNow('Could not load that item','archive.org metadata unreachable — try another track');toast.show('Could not load that audio item from archive.org.','error');}}
-const fileTracks=((media&&Array.isArray(media.music))?media.music:[]).map(s=>({title:s.title,artist:s.artist||'',duration:s.duration||'',file:s.file,art:s.thumb,}));const featured=[...fileTracks.map(t=>({kind:'file',...t})),...CLASSICS.map(c=>({kind:'archive',title:c.title,artist:c.artist,ident:c.id,art:archiveThumb(c.id)})),];function cardHTML(t,attrs){const dur=t.duration?(typeof t.duration==='number'?fmtTime(t.duration):t.duration):'';return`<button class="glass-panel p-3 flex items-center gap-3 text-left w-full q-music-track" ${attrs}>
+const fileTracks=((media&&Array.isArray(media.music))?media.music:[]).map(s=>({title:s.title,artist:s.artist||'',duration:s.duration||'',file:s.file,art:s.thumb,}));const featured=[...fileTracks.map(t=>({kind:'file',...t})),...CLASSICS.map(c=>({kind:'archive',title:c.title,artist:c.artist,ident:c.id,art:archiveThumb(c.id)})),];function cardHTML(t,attrs){const dur=t.duration?(typeof t.duration==='number'?fmtTime(t.duration):t.duration):'';return `<button class="glass-panel p-3 flex items-center gap-3 text-left w-full q-music-track" ${attrs}>
             <img src="${esc(t.art || '')}" alt="" class="w-10 h-10 rounded-lg object-cover flex-shrink-0" style="background:rgba(255,255,255,.05)" onerror="this.style.visibility='hidden'">
             <div class="flex-1 min-w-0">
                 <div class="text-xs text-white font-bold truncate">${esc(t.title)}</div>
-                <div class="text-[11px] text-gray-500 truncate">${esc(t.artist || '')}${dur ? `· ${esc(dur)}` : ''}</div>
+                <div class="text-[11px] text-gray-500 truncate">${esc(t.artist || '')}${dur ? ` · ${esc(dur)}` : ''}</div>
             </div>
             <i class="fas fa-play text-accent"></i>
         </button>`;}
 function playFeatured(i){const t=featured[i];if(!t)return;if(t.kind==='file')loadQueue(fileTracks,fileTracks.indexOf(t));else openArchiveItem(t.ident,t.title,t.artist);}
 function renderFeatured(){if(!featuredGrid)return;featuredGrid.innerHTML=featured.map((t,i)=>cardHTML(t,`data-fi="${i}" title="${esc(t.artist || '')} — ${esc(t.title)}"`)).join('');featuredGrid.addEventListener('click',(e)=>{const b=e.target.closest('.q-music-track');if(b)playFeatured(parseInt(b.dataset.fi,10));});}
 renderFeatured();let timer=null;async function runSearch(){const q=input.value.trim();if(!q){resultsWrap.classList.add('hidden');resultsGrid.innerHTML='';count.textContent='';if(hcount)hcount.textContent='';return;}
-count.textContent='searching…';try{const url=`${ARCHIVE_SEARCH}?q=${encodeURIComponent(q + ' AND mediatype:audio AND format:(MP3)')}`+'&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year'+`&sort%5B%5D=${encodeURIComponent('downloads desc')}&rows=24&page=1&output=json`;const res=await fetch(url);if(!res.ok)throw new Error(`HTTP ${res.status}`);const j=await res.json();const docs=(j.response&&j.response.docs)||[];state.results=docs;resultsWrap.classList.remove('hidden');count.textContent=docs.length?`${docs.length} / ${j.response.numFound}`:'';if(hcount)hcount.textContent=docs.length?`(${docs.length})`:'';if(!docs.length){resultsGrid.innerHTML='<div class="text-xs text-gray-500">No tracks found. Try another artist, song, or album.</div>';return;}
-resultsGrid.innerHTML=docs.map((d,i)=>{const creator=Array.isArray(d.creator)?d.creator[0]:(d.creator||'');const artist=`${creator || d.identifier}${d.year ? `· ${d.year}` : ''}`;return cardHTML({title:d.title||d.identifier,artist,art:archiveThumb(d.identifier)},`data-si="${i}" title="${esc(d.title || d.identifier)}"`);}).join('');}catch(e){console.error('music deck search failed:',e);resultsWrap.classList.remove('hidden');count.textContent='';if(hcount)hcount.textContent='';resultsGrid.innerHTML='<div class="text-xs text-gray-500">Search unreachable right now — check the connection and try again.</div>';}}
+count.textContent='searching…';try{const url=`${ARCHIVE_SEARCH}?q=${encodeURIComponent(q + ' AND mediatype:audio AND format:(MP3)')}`+'&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year'+
+`&sort%5B%5D=${encodeURIComponent('downloads desc')}&rows=24&page=1&output=json`;const res=await fetch(url);if(!res.ok)throw new Error(`HTTP ${res.status}`);const j=await res.json();const docs=(j.response&&j.response.docs)||[];state.results=docs;resultsWrap.classList.remove('hidden');count.textContent=docs.length?`${docs.length} / ${j.response.numFound}`:'';if(hcount)hcount.textContent=docs.length?`(${docs.length})`:'';if(!docs.length){resultsGrid.innerHTML='<div class="text-xs text-gray-500">No tracks found. Try another artist, song, or album.</div>';return;}
+resultsGrid.innerHTML=docs.map((d,i)=>{const creator=Array.isArray(d.creator)?d.creator[0]:(d.creator||'');const artist=`${creator || d.identifier}${d.year ? ` · ${d.year}` : ''}`;return cardHTML({title:d.title||d.identifier,artist,art:archiveThumb(d.identifier)},`data-si="${i}" title="${esc(d.title || d.identifier)}"`);}).join('');}catch(e){console.error('music deck search failed:',e);resultsWrap.classList.remove('hidden');count.textContent='';if(hcount)hcount.textContent='';resultsGrid.innerHTML='<div class="text-xs text-gray-500">Search unreachable right now — check the connection and try again.</div>';}}
 input.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(runSearch,450);});input.addEventListener('keydown',(e)=>{if(e.key==='Enter'){clearTimeout(timer);runSearch();}});resultsGrid.addEventListener('click',(e)=>{const b=e.target.closest('.q-music-track');if(!b)return;const d=state.results[parseInt(b.dataset.si,10)];if(d)openArchiveItem(d.identifier,d.title||d.identifier,Array.isArray(d.creator)?d.creator[0]:(d.creator||''));});if(sourcesGrid&&!sourcesGrid.dataset.q){sourcesGrid.dataset.q='1';sourcesGrid.innerHTML=MUSIC_SOURCES.map((s,i)=>`<div class="media-card catalog-card" data-si="${i}" title="${esc(s.desc)}">
             <div class="catalog-art">
                 <span class="catalog-title">${esc(s.name)}</span>
@@ -2591,14 +2293,14 @@ loadSettings(){const stored=localStorage.getItem('hub_settings');if(stored){try{
 localStorage.setItem('hub_audio_feedback',this.settings.audioFeedback);}catch(e){}}else{this.settings={...DEFAULT_SETTINGS,language:this.detectLanguage()};this.saveSettings();}}
 saveSettings(){localStorage.setItem('hub_settings',JSON.stringify(this.settings));localStorage.setItem('hub_audio_feedback',this.settings.audioFeedback);}
 loadGames(){const allDefaults=this._dedupeGames([...DEFAULT_GAMES,...PASTED_GAMES,...POLARIS_GAMES,...GAMESITE_GAMES,...GMS55_GAMES,...ESCAPE_ROAD_GAMES,...SELENITE_GAMES,...DOTNET_GAMES,...PETEZAH_GAMES]);const RETIRED_GAME_IDS=new Set(['ubz_who_s_your_daddy_186','ubz_2048_1','ubz_chrome_dino_35','ubz_escape_road_58','ubz_escape_road_2_59','ubz_escape_road_3_60','gplus_baldis_basics_field_trip_13','gplus_baldis_basics_14','gplus_bitlife_20']);const stored=localStorage.getItem('hub_games');if(!stored){this.games=[...allDefaults];this.saveGames();return;}
-try{const parsed=JSON.parse(stored);const byId=new Map(parsed.map(g=>[g.id,g]));this.games=[...allDefaults].map(def=>{const existing=byId.get(def.id);if(existing){byId.delete(def.id);const githackOnly=(u)=>/^https?:\/\/(?:raw|rawcdn)\.githack\.com\const merged=[...(def.mirrors||[])].filter(githackOnly);for(const u of(existing.mirrors||[]))if(u&&githackOnly(u)&&!merged.includes(u))merged.push(u);const oldImg=existing.image||'';const img=(!oldImg||oldImg.startsWith('games/thumbs/')||oldImg.indexOf('rayquaza')!==-1)?(def.image||oldImg):oldImg;const out={...def,...existing,url:def.url,image:img,mirrors:merged.length?merged:def.mirrors};const mL={...(def.mirrorLabels||{}),...(existing.mirrorLabels||{})};if(Object.keys(ml).length)out.mirrorLabels=ml;const cp=[...(def.copies||[])];for(const c of(existing.copies||[])){if(c&&c.url&&!cp.some(x=>x.url===c.url))cp.push(c);}
+try{const parsed=JSON.parse(stored);const byId=new Map(parsed.map(g=>[g.id,g]));this.games=[...allDefaults].map(def=>{const existing=byId.get(def.id);if(existing){byId.delete(def.id);const githackOnly=(u)=>/^https?:\/\/(?:raw|rawcdn)\.githack\.com\//i.test(u);const merged=[...(def.mirrors||[])].filter(githackOnly);for(const u of(existing.mirrors||[]))if(u&&githackOnly(u)&&!merged.includes(u))merged.push(u);const oldImg=existing.image||'';const img=(!oldImg||oldImg.startsWith('games/thumbs/')||oldImg.indexOf('rayquaza')!==-1)?(def.image||oldImg):oldImg;const out={...def,...existing,url:def.url,image:img,mirrors:merged.length?merged:def.mirrors};const mL={...(def.mirrorLabels||{}),...(existing.mirrorLabels||{})};if(Object.keys(ml).length)out.mirrorLabels=ml;const cp=[...(def.copies||[])];for(const c of(existing.copies||[])){if(c&&c.url&&!cp.some(x=>x.url===c.url))cp.push(c);}
 if(cp.length)out.copies=cp;return out;}
 return{...def};});for(const custom of byId.values()){if(RETIRED_GAME_IDS.has(custom.id))continue;if(typeof custom.id==='string'&&custom.id.startsWith('polaris_'))continue;if(typeof custom.id==='string'&&custom.id.startsWith('ubz_'))continue;this.games.push(custom);}
 for(const g of this.games){const c=(g.accentColor||'').toLowerCase();if(c==='#ff6600'||c==='#f59e0b'||c==='#f97316')g.accentColor='#39ff14';}
 this.saveGames();}catch(e){this.games=this._dedupeGames([...DEFAULT_GAMES,...PASTED_GAMES,...POLARIS_GAMES,...GAMESITE_GAMES,...GMS55_GAMES,...ESCAPE_ROAD_GAMES,...SELENITE_GAMES,...DOTNET_GAMES,...PETEZAH_GAMES]);}}
 _dedupeGames(list){const norm=(s)=>(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');const seen=new Map();const out=[];for(const g of list){if(!g||(!g.name&&!g.url))continue;if(g.url&&!g.image){g.image='games/img/rayquaza-quantum.jpg';}
 const key=norm(g.name)||String(g.id||g.url);const dup=seen.get(key);if(!dup){seen.set(key,g);out.push(g);continue;}
-const urls=new Set([dup.url,...(dup.mirrors||[])].filter(Boolean));const githackOnly=(u)=>/^https?:\/\/(?:raw|rawcdn)\.githack\.com\for(const u of[g.url,...(g.mirrors||[])]){if(u&&githackOnly(u)&&!urls.has(u)){urls.add(u);(dup.mirrors=dup.mirrors||[]).push(u);(dup.mirrorLabels=dup.mirrorLabels||{})[u]=g.name||dup.name;}}
+const urls=new Set([dup.url,...(dup.mirrors||[])].filter(Boolean));const githackOnly=(u)=>/^https?:\/\/(?:raw|rawcdn)\.githack\.com\//i.test(u);for(const u of[g.url,...(g.mirrors||[])]){if(u&&githackOnly(u)&&!urls.has(u)){urls.add(u);(dup.mirrors=dup.mirrors||[]).push(u);(dup.mirrorLabels=dup.mirrorLabels||{})[u]=g.name||dup.name;}}
 if(!dup.image&&g.image)dup.image=g.image;const bag=(dup.copies=dup.copies||[]);const addCopy=(c)=>{if(!c||!c.url||c.url===dup.url)return;if(bag.some(x=>x.url===c.url))return;bag.push({name:c.name||dup.name,url:c.url,mirrors:(c.mirrors||[]).slice()});};addCopy(g);(g.copies||[]).forEach(addCopy);}
 return out;}
 saveGames(){localStorage.setItem('hub_games',JSON.stringify(this.games));}
@@ -2653,7 +2355,7 @@ applyAnimatedBg(){try{applyAnimatedBg(this);}catch(e){console.error('AnimatedBg 
 applyUserPreferences(prefs){if(!prefs)return;if(prefs.theme){this.settings.theme=prefs.theme;this.applyTheme();}else if(prefs.accentColor){this.settings.accentColor=prefs.accentColor;this.applyAccentColor();}
 if(prefs.animations){this.settings.animations=prefs.animations;this.applyTheme();}}
 attachPasswordToggles(root){if(!root)return;root.querySelectorAll('input[type="password"]').forEach(input=>{if(input.dataset.pwToggleDone)return;input.dataset.pwToggleDone='1';const wrap=document.createElement('div');wrap.className='pw-wrap';input.parentNode.insertBefore(wrap,input);wrap.appendChild(input);const btn=document.createElement('button');btn.type='button';btn.className='pw-toggle';btn.innerHTML='<i class="fas fa-eye"></i>';btn.addEventListener('click',()=>{const show=input.type==='password';input.type=show?'text':'password';btn.innerHTML=show?'<i class="fas fa-eye-slash"></i>':'<i class="fas fa-eye"></i>';});wrap.appendChild(btn);});}
-relayUrl(url){try{const u=new URL(url);if(u.protocol!=='http:'&&u.protocol!=='https:')return null;if(u.pathname.indexOf('/relay/raw/')===0)return url;const onFile=location.protocol==='file:';const localHost=location.hostname==='127.0.0.1'||location.hostname==='localhost'||location.hostname==='[::1]';if(!onFile&&!localHost)return null;const base=onFile?'http://127.0.0.1:8123':location.origin;return`${base}/relay/raw/${u.protocol}//${u.host}${u.pathname}`;}catch(e){return null;}}
+relayUrl(url){try{const u=new URL(url);if(u.protocol!=='http:'&&u.protocol!=='https:')return null;if(u.pathname.indexOf('/relay/raw/')===0)return url;const onFile=location.protocol==='file:';const localHost=location.hostname==='127.0.0.1'||location.hostname==='localhost'||location.hostname==='[::1]';if(!onFile&&!localHost)return null;const base=onFile?'http://127.0.0.1:8123':location.origin;return `${base}/relay/raw/${u.protocol}//${u.host}${u.pathname}`;}catch(e){return null;}}
 launchContent(url,mode=null,label='Asset',mirrors=null,mirrorLabels=null){const formattedUrl=normalizeHttpUrl(url);if(!formattedUrl){toast.show(`Invalid URL for ${label}. Must be http:// or https://`,'error',6000);return false;}
 const ghUrls=mirrorCandidates(formattedUrl);const primaryUrl=ghUrls[0]||formattedUrl;const pool=[];const addPool=(u)=>{if(u&&pool.indexOf(u)===-1)pool.push(u);};ghUrls.forEach(addPool);addPool(formattedUrl);(mirrors||[]).forEach(m=>{mirrorCandidates(m).forEach(addPool);addPool(m);});mirrorUrlGuesses(formattedUrl).forEach(addPool);ghUrls.slice(0,2).forEach(u=>addPool(this.relayUrl(u)));const relay=this.relayUrl(formattedUrl);if(relay)addPool(relay);const globalMode=this.effectiveLaunchMode();toast.show(`Opening ${label}…`,'info');if(ghUrls.length)toast.show(`${label}: ${ghUrls.length + 1} CDN mirrors ready (githack · rawcdn · relay).`,'info',2500);if(globalMode==='about-blank'){try{const viewer=openGameViewer({title:label,url:primaryUrl,mirrors:pool,mirrorLabels:mirrorLabels||null,onPopOut:(popUrl)=>{launchViaAboutBlank(popUrl||primaryUrl,label,{onSuccess:()=>{try{this.recordLaunch('web:'+formattedUrl,this.settings.defaultMirrorId);}catch(e){}}});}});if(viewer){try{this.recordLaunch('web:'+formattedUrl,this.settings.defaultMirrorId);}catch(e){}
 return true;}}catch(e){}
@@ -2690,7 +2392,7 @@ mirrorUrlGuesses(gameUrl).forEach(addG);(mirrors||[]).forEach(m=>mirrorUrlGuesse
 try{const viewer=openGameViewer({title:game.name,url:gameUrl,imageUrl:game.image||null,mirrors:mirrors||[gameUrl],mirrorLabels:copyLabels,onPopOut:(popUrl)=>launchViaAboutBlank(popUrl||gameUrl,game.name)});if(viewer){const tick=setInterval(()=>this.addPlayTime(game.id,10),10000);const origClose=viewer.close.bind(viewer);viewer.close=()=>{clearInterval(tick);origClose();};}}catch(e){this.launchContent(gameUrl,game.launchMode,game.name,mirrors,copyLabels);}}
 addPlayTime(gameId,secs){if(!this.gameStats[gameId]){this.gameStats[gameId]={launches:0,playTime:0,lastPlayed:null,rating:0};}
 this.gameStats[gameId].playTime=(this.gameStats[gameId].playTime||0)+secs;this.saveGameStats();}
-fmtPlayTime(totalSecs){totalSecs=Math.max(0,Math.floor(totalSecs||0));const h=Math.floor(totalSecs/3600);const m=Math.floor((totalSecs%3600)/60);if(h>0)return`${h}h ${m}m`;if(m>0)return`${m}m`;return`${totalSecs}s`;}
+fmtPlayTime(totalSecs){totalSecs=Math.max(0,Math.floor(totalSecs||0));const h=Math.floor(totalSecs/3600);const m=Math.floor((totalSecs%3600)/60);if(h>0)return `${h}h ${m}m`;if(m>0)return `${m}m`;return `${totalSecs}s`;}
 fmtLastPlayed(ts){if(!ts)return'Never';const d=Date.now()-ts;if(d<86400000)return'Today';if(d<172800000)return'Yesterday';return new Date(ts).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});}
 showGameDetail(gameId){const game=this.games.find(g=>g.id===gameId);if(!game){toast.show('Game not found.','error');return;}
 const st=this.getGameStats(gameId);const art=game.image||'https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80';modals.open(`
@@ -2758,7 +2460,7 @@ const indicator=document.getElementById('games-total-indicator');if(indicator)in
                 </div>
             </div>
         `).join('');grid.querySelectorAll('.play-game-btn').forEach(btn=>{btn.addEventListener('click',(e)=>{e.stopPropagation();this.launchGameById(btn.dataset.id);});});grid.querySelectorAll('.game-card').forEach(card=>{card.addEventListener('click',()=>this.showGameDetail(card.dataset.id));});this.renderContinueHero();this.renderRecoTrack();grid.querySelectorAll('.btn-card-action.edit').forEach(btn=>{btn.addEventListener('click',(e)=>{e.stopPropagation();const game=this.games.find(g=>g.id===btn.dataset.id);modals.showGameForm(game,(updated)=>{this.games=this.games.map(item=>item.id===game.id?{...item,...updated}:item);this.saveGames();this.renderGamesGrid();toast.show('Specification updated.','success');});});});grid.querySelectorAll('.btn-card-action.delete').forEach(btn=>{btn.addEventListener('click',(e)=>{e.stopPropagation();const game=this.games.find(g=>g.id===btn.dataset.id);modals.showConfirm('PURGE GAME',`Purge "${game.name}" from repository?`,()=>{this.games=this.games.filter(g=>g.id!==game.id);this.saveGames();this.renderGamesGrid();});});});}
-_hexToRgb(hex){hex=hex.replace('#','');const r=parseInt(hex.substring(0,2),16);const g=parseInt(hex.substring(2,4),16);const b=parseInt(hex.substring(4,6),16);return`${r}, ${g}, ${b}`;}
+_hexToRgb(hex){hex=hex.replace('#','');const r=parseInt(hex.substring(0,2),16);const g=parseInt(hex.substring(2,4),16);const b=parseInt(hex.substring(4,6),16);return `${r}, ${g}, ${b}`;}
 initGameSearchFilters(){['game-search-input','game-category-filter','game-sort-filter','game-favorites-only'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',()=>this.renderGamesGrid());});}
 getFilteredGames(){const search=document.getElementById('game-search-input')?.value.toLowerCase().trim()||'';const cat=document.getElementById('game-category-filter')?.value||'all';const sort=document.getElementById('game-sort-filter')?.value||'name';const favs=document.getElementById('game-favorites-only')?.checked||false;let filtered=this.games.filter(g=>{const matchSearch=!search||g.name.toLowerCase().includes(search)||g.category.toLowerCase().includes(search);const matchCat=cat==='all'||g.category===cat;const matchFav=!favs||(this.gameStats[g.id]?.rating||0)>=4;return matchSearch&&matchCat&&matchFav;});if(sort==='launches')filtered.sort((a,b)=>(this.gameStats[b.id]?.launches||0)-
 (this.gameStats[a.id]?.launches||0));else if(sort==='recent')filtered.sort((a,b)=>(this.gameStats[b.id]?.lastPlayed||0)-
@@ -2776,28 +2478,40 @@ addAIMessage(text,isUser,container){const div=document.createElement('div');div.
             </div>
         `;container.appendChild(div);container.scrollTop=container.scrollHeight;}
 addTypingIndicator(container){const div=document.createElement('div');div.className='ai-message glass-panel p-3 mr-8 ai-typing';div.innerHTML=`<div class="flex items-center gap-2 text-xs text-gray-400"><i class="fas fa-robot text-accent"></i><span class="animate-pulse">Thinking…</span></div>`;container.appendChild(div);container.scrollTop=container.scrollHeight;return div;}
-isMathIntent(text){return/[\d\s+\-*/^%().]+/.test(text)&&/[\+\-\*\/^%]/.test(text);}
+isMathIntent(text){return /[\d\s+\-*/^%().]+/.test(text)&&/[\+\-\*\/^%]/.test(text);}
 translateToPy(text){return text.replace(/×/g,'*').replace(/÷/g,'/').replace(/\^/g,'**');}
-isWebIntent(text){return/https?:\/\/|search|fetch|browse/i.test(text);}
+isWebIntent(text){return /https?:\/\/|search|fetch|browse/i.test(text);}
 extractUrl(text){const match=text.match(/https?:\/\/[^\s]+/i);return match?match[0]:null;}
-getTrainedResponse(text){const low=text.toLowerCase();if(low.includes('hello')||low.includes('hi'))return'Greetings, User. Systems operational. How can I assist?';if(low.includes('theme'))return`Current visual layout: ${this.settings.theme}. Change this in Settings.`;if(low.includes('mirror'))return'Mirrors are launch gateways. I open them in about:blank contexts to minimize redirection flags.';return null;}
+getTrainedResponse(text){const low=text.toLowerCase();if(low.includes('hello')||low.includes('hi'))return'Greetings, User. Systems operational. How can I assist?';if(low.includes('theme'))return `Current visual layout: ${this.settings.theme}. Change this in Settings.`;if(low.includes('mirror'))return'Mirrors are launch gateways. I open them in about:blank contexts to minimize redirection flags.';return null;}
 _esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 _matchBase(list,q){q=q.toLowerCase().trim();if(!q)return list.slice(0,8);return list.filter(e=>e.slug.includes(q)||e.name.toLowerCase().includes(q)).slice(0,8);}
-_baseListHtml(items,total,noun){if(items.length===0)return null;const rows=items.map(e=>`• <b>${this._esc(e.name)}</b> — <a href="${e.url}" target="_blank" rel="noopener">open ${noun}</a>`).join('<br>');return`🎨 <b>Open-design ${noun}s</b> (${total} indexed):<br>${rows}`+
-(total>items.length?`<br><span style="color:#888">+${total - items.length} more — refine your query.</span>`:'')+`<br><span style="color:#888">Say "use {${noun}} &lt;name&gt;" for its invocation prompt.</span>`;}
+_baseListHtml(items,total,noun){if(items.length===0)return null;const rows=items.map(e=>`• <b>${this._esc(e.name)}</b> — <a href="${e.url}" target="_blank" rel="noopener">open ${noun}</a>`).join('<br>');return `🎨 <b>Open-design ${noun}s</b> (${total} indexed):<br>${rows}`+
+(total>items.length?`<br><span style="color:#888">+${total - items.length} more — refine your query.</span>`:'')+
+`<br><span style="color:#888">Say "use {${noun}} &lt;name&gt;" for its invocation prompt.</span>`;}
 getBaseplateResponse(text){const low=text.toLowerCase().trim();let m=low.match(/^(?:use\s+)?skills?\s*(.*)$/);if(m){const q=(m[1]||'').trim();if(!q){return this._baseListHtml(AI_SKILLS.slice(0,8),AI_SKILLS.length,'skill');}
-const hits=this._matchBase(AI_SKILLS,q);if(hits.length===1||(hits.length>0&&(low.startsWith('use ')||hits[0].slug===q))){const s=hits[0];return`🛠️ <b>${this._esc(s.name)}</b><br>`+`<span style="color:#888">Paste this into any coding agent with the open-design baseplate:</span><br>`+`<code>Use the ${s.slug} skill from open-design to ${this._esc(q || 'help with my task')}.</code><br>`+`<a href="${s.url}" target="_blank" rel="noopener">Open skill definition →</a>`;}
+const hits=this._matchBase(AI_SKILLS,q);if(hits.length===1||(hits.length>0&&(low.startsWith('use ')||hits[0].slug===q))){const s=hits[0];return `🛠️ <b>${this._esc(s.name)}</b><br>`+
+`<span style="color:#888">Paste this into any coding agent with the open-design baseplate:</span><br>`+
+`<code>Use the ${s.slug} skill from open-design to ${this._esc(q || 'help with my task')}.</code><br>`+
+`<a href="${s.url}" target="_blank" rel="noopener">Open skill definition →</a>`;}
 return this._baseListHtml(hits,AI_SKILLS.length,'skill')||`No skills match "${this._esc(q)}". Try "skills" to browse.`;}
 m=low.match(/^(?:use\s+)?(?:design|system|systems)(?:\s+(.*))?$/);if(m){const q=(m[1]||'').trim();if(!q){return this._baseListHtml(AI_DESIGN_SYSTEMS.slice(0,8),AI_DESIGN_SYSTEMS.length,'system');}
-const hits=this._matchBase(AI_DESIGN_SYSTEMS,q);if(hits.length===1||(hits.length>0&&low.startsWith('use '))){const s=hits[0];return`🎨 <b>${this._esc(s.name)}</b> design system<br>`+`<span style="color:#888">Paste this into any coding agent with the open-design baseplate:</span><br>`+`<code>Design this using the ${s.slug} design system.</code><br>`+`<a href="${s.url}" target="_blank" rel="noopener">Open system definition →</a>`;}
+const hits=this._matchBase(AI_DESIGN_SYSTEMS,q);if(hits.length===1||(hits.length>0&&low.startsWith('use '))){const s=hits[0];return `🎨 <b>${this._esc(s.name)}</b> design system<br>`+
+`<span style="color:#888">Paste this into any coding agent with the open-design baseplate:</span><br>`+
+`<code>Design this using the ${s.slug} design system.</code><br>`+
+`<a href="${s.url}" target="_blank" rel="noopener">Open system definition →</a>`;}
 return this._baseListHtml(hits,AI_DESIGN_SYSTEMS.length,'system')||`No design systems match "${this._esc(q)}". Try "design" to browse.`;}
-if(low.includes('skill')||low.includes('design system')||low.includes('baseplate')){return`🎨 Open-design baseplate loaded: <b>${AI_SKILLS.length} skills</b> + `+`<b>${AI_DESIGN_SYSTEMS.length} design systems</b>.<br>`+`Try "skills", "skill landing page", "design", or "design bento".`;}
+if(low.includes('skill')||low.includes('design system')||low.includes('baseplate')){return `🎨 Open-design baseplate loaded: <b>${AI_SKILLS.length} skills</b> + `+
+`<b>${AI_DESIGN_SYSTEMS.length} design systems</b>.<br>`+
+`Try "skills", "skill landing page", "design", or "design bento".`;}
 return null;}
 showAuthGate(){const gate=document.getElementById('auth-gate');if(!gate)return;gate.classList.add('open');this.bindAuthGate();}
 renderGateState(){const gate=document.getElementById('auth-gate');if(!gate)return;const inCode=!!this._gateOtp;if(inCode&&!this._gateWasCode){const ci=document.getElementById('gate-code');if(ci)ci.value='';}
 this._gateWasCode=inCode;const setFs=(id,on)=>{const fs=document.getElementById(id);if(!fs)return;fs.classList.toggle('hidden',!on);fs.querySelectorAll('input, select, textarea, button').forEach(el=>{el.disabled=!on;});};setFs('gate-fields-login',!inCode&&this._gateMode==='login');setFs('gate-fields-register',!inCode&&this._gateMode==='register');setFs('gate-fields-code',inCode);this._fillDevInbox(inCode);const submit=document.getElementById('auth-gate-submit');if(submit)submit.textContent=inCode?'VERIFY CODE':(this._gateMode==='login'?'LOG IN':'CREATE ACCOUNT');gate.querySelectorAll('.auth-gate-tab').forEach(t=>t.classList.toggle('active',t.dataset.mode===this._gateMode));}
 _fillDevInbox(show){const box=document.getElementById('fake-dev-inbox');const list=document.getElementById('dev-inbox-list');if(!box||!list)return;if(show){let msgs=[];try{msgs=localInbox()||[];}catch(e){}
-const now=Date.now();list.innerHTML=msgs.length?msgs.map((m,i)=>{const mins=Math.max(0,Math.floor((now-(m.at||0))/60000));const when=mins<1?'just now':`${mins}m ago`;return`<button type="button" class="dev-inbox-item${i === 0 ? ' latest' : ''}" data-code="${this._esc(m.code)}">`+`<span class="dev-inbox-to">${this._esc(m.to)}</span>`+`<span class="dev-inbox-body">code <b>${this._esc(m.code)}</b> · ${this._esc(m.purpose)} · ${when}</span>`+`</button>`;}).join(''):'<div class="dev-inbox-item decoy"><span class="dev-inbox-to">ci@quantum-hub</span><span class="dev-inbox-body">deploy ok · waiting for a code…</span></div>';if(!box.dataset.bound){box.dataset.bound='1';box.addEventListener('click',(e)=>{const it=e.target.closest?e.target.closest('.dev-inbox-item[data-code]'):null;if(!it||!it.dataset.code)return;const inp=document.getElementById('gate-code');if(inp){inp.value=it.dataset.code;inp.focus();}});}}}
+const now=Date.now();list.innerHTML=msgs.length?msgs.map((m,i)=>{const mins=Math.max(0,Math.floor((now-(m.at||0))/60000));const when=mins<1?'just now':`${mins}m ago`;return `<button type="button" class="dev-inbox-item${i === 0 ? ' latest' : ''}" data-code="${this._esc(m.code)}">`+
+`<span class="dev-inbox-to">${this._esc(m.to)}</span>`+
+`<span class="dev-inbox-body">code <b>${this._esc(m.code)}</b> · ${this._esc(m.purpose)} · ${when}</span>`+
+`</button>`;}).join(''):'<div class="dev-inbox-item decoy"><span class="dev-inbox-to">ci@quantum-hub</span><span class="dev-inbox-body">deploy ok · waiting for a code…</span></div>';if(!box.dataset.bound){box.dataset.bound='1';box.addEventListener('click',(e)=>{const it=e.target.closest?e.target.closest('.dev-inbox-item[data-code]'):null;if(!it||!it.dataset.code)return;const inp=document.getElementById('gate-code');if(inp){inp.value=it.dataset.code;inp.focus();}});}}}
 bindAuthGate(){const gate=document.getElementById('auth-gate');if(!gate)return;if(!this._gateMode)this._gateMode='login';if(gate.dataset.bound){this.renderGateState();return;}
 gate.dataset.bound='1';const errBox=document.getElementById('auth-gate-error');gate.querySelectorAll('.auth-gate-tab').forEach(b=>{b.addEventListener('click',()=>{this._gateMode=b.dataset.mode;this._gateOtp=null;errBox.textContent='';this.renderGateState();});});document.getElementById('auth-gate-guest')?.addEventListener('click',()=>{errBox.textContent='';this.enterGuestMode();});document.getElementById('auth-gate-form').addEventListener('submit',async(e)=>{e.preventDefault();errBox.textContent='';if(this._gateOtp){try{const code=document.getElementById('gate-code').value.trim();if(this._gateOtp.purpose==='login'){await this.verifyLogin(this._gateOtp.otpId,code,true);this.dismissAuthGate();this.updateAuthUI();toast.show(`Welcome back, ${this._currentUser ? this._currentUser.username : ''}!`,'success');}else{await this.verifyEmail(this._gateOtp.otpId,code);toast.show('Email verified — you can log in now.','success');this._gateOtp=null;this._gateMode='login';this.renderGateState();}}catch(err){errBox.textContent=err.message;}
 return;}
@@ -2910,7 +2624,12 @@ initGamepadSupport(){window.addEventListener('gamepadconnected',(e)=>{toast.show
 initQuickLaunchWidget(){const fab=document.getElementById('quick-launch-fab');if(!fab)return;fab.addEventListener('click',(e)=>{e.stopPropagation();const menu=document.getElementById('quick-launch-menu');if(menu){menu.classList.toggle('hidden');}else{this.showQuickLaunchMenu(fab);}});document.addEventListener('click',(e)=>{const menu=document.getElementById('quick-launch-menu');if(menu&&!menu.contains(e.target)&&e.target!==fab){menu.classList.add('hidden');}});}
 showQuickLaunchMenu(anchor){const menu=document.createElement('div');menu.id='quick-launch-menu';menu.className='glass-panel absolute bottom-full right-0 mb-2 w-56 p-2 hidden';menu.innerHTML=`
             <div class="text-xs font-bold text-gray-400 uppercase tracking-wider px-2 py-1">QUICK LAUNCH</div>
-            ${this.games.slice(0, 6).map(g => `<button class="quick-launch-item w-full text-left px-3 py-2 text-sm hover:bg-white/5 rounded flex items-center gap-2"data-id="${g.id}"><i class="fas fa-gamepad text-accent"></i><span class="truncate">${g.name}</span></button>`).join('')}
+            ${this.games.slice(0, 6).map(g => `
+                <button class="quick-launch-item w-full text-left px-3 py-2 text-sm hover:bg-white/5 rounded flex items-center gap-2" data-id="${g.id}">
+                    <i class="fas fa-gamepad text-accent"></i>
+                    <span class="truncate">${g.name}</span>
+                </button>
+            `).join('')}
             <hr class="border-white/5 my-2">
             <button class="quick-launch-item w-full text-left px-3 py-2 text-sm hover:bg-white/5 rounded flex items-center gap-2" data-action="add-game">
                 <i class="fas fa-plus text-green-400"></i>
@@ -2933,7 +2652,7 @@ initEditor(){const editor=document.querySelector('.editor-textarea');const lineN
 initColorPicker(){const picker=document.getElementById('picker-main-color');const hexInput=document.getElementById('picker-hex');const rgbInput=document.getElementById('picker-rgb');const hslInput=document.getElementById('picker-hsl');const paletteBox=document.getElementById('picker-palette-box');if(!picker)return;const hexToRgb=(hex)=>{const r=parseInt(hex.slice(1,3),16);const g=parseInt(hex.slice(3,5),16);const b=parseInt(hex.slice(5,7),16);return{r,g,b};};const rgbToHsl=({r,g,b})=>{r/=255;g/=255;b/=255;const max=Math.max(r,g,b),min=Math.min(r,g,b);let h,s,l=(max+min)/2;if(max===min){h=s=0;}
 else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);switch(max){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break;}
 h/=6;}
-return{h:Math.round(h*360),s:Math.round(s*100),l:Math.round(l*100)};};const updateValues=()=>{const hex=picker.value;const rgb=hexToRgb(hex);const hsl=rgbToHsl(rgb);hexInput.value=hex.toUpperCase();rgbInput.value=`rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;hslInput.value=`hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;paletteBox.innerHTML=[0,30,60,120,180,240].map(deg=>{const shiftedH=(hsl.h+deg)%360;return`<div class="w-8 h-8 rounded border border-white/10 cursor-pointer"
+return{h:Math.round(h*360),s:Math.round(s*100),l:Math.round(l*100)};};const updateValues=()=>{const hex=picker.value;const rgb=hexToRgb(hex);const hsl=rgbToHsl(rgb);hexInput.value=hex.toUpperCase();rgbInput.value=`rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;hslInput.value=`hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;paletteBox.innerHTML=[0,30,60,120,180,240].map(deg=>{const shiftedH=(hsl.h+deg)%360;return `<div class="w-8 h-8 rounded border border-white/10 cursor-pointer"
                         style="background: hsl(${shiftedH}, ${hsl.s}%, ${hsl.l}%)"
                         onclick="navigator.clipboard.writeText('hsl(${shiftedH}, ${hsl.s}%, ${hsl.l}%)')"></div>`;}).join('');};picker.addEventListener('input',updateValues);updateValues();}
 initTimers(){const tMin=document.getElementById('t-input-min');const tSec=document.getElementById('t-input-sec');const tDisp=document.getElementById('t-display');const tBar=document.getElementById('t-progress-bar');const tStart=document.getElementById('t-start-btn');if(tStart){let timerInterval;tStart.addEventListener('click',()=>{if(timerInterval){clearInterval(timerInterval);timerInterval=null;tStart.innerHTML='<i class="fas fa-play"></i> START';return;}

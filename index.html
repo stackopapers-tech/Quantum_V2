@@ -1339,7 +1339,7 @@
          website markup. Edit the SOURCES (css/style.css, js/*.js), then run
          py bump_version.py && py build_index.py (regenerates js/bundle.js and
          standalone.html — never hand-edit those). -->
-    <script>window.HUB_VERSION = '2026.10.10-26';</script>
+    <script>window.HUB_VERSION = '2026.10.11-1';</script>
     <script>
     /* Start-screen failsafe (plain script, no modules): the overlay can never
        trap the hub, even if app.js is stale, cached, or fails to boot. */
@@ -1395,10 +1395,10 @@
     (function () {
         var s = document.createElement('script');
         if (location.protocol === 'file:') {
-            s.src = 'js/bundle.js?v=2026.10.10-26';
+            s.src = 'js/bundle.js?v=2026.10.11-1';
         } else {
             s.type = 'module';
-            s.src = 'js/app.js?v=2026.10.10-26';
+            s.src = 'js/app.js?v=2026.10.11-1';
         }
         (document.body || document.documentElement).appendChild(s);
     })();

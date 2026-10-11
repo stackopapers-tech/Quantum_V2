@@ -3,15 +3,15 @@
    favorites, random, ratings, GOTD, streaks, i18n, lite, txt backup,
    updates, feedback, media previews, similar, ranks, forms, install,
    stats, polls, profiles, social (friends/chat/block/report). */
-import toast from './toast.js?v=2026.10.10-26';
-import modals from './modal.js?v=2026.10.10-26';
-import { TV_CATALOG, MOVIE_CATALOG, ANIME_CATALOG, TOP_TIER } from '../data/catalog.js?v=2026.10.10-26';
+import toast from './toast.js?v=2026.10.11-1';
+import modals from './modal.js?v=2026.10.11-1';
+import { TV_CATALOG, MOVIE_CATALOG, ANIME_CATALOG, TOP_TIER } from '../data/catalog.js?v=2026.10.11-1';
 
-import { TMDB_IDS } from '../data/tmdb-ids.js?v=2026.10.10-26';
-import { openGameViewer } from './game-viewer.js?v=2026.10.10-26';
+import { TMDB_IDS } from '../data/tmdb-ids.js?v=2026.10.11-1';
+import { openGameViewer } from './game-viewer.js?v=2026.10.11-1';
 
-import { launchViaAboutBlank } from './about-blank-launcher.js?v=2026.10.10-26';
-import { localHubApi } from '../local-api.js?v=2026.10.10-26';
+import { launchViaAboutBlank } from './about-blank-launcher.js?v=2026.10.11-1';
+import { localHubApi } from '../local-api.js?v=2026.10.11-1';
 
 const $ = (s, r) => (r || document).querySelector(s);
 const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
