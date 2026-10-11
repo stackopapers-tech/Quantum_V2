@@ -13,8 +13,8 @@
  * JS-only overlay: no index.html changes required.
  */
 
-import { probeFirstReachable } from './mirror-loader.js?v=2026.10.11-4';
-import { isMediaUrl, mediaFrameUrl } from './about-blank-launcher.js?v=2026.10.11-4';
+import { probeFirstReachable } from './mirror-loader.js?v=2026.10.11-5';
+import { isMediaUrl, mediaFrameUrl } from './about-blank-launcher.js?v=2026.10.11-5';
 
 let activeViewer = null;
 
@@ -124,7 +124,7 @@ export function openGameViewer(opts) {
     // script (browser security), so the button drops the click-shield,
     // focuses the player and leaves the user one click from the player's
     // own pause. Games never match any mode below — no button for them.
-    let pauseBtn = null, pauseMode = null, ytPlaying = true;
+    let pauseBtn = null, pauseMode = null, ytPlaying = true, streamPlaying = true, seenPlayerEvent = false;
     try {
         if (isMediaUrl(primary)) pauseMode = 'media';
         else if (/youtube\.com\/embed|youtube-nocookie\.com\/embed/.test(primary)) pauseMode = 'youtube';
@@ -141,6 +141,9 @@ export function openGameViewer(opts) {
             return;
         }
         if (pauseMode === 'youtube') pauseBtn.textContent = ytPlaying ? '⏸' : '▶';
+        // Stream mode: unknown until the first PLAYER_EVENT status report;
+        // assume playing (these players autostart).
+        else if (pauseMode === 'stream') pauseBtn.textContent = streamPlaying ? '⏸' : '▶';
     };
     const onPauseBtn = (e) => {
         e.preventDefault();
@@ -167,10 +170,19 @@ export function openGameViewer(opts) {
             syncPauseIcon();
             return;
         }
-        // Cross-origin streams (and any fallback): hand control to the
-        // player — drop the shield, focus the frame, one click from pause.
+        // Cross-origin streams: command-channel players (vidsrc-type) pause
+        // for real via {player:true,action} relayed down the frame chain;
+        // players without a channel ignore it — then fall through to the
+        // click handoff (shield down, frame focused, one click from pause).
         // While the player is still loading its first frame, keep the
         // shield up (that's the ad-redirect window) and say so.
+        let streamCmd = false;
+        try {
+            frame.contentWindow?.postMessage({ player: true, action: (seenPlayerEvent && !streamPlaying) ? 'play' : 'pause' }, '*');
+            streamCmd = true;
+            if (seenPlayerEvent) streamPlaying = !streamPlaying;
+            syncPauseIcon();
+        } catch (err) {}
         try {
             if (shield) {
                 if (shieldOn && !playerReady && !frameLoaded) {
@@ -181,7 +193,8 @@ export function openGameViewer(opts) {
             }
         } catch (err) {}
         try { frame.focus(); frame.contentWindow?.focus(); } catch (err) {}
-        setStatus('Player controls are live — click the video to pause.');
+        if (!streamCmd) setStatus('Player controls are live — click the video to pause.');
+        else setStatus(streamPlaying ? 'Player controls are live — click the video to pause.' : 'Paused — press ⏸ to resume.');
     };
     if (pauseMode) {
         pauseBtn = btn('⏸', 'Pause / resume');
@@ -332,6 +345,14 @@ export function openGameViewer(opts) {
         vsDisarm = (ev) => {
             const d = ev.data;
             if (!d || typeof d !== 'object') return;
+            // Live playback reports (vidsrc-type): sync the pause button to
+            // the real player state.
+            if (d.type === 'PLAYER_EVENT' && d.data && typeof d.data.player_status === 'string') {
+                seenPlayerEvent = true;
+                playerReady = true;
+                streamPlaying = d.data.player_status !== 'paused';
+                try { syncPauseIcon(); } catch (err) {}
+            }
             if ((d.type === 'PLAYER_TITLE' || d.type === 'TV_INFO') && shieldOn) {
                 playerReady = true;
                 shieldOn = false;
@@ -387,6 +408,8 @@ export function openGameViewer(opts) {
         if (closed) return;
         frameLoaded = false;
         playerReady = false;
+        streamPlaying = true;
+        seenPlayerEvent = false;
         if (isMediaUrl(url)) {
             let acc = '';
             try {
