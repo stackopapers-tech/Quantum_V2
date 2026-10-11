@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<!-- (c) Quantum Hub — proprietary hub build. All rights reserved. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Pong</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:#0d0d0d;font-family:'Segoe UI',system-ui,sans-serif;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none}
+  #wrap{position:relative;width:100%;max-width:640px;aspect-ratio:4/3;max-height:96vh}
+  canvas{width:100%;height:100%;display:block;background:#111;border:2px solid #333;border-radius:8px}
+  #overlay{position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;
+    align-items:center;justify-content:center;color:#fff;text-align:center;
+    background:rgba(0,0,0,.65);border-radius:8px}
+  #overlay h1{font-size:clamp(22px,6vw,36px);letter-spacing:4px}
+  #overlay p{font-size:14px;color:#aaa;max-width:80%}
+  #start{padding:10px 34px;font-size:17px;font-weight:700;background:#3281ff;color:#fff;
+    border:none;border-radius:8px;cursor:pointer}
+  #start:active{background:#1f66d6}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="cv"></canvas>
+  <div id="overlay">
+    <h1>PONG</h1>
+    <p>The original 1972 arcade classic. First to 11 points wins.<br>
+       Desktop: W/S or ↑/↓ &nbsp;·&nbsp; Mobile: drag on the left half</p>
+    <button id="start">PLAY</button>
+  </div>
+</div>
+<script>
+(function(){
+  var cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+  var overlay=document.getElementById('overlay');
+  var W,H,PW=12,PH=70,BS=9;
+  var py,ay,ball,scoreP,scoreA,playing=false,keys={},aiErr=0;
+
+  function size(){
+    var r=cv.getBoundingClientRect();cv.width=r.width*devicePixelRatio;
+    cv.height=r.height*devicePixelRatio;W=cv.width;H=cv.height;
+    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  }
+  window.addEventListener('resize',size);size();
+
+  function serve(dir){
+    ball={x:W/2,y:H/2,vx:dir*4.2*(W/600),vy:(Math.random()*4-2)*(H/450)};
+  }
+  function reset(){
+    scoreP=0;scoreA=0;py=H/2-PH/2;ay=H/2-PH/2;serve(Math.random()<.5?1:-1);
+  }
+
+  function loop(){
+    if(playing){
+      // player paddle
+      var sp=5.5*(H/450);
+      if(keys.ArrowUp||keys.w)py-=sp;
+      if(keys.ArrowDown||keys.s)py+=sp;
+      // AI paddle
+      var target=ball.y-PH/2+aiErr;
+      var diff=target-ay,as=4.0*(H/450);
+      if(Math.abs(diff)>as)ay+=diff>0?as:-as;else ay=target;
+      aiErr*=0.995;if(Math.random()<0.01)aiErr=(Math.random()*60-30)*(H/450);
+      py=Math.max(0,Math.min(H-PH,py));ay=Math.max(0,Math.min(H-PH,ay));
+      // ball
+      ball.x+=ball.vx;ball.y+=ball.vy;
+      if(ball.y<BS){ball.y=BS;ball.vy=-ball.vy;}
+      if(ball.y>H-BS){ball.y=H-BS;ball.vy=-ball.vy;}
+      var pxL=PW+8,pxR=W-PW-8;
+      if(ball.vx<0&&ball.x-BS<pxL+PW&&ball.x>pxL&&ball.y>py&&ball.y<py+PH){
+        ball.x=pxL+PW+BS;ball.vx=-ball.vx*1.04;
+        ball.vy+=(ball.y-(py+PH/2))*0.08;
+      }
+      if(ball.vx>0&&ball.x+BS>pxR&&ball.x<W-PW&&ball.y>ay&&ball.y<ay+PH){
+        ball.x=pxR-BS;ball.vx=-ball.vx*1.04;
+        ball.vy+=(ball.y-(ay+PH/2))*0.08;
+      }
+      var maxV=9*(W/600);
+      ball.vx=Math.max(-maxV,Math.min(maxV,ball.vx));
+      ball.vy=Math.max(-maxV,Math.min(maxV,ball.vy));
+      if(ball.x<-20){scoreA++;serve(1);}
+      if(ball.x>W+20){scoreP++;serve(-1);}
+      if(scoreP>=11||scoreA>=11){playing=false;showEnd();}
+    }
+    draw();requestAnimationFrame(loop);
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle='#333';ctx.lineWidth=2;ctx.setLineDash([8,10]);
+    ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#fff';ctx.font='bold '+(H*0.12)+'px "Segoe UI",sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText(scoreP,W/2-W/4,H*0.16);
+    ctx.fillText(scoreA,W/2+W/4,H*0.16);
+    ctx.fillRect(PW+8,py,PW,PH);                 // player (left)
+    ctx.fillRect(W-PW-8,ay,PW,PH);               // AI (right)
+    ctx.beginPath();ctx.arc(ball.x,ball.y,BS,0,7);ctx.fill();
+  }
+
+  function showEnd(){
+    overlay.style.display='flex';
+    overlay.querySelector('h1').textContent=scoreP>scoreA?'YOU WIN!':'AI WINS';
+    overlay.querySelector('p').innerHTML='Final score '+scoreP+' – '+scoreA;
+    document.getElementById('start').textContent='PLAY AGAIN';
+  }
+
+  document.addEventListener('keydown',function(e){keys[e.key]=true;
+    if(e.key===' '&&!playing){e.preventDefault();overlay.style.display='none';playing=true;}});
+  document.addEventListener('keyup',function(e){keys[e.key]=false;});
+
+  // touch drag on whole canvas (player paddle follows finger)
+  cv.addEventListener('touchmove',function(e){
+    var t=e.touches[0],r=cv.getBoundingClientRect();
+    py=(t.clientY-r.top)*(cv.height/devicePixelRatio)/r.height-PH/2;
+    py=Math.max(0,Math.min(H-PH,py));e.preventDefault();
+  },{passive:false});
+
+  document.getElementById('start').addEventListener('click',function(){
+    overlay.style.display='none';reset();playing=true;
+  });
+
+  reset();loop();
+})();
+</script>
+<div class="qhub-watermark" aria-hidden="true">◈ QUANTUM</div><style>.qhub-watermark{position:fixed;right:10px;bottom:10px;z-index:2147483647;font:700 11px monospace;letter-spacing:2px;color:#39ff14;background:rgba(0,0,0,.55);border:1px solid rgba(57,255,20,.5);border-radius:6px;padding:4px 8px;pointer-events:none;user-select:none;opacity:.85}</style></body>
+</html>

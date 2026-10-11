@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<!-- (c) Quantum Hub — proprietary hub build. All rights reserved. -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Launcher | Game & Media Hub</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Free Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Extensible Launcher Stylesheet -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#040406">
+    <style>
+        /* Critical fallback: readable hub even if the Tailwind CDN is blocked.
+           Uses theme vars so every layout scheme recolors the whole site. */
+        body { background: #040406; color: #f4f4f5; }
+        a { color: var(--accent); }
+        .glass-panel { background: rgba(14,14,20,0.85); }
+        .btn-premium { background: var(--accent); color: #000; }
+        .btn-outline { background: transparent; border: 2px solid var(--accent); color: var(--accent); }
+        .form-input, .form-select, .form-textarea { background: rgba(10,10,15,0.85); color: #fff; border: 2px solid rgba(var(--accent-rgb), 0.35); }
+        .nav-item { color: #c9c9d2; }
+        .nav-item.active { color: var(--accent); }
+        .game-card-title, .mirror-name { color: #fff; }
+    </style>
+</head>
+<body class="theme-obsidian">
+
+    <!-- Interactive Canvas Particles Background -->
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- Initial Minimalist Startup Screen Overlay -->
+    <div id="initial-overlay" class="fixed inset-0 z-[100] bg-black flex items-center justify-center transition-opacity duration-500">
+        <div class="w-full max-w-4xl px-4 py-8" style="max-height:100vh;overflow-y:auto;">
+            <!-- QUANTUM logo — click to enter the main hub interface -->
+            <div class="text-center mb-8">
+                <h1 id="quantum-logo" class="pulsing-logo text-white cursor-pointer select-none" title="Enter Quantum Hub" role="button" tabindex="0">QUANTUM</h1>
+                <p class="text-xs tracking-widest text-gray-500 uppercase mt-3" data-i18n="gateway">Secure Gateway Interface</p>
+            </div>
+
+            <!-- Mirrors are defined here in index.html; clicking one
+                 redirects you to the main hub interface. -->
+            <h2 class="text-xl font-bold text-white text-center mb-5 font-logo tracking-wider">
+                <i class="fas fa-shield-alt text-accent"></i> SELECT A MIRROR TO START
+            </h2>
+            <div class="mirror-selector-grid">
+                <div class="mirror-card cursor-pointer" data-mirror-id="cdn-githack">
+                    <div class="mirror-header">
+                        <div class="mirror-title-wrap">
+                            <div class="mirror-icon-box">
+                                <i class="fas fa-archive"></i>
+                            </div>
+                            <div>
+                                <div class="mirror-name">Githack Raw CDN</div>
+                                <div class="text-xs text-gray-400 mt-0.5">https://raw.githack.com/jquery/jquery-dist/3.7.1/dist/jquery.min.js</div>
+                            </div>
+                        </div>
+                        <span class="mirror-badge status-ok">Available</span>
+                    </div>
+                    <div class="mirror-description">jQuery 3.7.1 via Githack raw proxy (raw.githack.com, proper MIME, non-jsDelivr domain). Verified 200.</div>
+                    <div class="mirror-meta">
+                        <span><i class="fas fa-bolt text-yellow-500"></i> Latency: 24ms</span>
+                        <span><i class="fas fa-rocket text-blue-500"></i> about:blank</span>
+                    </div>
+                </div>
+
+                <div class="mirror-card cursor-pointer" data-mirror-id="cdn-rawcdn">
+                    <div class="mirror-header">
+                        <div class="mirror-title-wrap">
+                            <div class="mirror-icon-box">
+                                <i class="fas fa-cloud"></i>
+                            </div>
+                            <div>
+                                <div class="mirror-name">Githack Cloudflare Edge</div>
+                                <div class="text-xs text-gray-400 mt-0.5">https://rawcdn.githack.com/jquery/jquery-dist/3.7.1/dist/jquery.min.js</div>
+                            </div>
+                        </div>
+                        <span class="mirror-badge status-ok">Available</span>
+                    </div>
+                    <div class="mirror-description">jQuery 3.7.1 via rawcdn.githack.com (Cloudflare edge of the same Githack service). Verified 200, CORS=*.</div>
+                    <div class="mirror-meta">
+                        <span><i class="fas fa-bolt text-yellow-500"></i> Latency: unverified</span>
+                        <span><i class="fas fa-rocket text-blue-500"></i> about:blank</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN INTERFACE SHELL -->
+    <main class="relative z-10">
+
+        <!-- Top Header Panel -->
+        <header class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-accent/10 border border-accent/20 rounded-xl flex items-center justify-center shadow-[inset_0_0_10px_rgba(var(--accent-rgb),0.1)]">
+                    <i class="fas fa-cubes text-accent animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wider font-logo text-white">QUANTUM_SYS</h1>
+                    <p class="text-[10px] text-gray-500 font-mono">STABLE_V2.0 // DECENTRALIZED LAUNCHER</p>
+                </div>
+            </div>
+
+            <!-- Quick Access Status Bar -->
+            <div class="flex items-center gap-4 text-xs font-mono">
+                <div class="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/5 rounded-full">
+                    <span class="w-2 h-2 rounded-full bg-accent shadow-[0_0_8px_var(--accent)]"></span>
+                    <span class="text-gray-400"><span data-i18n="latency">LATENCY:</span> <span id="status-latency" class="text-white">12ms</span></span>
+                </div>
+                <div class="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/5 rounded-full">
+                    <i class="fas fa-key text-yellow-500"></i>
+                    <span class="text-gray-400"><span data-i18n="status">STATUS:</span> <span class="text-green-400">SANDBOX_OK</span></span>
+                </div>
+                <div class="auth-indicator flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/5 rounded-full"></div>
+            </div>
+        </header>
+
+        <!-- Dynamic Content Router panels -->
+
+        <!-- 1. MEDIA PANEL -->
+        <section id="panel-media" class="panel-container">
+            <div class="hero-banner">
+                <div class="max-w-xl relative z-10">
+                    <span class="text-xs font-bold font-logo text-accent tracking-widest uppercase mb-2 block" data-i18n="mediaDeck">DASHBOARD // MEDIA DECK</span>
+                    <h2 class="text-3xl font-bold text-white mb-3" data-i18n="mediaTitle">CURATED DIGITAL MEDIA STREAMING</h2>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-6" data-i18n="mediaBlurb">Access films, audio compositions, television series summaries and custom YouTube integration inside sandboxed glass nodes.</p>
+                </div>
+            </div>
+
+            <!-- Search + master volume -->
+            <div class="glass-panel p-3 mb-8 flex flex-wrap items-center gap-4">
+                <div class="flex items-center gap-2 flex-1 min-w-52">
+                    <i class="fas fa-search text-accent"></i>
+                    <input id="media-search" type="search" class="form-input text-xs flex-1" placeholder="Search movies, TV, anime, sources...">
+                    <span id="media-search-count" class="text-xs text-gray-500 font-mono"></span>
+                </div>
+                <div class="flex items-center gap-2" title="Master volume for everything">
+                    <i class="fas fa-volume-high text-accent"></i>
+                    <input id="q-media-volume" type="range" min="0" max="100" value="80" class="w-40 accent-current" style="color:var(--accent)">
+                    <span id="q-media-volume-val" class="text-xs text-gray-500 font-mono w-9">80%</span>
+                </div>
+            </div>
+
+            <!-- Discovery & streaming sources (top of the media page) -->
+            <div class="mb-10">
+                <h3 class="text-lg font-bold font-logo text-white mb-4 tracking-wider flex items-center gap-2">
+                    <i class="fas fa-satellite-dish text-accent"></i> DISCOVERY SOURCES
+                </h3>
+                <div class="source-grid media-grid">
+                    <!-- Loaded dynamically in hub-plus.js -->
+                </div>
+            </div>
+
+            <!-- Movies Section -->
+            <div class="mb-10">
+                <h3 class="text-lg font-bold font-logo text-white mb-4 tracking-wider flex items-center gap-2">
+                    <i class="fas fa-film text-accent"></i> PREMIUM CINEMATICS
+                </h3>
+                <div class="movie-grid media-grid">
+                    <!-- Loaded dynamically in app.js -->
+                </div>
+            </div>
+
+            <!-- Series & Live TV -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+                <div>
+                    <h3 class="text-lg font-bold font-logo text-white mb-4 tracking-wider flex items-center gap-2">
+                        <i class="fas fa-tv text-accent"></i> TELEVISION CHRONICLES
+                    </h3>
+                    <div class="tv-grid media-grid">
+                        <!-- Loaded dynamically in app.js -->
+                    </div>
+                </div>
+
+                <!-- Ambient Audio Soundtrack Synthesizer -->
+                <div>
+                    <h3 class="text-lg font-bold font-logo text-white mb-4 tracking-wider flex items-center gap-2">
+                        <i class="fas fa-music text-accent"></i> AUDIO SYNTH INTERFACE
+                    </h3>
+                    <div class="audio-player-box">
+                        <div class="audio-artwork bg-cover" style="background-image: url('https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80');"></div>
+                        <div class="flex-grow">
+                            <div id="ambient-track-title" class="font-bold text-white text-sm">Audio Deck Suspended</div>
+                            <div id="ambient-track-artist" class="text-xs text-gray-400 mt-0.5">Standby // Click play to compile arpeggios</div>
+                            <div class="audio-progress-container mt-3">
+                                <div class="audio-progress-bar">
+                                    <div id="ambient-progress-fill" class="audio-progress-fill"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="audio-controls">
+                            <button id="ambient-play-btn" class="audio-btn play-pause">
+                                <i class="fas fa-play"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- YouTube Embedded Stream Box & Podcasts -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- YouTube Load Box -->
+                <div class="lg:col-span-2 glass-panel p-6 flex flex-col justify-between">
+                    <div>
+                        <h4 class="text-md font-bold text-white font-logo mb-2 flex items-center gap-2">
+                            <i class="fab fa-youtube text-red-500"></i> YouTube Sandboxed Terminal
+                        </h4>
+                        <p class="text-xs text-gray-400 leading-relaxed mb-4">Input a YouTube Video Identifier (ID) to load a secured background stream player directly inside this glass capsule.</p>
+                        <div class="flex gap-2">
+                            <input type="text" id="yt-id-input" class="form-input text-xs font-mono" placeholder="YouTube Video ID (e.g. jNQXAC9IVRw)">
+                            <button id="yt-load-btn" class="btn-premium px-4 text-xs font-bold py-2"><span data-i18n="attach">ATTACH LAYER</span></button>
+                        </div>
+                    </div>
+                    <div id="yt-frame-container" class="aspect-video w-full border border-white/5 rounded-lg overflow-hidden bg-black mt-4 h-56 flex items-center justify-center text-xs text-gray-600">
+                        No video context attached. Input ID above.
+                    </div>
+                </div>
+
+                <!-- Podcasts and favorites -->
+                <div class="glass-panel p-6">
+                    <h4 class="text-md font-bold text-white font-logo mb-4 flex items-center gap-2">
+                        <i class="fas fa-microphone text-accent"></i> SECURED PODCASTS
+                    </h4>
+                    <div class="podcast-grid flex flex-col gap-4">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Music Tracks (real playable audio) -->
+            <div class="mt-10">
+                <h3 class="text-lg font-bold font-logo text-white mb-4 tracking-wider flex items-center gap-2">
+                    <i class="fas fa-headphones text-accent"></i> MUSIC TRACKS
+                </h3>
+                <div class="music-grid media-grid">
+                    <!-- Loaded dynamically in app.js -->
+                </div>
+            </div>
+
+            <!-- Favorites -->
+            <div class="mt-10">
+                <h3 class="text-lg font-bold font-logo text-white mb-4 tracking-wider flex items-center gap-2">
+                    <i class="fas fa-heart text-accent"></i> FAVORITES
+                </h3>
+                <div class="favorites-grid media-grid">
+                    <!-- Loaded dynamically in app.js -->
+                </div>
+            </div>
+
+            <!-- Catalog note: titles only, no hosted copies -->
+            <div class="mt-10 glass-panel p-4 text-[11px] text-gray-400 leading-relaxed">
+                Catalog sections below list titles + tiers as an index. Nothing here is hosted or streamed by the hub — click any title for legal watch options and info.
+            </div>
+
+            <!-- TV Shows catalog -->
+            <div class="mt-10">
+                <h3 class="text-lg font-bold font-logo text-white mb-4 tracking-wider flex items-center gap-2">
+                    <i class="fas fa-tv text-accent"></i> TOP TV SHOWS <span id="tv-catalog-count" class="text-xs text-gray-500 font-mono"></span>
+                </h3>
+                <div class="tv-catalog-grid media-grid">
+                    <!-- Loaded dynamically in app.js -->
+                </div>
+            </div>
+
+            <!-- Movies catalog -->
+            <div class="mt-10">
+                <h3 class="text-lg font-bold font-logo text-white mb-4 tracking-wider flex items-center gap-2">
+                    <i class="fas fa-film text-accent"></i> TOP MOVIES <span id="movie-catalog-count" class="text-xs text-gray-500 font-mono"></span>
+                </h3>
+                <div class="movie-catalog-grid media-grid">
+                    <!-- Loaded dynamically in app.js -->
+                </div>
+            </div>
+
+            <!-- Anime catalog -->
+            <div class="mt-10">
+                <h3 class="text-lg font-bold font-logo text-white mb-4 tracking-wider flex items-center gap-2">
+                    <i class="fas fa-dragon text-accent"></i> TOP ANIME <span id="anime-catalog-count" class="text-xs text-gray-500 font-mono"></span>
+                </h3>
+                <div class="anime-catalog-grid media-grid">
+                    <!-- Loaded dynamically in app.js -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 1b. MUSIC PANEL (IN-HUB MUSIC DECK) -->
+        <section id="panel-music" class="panel-container">
+            <div class="hero-banner">
+                <div class="max-w-xl relative z-10">
+                    <span class="text-xs font-bold font-logo text-accent tracking-widest uppercase mb-2 block" data-i18n="musicDeck">DASHBOARD // MUSIC DECK</span>
+                    <h2 class="text-3xl font-bold text-white mb-3" data-i18n="musicTitle">MUSIC STREAM TERMINAL</h2>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-6">Search millions of free and public-domain tracks, then play them right here on the deck — no popups, no installs. Inspired by SimpMusic.</p>
+                </div>
+            </div>
+
+            <!-- Search + master volume (mirrors the media bar) -->
+            <div class="glass-panel p-3 mb-8 flex flex-wrap items-center gap-4">
+                <div class="flex items-center gap-2 flex-1 min-w-52">
+                    <i class="fas fa-search text-accent"></i>
+                    <input id="music-search" type="search" class="form-input text-xs flex-1" placeholder="Search songs, artists, albums (Internet Archive)…">
+                    <span id="music-search-count" class="text-xs text-gray-500 font-mono"></span>
+                </div>
+                <div class="flex items-center gap-2" title="Master volume for everything">
+                    <i class="fas fa-volume-high text-accent"></i>
+                    <input id="q-music-volume" type="range" min="0" max="100" value="80" class="w-40 accent-current" style="color:var(--accent)">
+                    <span id="q-music-volume-val" class="text-xs text-gray-500 font-mono w-9">80%</span>
+                </div>
+            </div>
+
+            <!-- Deck player (now playing) -->
+            <div id="music-deck" class="glass-panel p-4 mb-8">
+                <div class="flex items-center gap-4 flex-wrap">
+                    <div id="music-art" class="w-20 h-20 rounded-lg bg-cover bg-center flex-shrink-0 border border-white/10" style="background-image:url('https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80');"></div>
+                    <div class="flex-grow min-w-44">
+                        <div id="music-now-title" class="font-bold text-white text-sm">No track loaded</div>
+                        <div id="music-now-artist" class="text-xs text-gray-400 mt-0.5">Search above or click a featured track</div>
+                        <div id="music-progress-bar" class="w-full h-2 bg-white/10 rounded-full mt-3 cursor-pointer relative" title="Click to seek">
+                            <div id="music-progress-fill" class="h-full rounded-full absolute left-0 top-0" style="width:0%;background:var(--accent);"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-gray-500 font-mono mt-1">
+                            <span id="music-time-cur">0:00</span><span id="music-time-dur">0:00</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="music-prev" class="btn-outline px-3 py-2 text-xs" title="Previous track"><i class="fas fa-step-backward"></i></button>
+                        <button id="music-play" class="btn-premium px-5 py-2 text-xs font-bold" title="Play / Pause"><i class="fas fa-play" id="music-play-icon"></i> <span id="music-play-label">PLAY</span></button>
+                        <button id="music-next" class="btn-outline px-3 py-2 text-xs" title="Next track"><i class="fas fa-step-forward"></i></button>
+                    </div>
+                </div>
+                <audio id="music-audio" preload="metadata" class="hidden"></audio>
+                <div class="text-[10px] text-gray-500 mt-3 flex items-center gap-2">
+                    <i class="fas fa-headphones text-accent"></i> ◈ QUANTUM HUB · streams from Internet Archive &amp; SoundHelix (free / public domain)
+                </div>
+            </div>
+
+            <!-- Search results (hidden until a search runs) -->
+            <div id="music-results-wrap" class="mb-10 hidden">
+                <h3 class="text-lg font-bold font-logo text-white mb-4 tracking-wider flex items-center gap-2">
+                    <i class="fas fa-list-ol text-accent"></i> SEARCH RESULTS <span id="music-results-count" class="text-xs text-gray-500 font-mono"></span>
+                </h3>
+                <div id="music-results" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"></div>
+            </div>
+
+            <!-- Featured tracks -->
+            <div class="mb-10">
+                <h3 class="text-lg font-bold font-logo text-white mb-4 tracking-wider flex items-center gap-2">
+                    <i class="fas fa-star text-accent"></i> FEATURED TRACKS
+                </h3>
+                <div id="music-featured" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"></div>
+            </div>
+
+            <!-- Music sources (open in the in-hub viewer) -->
+            <div class="mb-10">
+                <h3 class="text-lg font-bold font-logo text-white mb-4 tracking-wider flex items-center gap-2">
+                    <i class="fas fa-satellite-dish text-accent"></i> MUSIC SOURCES
+                </h3>
+                <div id="music-sources" class="media-grid"></div>
+            </div>
+        </section>
+
+        <!-- 2. GAMES PANEL (MAIN GAME LAUNCHER CENTER) -->
+        <section id="panel-games" class="panel-container active">
+            <div class="hero-banner">
+                <div class="max-w-xl relative z-10">
+                    <span class="text-xs font-bold font-logo text-accent tracking-widest uppercase mb-2 block" data-i18n="gameDeck">DASHBOARD // GAME DECK</span>
+                    <h2 class="text-3xl font-bold text-white mb-3" data-i18n="gameTitle">CLOUD LAUNCHER CENTRAL</h2>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-6">Register user-curated game layers and deploy sandboxed frame architectures directly from the central repository dashboard.</p>
+                    
+                    <button id="add-game-spec-btn" class="btn-premium">
+                        <i class="fas fa-plus-circle"></i> ADD GAME SPEC
+                    </button>
+                </div>
+                <!-- Dynamic continue-playing / featured banner (built by app.js) -->
+                <div id="continue-hero" class="relative z-10 w-full"></div>
+            </div>
+
+            <!-- Games Grid Section -->
+            <div>
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold font-logo text-white tracking-wider flex items-center gap-2">
+                        <i class="fas fa-gamepad text-accent animate-pulse"></i> GAME CATALOG CHANNELS
+                    </h3>
+                    <div class="text-xs text-gray-400 bg-white/5 px-3 py-1 border border-white/5 rounded-full">
+                        <span data-i18n="activeLayers">ACTIVE SPEC LAYERS:</span> <span id="games-total-indicator" class="text-white font-bold">LOCAL</span>
+                    </div>
+                </div>
+
+                <!-- Search & Filter Bar -->
+                <div class="glass-panel p-4 mb-6 flex flex-col md:flex-row gap-4">
+                    <div class="flex-1 relative">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                        <input type="text" id="game-search-input" class="form-input pl-10 pr-4" placeholder="Search games by name, category, description...">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <select id="game-category-filter" class="form-select text-xs w-40">
+                            <option value="all" data-i18n="allCategories">All Categories</option>
+                            <option value="Puzzle">Puzzle</option>
+                            <option value="Action">Action</option>
+                            <option value="Strategy">Strategy</option>
+                            <option value="FPS">FPS</option>
+                            <option value="Sandbox">Sandbox</option>
+                            <option value="Arcade">Arcade</option>
+                            <option value="Unblocked">Unblocked</option>
+                            <option value="Portal">Portal</option>
+                            <option value="Educational">Educational</option>
+                        </select>
+                        <select id="game-sort-filter" class="form-select text-xs w-40">
+                            <option value="name" data-i18n="sortName">Sort: Name</option>
+                            <option value="category" data-i18n="sortCategory">Sort: Category</option>
+                            <option value="launches" data-i18n="sortLaunches">Sort: Most Played</option>
+                            <option value="recent" data-i18n="sortRecent">Sort: Recently Played</option>
+                            <option value="added" data-i18n="sortAdded">Sort: Recently Added</option>
+                        </select>
+                        <label class="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+                            <input type="checkbox" id="game-favorites-only" class="w-4 h-4 accent-accent"> Favorites Only
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Recommended marquee (built by app.js) -->
+                <h3 class="text-lg font-bold font-logo text-white tracking-wider flex items-center gap-2 mb-3">
+                    <i class="fas fa-fire text-accent"></i> RECOMMENDED
+                </h3>
+                <div class="reco-marquee mb-8">
+                    <div class="reco-track" id="reco-track"></div>
+                </div>
+
+                <!-- Custom Grid rendering user imported games -->
+                <div class="game-grid">
+                    <!-- Dynamically rendered custom games from localStorage -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. PROXY DEVELOPER TOOLS PANEL -->
+        <section id="panel-proxy" class="panel-container">
+            <div class="hero-banner">
+                <div class="max-w-xl relative z-10">
+                    <span class="text-xs font-bold font-logo text-accent tracking-widest uppercase mb-2 block" data-i18n="gatewayDeck">DASHBOARD // GATEWAY DECK</span>
+                    <h2 class="text-3xl font-bold text-white mb-3" data-i18n="gatewayTitle">SECURED DEVELOPMENT RESOURCES</h2>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-6">Access curated sandbox sandboxes and external APIs securely with modular configuration endpoints. No system access bypass scripts implemented.</p>
+                </div>
+            </div>
+
+            <!-- Manual Launch Interface -->
+            <div class="glass-panel p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="max-w-lg">
+                    <h4 class="text-md font-bold text-white font-logo mb-1 flex items-center gap-2">
+                        <i class="fas fa-terminal text-accent"></i> Sandboxed Core Manual Input
+                    </h4>
+                    <p class="text-xs text-gray-400 leading-relaxed">Direct target loading via frame structures. When served by the hub server, launches also try the loopback relay if the browser itself can't reach a destination.</p>
+                </div>
+                <div class="flex gap-2 w-full md:w-auto flex-grow max-w-md">
+                    <input type="text" id="sandbox-manual-url" class="form-input text-xs font-mono flex-grow" placeholder="https://example.com/play">
+                    <button id="sandbox-manual-launch" class="btn-premium px-6 py-2.5 text-xs font-bold"<span data-i18n="deploy">DEPLOY SANDBOX</span></button>
+                </div>
+            </div>
+
+            <!-- Curated resource grid -->
+            <div>
+                <h3 class="text-lg font-bold font-logo text-white mb-4 tracking-wider flex items-center gap-2">
+                    <i class="fas fa-network-wired text-accent"></i> CURATED DEV PORTALS
+                </h3>
+                <div class="proxy-resources-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="glass-panel p-4 flex flex-col justify-between" data-url="https://scramjet.mercurywork.shop/" data-name="Scramjet Demo">
+                        <div>
+                            <h4 class="text-sm font-bold text-white font-logo mb-1">Scramjet Proxy</h4>
+                            <p class="text-[11px] text-gray-400">Official Scramjet demo — censorship-bypass web proxy engine (scramjet.mercurywork.shop — verified live).</p>
+                        </div>
+                        <button class="btn-outline text-xs mt-3 py-1.5 w-full proxy-launch-btn" data-url="https://scramjet.mercurywork.shop/"><span data-i18n="launchNode">LAUNCH NODE</span></button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. UTILITIES / TOOLS PANEL -->
+        <section id="panel-tools" class="panel-container">
+            <div class="hero-banner">
+                <div class="max-w-xl relative z-10">
+                    <span class="text-xs font-bold font-logo text-accent tracking-widest uppercase mb-2 block" data-i18n="utilityDeck">DASHBOARD // UTILITY DECK</span>
+                    <h2 class="text-3xl font-bold text-white mb-3" data-i18n="utilityTitle">INTEGRATED WEB TERMINALS</h2>
+                    <p class="text-gray-400 text-sm leading-relaxed">Fully client-side interactive calculators, notebooks, palettes, markdown code compilation systems, and high-fidelity timers.</p>
+                </div>
+            </div>
+
+            <!-- Dual Sidebar & Main layout -->
+            <div class="tool-grid">
+                <!-- Sidebar selection tabs -->
+                <div class="tool-sidebar glass-panel p-3">
+                    <button class="tool-menu-btn active" data-tool="calculator">
+                        <i class="fas fa-calculator text-accent"></i> NEON CALCULATOR
+                    </button>
+                    <button class="tool-menu-btn" data-tool="notes">
+                        <i class="fas fa-book-open text-accent"></i> NOTEBOOK CONSOLE
+                    </button>
+                    <button class="tool-menu-btn" data-tool="editor">
+                        <i class="fas fa-code text-accent"></i> CODING WORKSPACE
+                    </button>
+                    <button class="tool-menu-btn" data-tool="picker">
+                        <i class="fas fa-palette text-accent"></i> NEON PALETTE
+                    </button>
+                    <button class="tool-menu-btn" data-tool="timer">
+                        <i class="fas fa-stopwatch text-accent"></i> TIMERS & CLOCKS
+                    </button>
+                    <button class="tool-menu-btn" data-tool="converter">
+                        <i class="fas fa-exchange-alt text-accent"></i> UNIT CONVERTER
+                    </button>
+                    <button class="tool-menu-btn" data-tool="qr">
+                        <i class="fas fa-qrcode text-accent"></i> QR COMPILER
+                    </button>
+                    <button class="tool-menu-btn" data-tool="ai">
+                        <i class="fas fa-robot text-accent"></i> AI ASSISTANT
+                    </button>
+                    <button class="tool-menu-btn" data-tool="password">
+                        <i class="fas fa-key text-accent"></i> PASSWORD GENERATOR
+                    </button>
+                    <button class="tool-menu-btn" data-tool="base64">
+                        <i class="fas fa-code-branch text-accent"></i> BASE64 ENCODER
+                    </button>
+                    <button class="tool-menu-btn" data-tool="hash">
+                        <i class="fas fa-fingerprint text-accent"></i> HASH GENERATOR
+                    </button>
+                    <button class="tool-menu-btn" data-tool="regex">
+                        <i class="fas fa-search text-accent"></i> REGEX TESTER
+                    </button>
+                    <button class="tool-menu-btn" data-tool="sysinfo">
+                        <i class="fas fa-microchip text-accent"></i> SYSTEM INFO
+                    </button>
+                    <button class="tool-menu-btn" data-tool="embed">
+                        <i class="fas fa-window-restore text-accent"></i> HTML EMBEDDER
+                    </button>
+                </div>
+
+                <!-- Main dynamic tool wrapper box -->
+                <div class="tool-content-box">
+
+                    <!-- A. CALCULATOR -->
+                    <div id="tool-calculator" class="tool-panel active">
+                        <h4 class="text-lg font-bold font-logo text-white mb-4"><i class="fas fa-calculator text-accent mr-2"></i> NEON MATRIX CALCULATOR</h4>
+                        <div class="calc-container">
+                            <div class="calc-display">
+                                <div id="calc-display-hist" class="calc-history"></div>
+                                <div id="calc-display-main">0</div>
+                            </div>
+                            <div class="calc-grid">
+                                <button class="calc-btn op" data-val="C">C</button>
+                                <button class="calc-btn op" data-val="CE">CE</button>
+                                <button class="calc-btn op" data-val="÷">÷</button>
+                                <button class="calc-btn op" data-val="×">×</button>
+                                
+                                <button class="calc-btn" data-val="7">7</button>
+                                <button class="calc-btn" data-val="8">8</button>
+                                <button class="calc-btn" data-val="9">9</button>
+                                <button class="calc-btn op" data-val="-">-</button>
+                                
+                                <button class="calc-btn" data-val="4">4</button>
+                                <button class="calc-btn" data-val="5">5</button>
+                                <button class="calc-btn" data-val="6">6</button>
+                                <button class="calc-btn op" data-val="+">+</button>
+                                
+                                <button class="calc-btn" data-val="1">1</button>
+                                <button class="calc-btn" data-val="2">2</button>
+                                <button class="calc-btn" data-val="3">3</button>
+                                <button class="calc-btn eq" data-val="=">=</button>
+                                
+                                <button class="calc-btn col-span-2" data-val="0">0</button>
+                                <button class="calc-btn" data-val=".">.</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- B. NOTES APP -->
+                    <div id="tool-notes" class="tool-panel">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-lg font-bold font-logo text-white"><i class="fas fa-book-open text-accent mr-2"></i> NOTES PERSISTENT REPOSITORY</h4>
+                            <div class="flex gap-2">
+                                <button id="note-new-btn" class="btn-premium px-3 py-1.5 text-xs"><i class="fas fa-plus"></i> NEW NOTE</button>
+                                <button id="note-save-btn" class="btn-outline px-3 py-1.5 text-xs"><i class="fas fa-save"></i> SYNC NOTE</button>
+                                <button id="note-delete-btn" class="btn-outline text-red-500 border-red-500/20 hover:border-red-500 px-3 py-1.5 text-xs"><i class="fas fa-trash"></i> DELETE</button>
+                            </div>
+                        </div>
+                        <div class="notes-container">
+                            <div class="notes-list">
+                                <!-- Rendered on the fly -->
+                            </div>
+                            <div class="note-editor">
+                                <input type="text" id="note-title-input" class="form-input text-sm font-bold bg-[#020204]" placeholder="Note specification title...">
+                                <textarea id="note-edit-area" class="form-textarea flex-grow bg-[#020204] resize-none text-xs leading-relaxed" placeholder="Write markdown or secure script draft sheets..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- C. CODING WORKSPACE TEXT EDITOR -->
+                    <div id="tool-editor" class="tool-panel">
+                        <h4 class="text-lg font-bold font-logo text-white mb-4"><i class="fas fa-code text-accent mr-2"></i> SECURED CODING WORKSPACE</h4>
+                        <div class="editor-layout">
+                            <div class="editor-linenums"></div>
+                            <textarea class="editor-textarea" spellcheck="false"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- D. COLOR PICKER -->
+                    <div id="tool-picker" class="tool-panel">
+                        <h4 class="text-lg font-bold font-logo text-white mb-4"><i class="fas fa-palette text-accent mr-2"></i> NEON PALETTE CONSOLE</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="space-y-4">
+                                <div class="flex items-center gap-4">
+                                    <input type="color" id="picker-main-color" class="w-16 h-16 rounded-xl bg-transparent cursor-pointer border border-white/10" value="#39ff14">
+                                    <div>
+                                        <div class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Color Select Node</div>
+                                        <div class="text-[10px] text-gray-500 font-mono">Trigger live spectrum values</div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Hexadecimal Spec</label>
+                                    <input type="text" id="picker-hex" class="form-input text-xs font-mono" readonly>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">RGB Vector</label>
+                                    <input type="text" id="picker-rgb" class="form-input text-xs font-mono" readonly>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">HSL Coordinates</label>
+                                    <input type="text" id="picker-hsl" class="form-input text-xs font-mono" readonly>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col justify-between">
+                                <div>
+                                    <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">COMPLIMENTARY SPECTRUMS</div>
+                                    <p class="text-[11px] text-gray-500 leading-relaxed mb-4">Dynamically compiled light spectra values. Click box layer to clone variable directly into your clipboard.</p>
+                                </div>
+                                <div id="picker-palette-box" class="flex gap-3 mb-4">
+                                    <!-- Populated dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- E. TIMERS & STOPWATCH -->
+                    <div id="tool-timer" class="tool-panel">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Countdown Timer -->
+                            <div class="glass-panel p-5 bg-black/30">
+                                <h4 class="text-md font-bold text-white font-logo mb-4 flex items-center gap-2"><i class="fas fa-hourglass-half text-accent"></i> TIMER PROTOCOL</h4>
+                                <div class="flex gap-2 mb-4">
+                                    <input type="number" id="t-input-min" class="form-input text-center font-mono text-sm" placeholder="Mins" min="0" max="60">
+                                    <input type="number" id="t-input-sec" class="form-input text-center font-mono text-sm" placeholder="Secs" min="0" max="59">
+                                </div>
+                                <div id="t-display" class="text-4xl font-mono text-center text-accent tracking-widest font-bold my-6">00:00</div>
+                                <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden mb-6">
+                                    <div id="t-progress-bar" class="h-full bg-accent w-0 transition-all duration-1000 shadow-[0_0_8px_var(--accent)]"></div>
+                                </div>
+                                <button id="t-start-btn" class="btn-premium w-full text-xs py-2 justify-center"><i class="fas fa-play"></i> START</button>
+                            </div>
+
+                            <!-- Stopwatch -->
+                            <div class="glass-panel p-5 bg-black/30">
+                                <h4 class="text-md font-bold text-white font-logo mb-4 flex items-center gap-2"><i class="fas fa-stopwatch text-accent"></i> CHRONOMETER SYSTEM</h4>
+                                <div id="sw-display" class="text-4xl font-mono text-center text-white tracking-widest font-bold my-4">00:00.00</div>
+                                <div class="flex gap-2 mb-4">
+                                    <button id="sw-start" class="btn-premium flex-grow text-xs py-2 justify-center"><i class="fas fa-play"></i> START</button>
+                                    <button id="sw-lap" class="btn-outline text-xs py-2 justify-center" disabled><i class="fas fa-flag"></i> LAP</button>
+                                    <button id="sw-reset" class="btn-outline text-xs py-2 justify-center text-red-400"><i class="fas fa-redo"></i> RESET</button>
+                                </div>
+                                <ul id="sw-laps-box" class="max-h-28 overflow-y-auto pr-1 space-y-1"></ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- F. UNIT CONVERTER -->
+                    <div id="tool-converter" class="tool-panel">
+                        <h4 class="text-lg font-bold font-logo text-white mb-4"><i class="fas fa-exchange-alt text-accent mr-2"></i> REACTIVE UNIT CONVERTER</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Measurement Category</label>
+                                <select id="conv-type" class="form-select text-xs">
+                                    <option value="length">Length Spec</option>
+                                    <option value="weight">Weight Mass</option>
+                                    <option value="temp">Thermal Temperature</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Input Vector</label>
+                                <input type="number" id="conv-input-val" class="form-input mb-2 text-xs" value="1">
+                                <select id="conv-input-unit" class="form-select text-xs"></select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Result Vector Output</label>
+                                <input type="text" id="conv-output-val" class="form-input mb-2 text-xs font-mono font-bold text-accent" readonly>
+                                <select id="conv-output-unit" class="form-select text-xs"></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- G. QR CODE GENERATOR -->
+                    <div id="tool-qr" class="tool-panel">
+                        <h4 class="text-lg font-bold font-logo text-white mb-4"><i class="fas fa-qrcode text-accent mr-2"></i> QR SPECIFICATION COMPILER</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="space-y-4">
+                                <p class="text-xs text-gray-400 leading-relaxed">Compile structural text, credential values, or network URI pathways into standardized multi-dimensional graphic matrixes.</p>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Payload Text Vector</label>
+                                    <textarea id="qr-text-input" class="form-textarea h-24 text-xs font-mono" placeholder="Input URL or string data..."></textarea>
+                                </div>
+                                <button id="qr-gen-btn" class="btn-premium text-xs py-2.5 px-6"><i class="fas fa-cog"></i> COMPILE QR GRAPHIC</button>
+                            </div>
+
+                            <div class="flex flex-col items-center justify-center p-4 bg-black/20 rounded-xl border border-white/5 min-h-[220px]" id="qr-output-box">
+                                <i class="fas fa-qrcode text-5xl text-gray-700"></i>
+                                <span class="text-xs text-gray-500 mt-2">Waiting for payload...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- H. AI ASSISTANT -->
+                    <div id="tool-ai" class="tool-panel">
+                        <h4 class="text-lg font-bold font-logo text-white mb-4"><i class="fas fa-robot text-accent mr-2"></i> AI ASSISTANT</h4>
+                        <div class="glass-panel p-8 text-center">
+                            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-accent/20 flex items-center justify-center text-accent text-2xl">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <h4 class="text-lg font-bold text-white font-logo mb-2">Quantum AI Hub</h4>
+                            <p class="text-sm text-gray-400 mb-6 max-w-md mx-auto leading-relaxed">The AI assistant lives in the AI Hub — chat with <strong class="text-accent">Quantum AI</strong>, attach files, and pick your provider there. No account needed.</p>
+                            <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                                <select id="ai-provider-select" class="form-select text-xs" aria-label="AI provider">
+                                    <option value="ollama">Ollama (Local)</option>
+                                    <option value="huggingface">HuggingFace Hub</option>
+                                    <option value="opencode">OpenCode Models</option>
+                                </select>
+                                <button class="btn-premium px-8 py-3 text-sm proxy-launch-btn" data-local="ai/index.html"><i class="fas fa-external-link-alt mr-2"></i><span data-i18n="goToAIHub">GO TO AI HUB</span></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- I. PASSWORD GENERATOR -->
+                    <div id="tool-password" class="tool-panel">
+                        <h4 class="text-lg font-bold font-logo text-white mb-4"><i class="fas fa-key text-accent mr-2"></i> PASSWORD GENERATOR</h4>
+                        <div class="glass-panel p-6 space-y-4">
+                            <div class="flex items-center gap-4">
+                                <span class="text-xs text-gray-400">Length: <span id="pwd-length-val" class="text-accent font-mono">16</span></span>
+                                <input type="range" id="pwd-length-range" class="flex-1" min="8" max="64" value="16" aria-label="Password length">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 text-sm text-gray-300">
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="pwd-upper" checked class="accent-[#39ff14]"> Uppercase (A-Z)</label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="pwd-lower" checked class="accent-[#39ff14]"> Lowercase (a-z)</label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="pwd-numbers" checked class="accent-[#39ff14]"> Numbers (0-9)</label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="pwd-symbols" checked class="accent-[#39ff14]"> Symbols (!@#...)</label>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Generated Password</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="pwd-output" class="form-input font-mono text-sm flex-1" readonly placeholder="Click generate...">
+                                    <button id="pwd-copy" class="btn-outline px-4 text-xs" title="Copy to clipboard"><i class="fas fa-copy"></i></button>
+                                </div>
+                            </div>
+                            <button id="pwd-generate" class="btn-premium w-full text-xs justify-center"><i class="fas fa-sync-alt"></i> GENERATE NEW</button>
+                        </div>
+                    </div>
+
+                    <!-- J. BASE64 ENCODER / DECODER -->
+                    <div id="tool-base64" class="tool-panel">
+                        <h4 class="text-lg font-bold font-logo text-white mb-4"><i class="fas fa-code-branch text-accent mr-2"></i> BASE64 ENCODER / DECODER</h4>
+                        <div class="glass-panel p-6 space-y-4">
+                            <div class="flex gap-2">
+                                <button id="b64-encode-btn" class="btn-premium flex-1 text-xs py-2"><i class="fas fa-lock"></i> ENCODE</button>
+                                <button id="b64-decode-btn" class="btn-outline flex-1 text-xs py-2"><i class="fas fa-unlock"></i> DECODE</button>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Input</label>
+                                <textarea id="b64-input" class="form-textarea h-28 text-xs font-mono" placeholder="Enter text to encode, or base64 to decode..."></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Output</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="b64-output" class="form-input font-mono text-sm flex-1" readonly placeholder="Result appears here...">
+                                    <button id="b64-copy" class="btn-outline px-4 text-xs" title="Copy output"><i class="fas fa-copy"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- K. HASH GENERATOR -->
+                    <div id="tool-hash" class="tool-panel">
+                        <h4 class="text-lg font-bold font-logo text-white mb-4"><i class="fas fa-fingerprint text-accent mr-2"></i> HASH GENERATOR</h4>
+                        <div class="glass-panel p-6 space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Input Text</label>
+                                <textarea id="hash-input" class="form-textarea h-24 text-xs font-mono" placeholder="Enter text to hash..."></textarea>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button class="hash-algo-btn btn-premium text-xs px-4 py-1.5" data-algo="SHA-256">SHA-256</button>
+                                <button class="hash-algo-btn btn-outline text-xs px-4 py-1.5" data-algo="SHA-384">SHA-384</button>
+                                <button class="hash-algo-btn btn-outline text-xs px-4 py-1.5" data-algo="SHA-512">SHA-512</button>
+                                <button class="hash-algo-btn btn-outline text-xs px-4 py-1.5" data-algo="SHA-1">SHA-1</button>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Hash Output</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="hash-output" class="form-input font-mono text-xs flex-1" readonly placeholder="Hash appears here...">
+                                    <button id="hash-copy" class="btn-outline px-4 text-xs" title="Copy hash"><i class="fas fa-copy"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- L. REGEX TESTER -->
+                    <div id="tool-regex" class="tool-panel">
+                        <h4 class="text-lg font-bold font-logo text-white mb-4"><i class="fas fa-search text-accent mr-2"></i> REGEX TESTER</h4>
+                        <div class="glass-panel p-6 space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Pattern (use /pattern/flags)</label>
+                                <input type="text" id="regex-pattern" class="form-input font-mono text-sm" placeholder="/\d+/g">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Test String</label>
+                                <textarea id="regex-test-string" class="form-textarea h-24 text-xs font-mono" placeholder="Enter text to test..."></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Matches</label>
+                                <div id="regex-matches" class="bg-black/30 rounded-lg p-3 font-mono text-xs text-gray-300 min-h-[80px] max-h-48 overflow-y-auto">Enter pattern and test string</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- M. SYSTEM INFO -->
+                    <div id="tool-sysinfo" class="tool-panel">
+                        <h4 class="text-lg font-bold font-logo text-white mb-4"><i class="fas fa-microchip text-accent mr-2"></i> SYSTEM INFO</h4>
+                        <div class="glass-panel p-6 space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="sysinfo-grid"></div>
+                            <button id="sysinfo-refresh" class="btn-premium w-full text-xs justify-center"><i class="fas fa-sync-alt"></i> REFRESH</button>
+                        </div>
+                    </div>
+
+                    <!-- N. HTML EMBEDDER (sc13nc3-style): paste HTML, open it in a
+                         fresh window. Static markup — JS only binds the buttons. -->
+                    <div id="tool-embed" class="tool-panel">
+                        <h4 class="text-lg font-bold font-logo text-white mb-4"><i class="fas fa-window-restore text-accent mr-2"></i> HTML EMBEDDER</h4>
+                        <div class="glass-panel p-6 space-y-4">
+                            <p class="text-xs text-gray-400 leading-relaxed">Paste HTML and open it in a fresh window — handy for testing cloaks and snippets. Draft autosaves on this device.</p>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <label class="text-xs font-bold text-gray-400 uppercase tracking-wide" for="embed-template">Template</label>
+                                <select id="embed-template" class="form-select text-xs">
+                                    <option value="">— pick a starting point —</option>
+                                    <option value="blank">Blank full page</option>
+                                    <option value="dark">Dark styled page</option>
+                                    <option value="center">Centered title page</option>
+                                    <option value="game">Mini canvas demo</option>
+                                </select>
+                                <span id="embed-count" class="text-[11px] text-gray-500 ml-auto font-mono">0 chars</span>
+                            </div>
+                            <textarea id="embed-input" class="form-textarea h-56 font-mono text-xs" placeholder="<!-- Paste your HTML here... -->" spellcheck="false"></textarea>
+                            <div class="flex gap-2 flex-wrap">
+                                <button id="embed-open" class="btn-premium flex-1 text-xs py-2 justify-center"><i class="fas fa-external-link-alt"></i> EMBED &amp; OPEN</button>
+                                <button id="embed-copy" class="btn-outline text-xs py-2 px-4 justify-center"><i class="fas fa-copy"></i> COPY</button>
+                                <button id="embed-download" class="btn-outline text-xs py-2 px-4 justify-center"><i class="fas fa-download"></i> DOWNLOAD</button>
+                                <button id="embed-clear" class="btn-outline text-xs py-2 px-4 justify-center"><span data-i18n="clear">CLEAR</span></button>
+                            </div>
+                            <p class="text-[11px] text-gray-500 leading-relaxed">Tip: Ctrl+Enter opens, Tab inserts two spaces.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. CONFIGURABLE SETTINGS PANEL -->
+        <section id="panel-settings" class="panel-container">
+            <div class="hero-banner">
+                <div class="max-w-xl relative z-10">
+                    <span class="text-xs font-bold font-logo text-accent tracking-widest uppercase mb-2 block" data-i18n="settingsDeck">DASHBOARD // SETTINGS CONTROL</span>
+                    <h2 class="text-3xl font-bold text-white mb-3" data-i18n="settingsTitle">SYSTEM PREFERENCES MANAGER</h2>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-6">Regulate layout structures, accent colors, mirror gateway tables, launch protocols, and export your persistent clients data arrays.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Theme and UI layout options -->
+                <div class="space-y-6">
+                    <div class="glass-panel p-6">
+                        <h4 class="text-md font-bold text-white font-logo mb-4 flex items-center gap-2"><i class="fas fa-palette text-accent"></i> LAYOUT SCHEMES</h4>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <button class="theme-btn border border-white/5 rounded-xl p-3 bg-[#050505] hover:border-accent transition text-center" data-theme="obsidian">
+                                <div class="w-4 h-4 rounded-full bg-[#39ff14] mx-auto mb-2 shadow-[0_0_8px_#39ff14]"></div>
+                                <div class="text-[10px] text-white font-bold">OBSIDIAN</div>
+                            </button>
+                            <button class="theme-btn border border-white/5 rounded-xl p-3 bg-[#0a0512] hover:border-accent transition text-center" data-theme="cyberpunk">
+                                <div class="w-4 h-4 rounded-full bg-[#ff007f] mx-auto mb-2 shadow-[0_0_8px_#ff007f]"></div>
+                                <div class="text-[10px] text-white font-bold">CYBERPUNK</div>
+                            </button>
+                            <button class="theme-btn border border-white/5 rounded-xl p-3 bg-[#020617] hover:border-accent transition text-center" data-theme="deepspace">
+                                <div class="w-4 h-4 rounded-full bg-[#00f0ff] mx-auto mb-2 shadow-[0_0_8px_#00f0ff]"></div>
+                                <div class="text-[10px] text-white font-bold">DEEP SPACE</div>
+                            </button>
+                            <button class="theme-btn border border-white/5 rounded-xl p-3 bg-[#0b0214] hover:border-accent transition text-center" data-theme="amethyst">
+                                <div class="w-4 h-4 rounded-full bg-[#bd00ff] mx-auto mb-2 shadow-[0_0_8px_#bd00ff]"></div>
+                                <div class="text-[10px] text-white font-bold">AMETHYST</div>
+                            </button>
+                            <button class="theme-btn border border-white/5 rounded-xl p-3 bg-[#030712] hover:border-accent transition text-center" data-theme="cassian">
+                                <div class="w-4 h-4 rounded-full bg-[#10b981] mx-auto mb-2 shadow-[0_0_8px_#10b981]"></div>
+                                <div class="text-[10px] text-white font-bold">CASSIAN</div>
+                            </button>
+                            <button class="theme-btn border border-white/5 rounded-xl p-3 bg-[#010f08] hover:border-accent transition text-center" data-theme="forest">
+                                <div class="w-4 h-4 rounded-full bg-[#05c46b] mx-auto mb-2 shadow-[0_0_8px_#05c46b]"></div>
+                                <div class="text-[10px] text-white font-bold">FOREST</div>
+                            </button>
+                            <button class="theme-btn border border-white/5 rounded-xl p-3 bg-[#0f0e05] hover:border-accent transition text-center" data-theme="gold">
+                                <div class="w-4 h-4 rounded-full bg-[#f1c40f] mx-auto mb-2 shadow-[0_0_8px_#f1c40f]"></div>
+                                <div class="text-[10px] text-white font-bold">GOLD</div>
+                            </button>
+                            <button class="theme-btn border border-white/5 rounded-xl p-3 bg-[#020802] hover:border-accent transition text-center" data-theme="hacker">
+                                <div class="w-4 h-4 rounded-full bg-[#00ff41] mx-auto mb-2 shadow-[0_0_8px_#00ff41]"></div>
+                                <div class="text-[10px] text-white font-bold">HACKER</div>
+                            </button>
+                            <button class="theme-btn border border-white/5 rounded-xl p-3 bg-[#020914] hover:border-accent transition text-center" data-theme="ocean">
+                                <div class="w-4 h-4 rounded-full bg-[#0abde3] mx-auto mb-2 shadow-[0_0_8px_#0abde3]"></div>
+                                <div class="text-[10px] text-white font-bold">OCEAN</div>
+                            </button>
+                            <button class="theme-btn border border-white/5 rounded-xl p-3 bg-[#140402] hover:border-accent transition text-center" data-theme="lava">
+                                <div class="w-4 h-4 rounded-full bg-[#ee5253] mx-auto mb-2 shadow-[0_0_8px_#ee5253]"></div>
+                                <div class="text-[10px] text-white font-bold">LAVA</div>
+                            </button>
+                            <button class="theme-btn border border-white/5 rounded-xl p-3 bg-[#050a0f] hover:border-accent transition text-center" data-theme="ice">
+                                <div class="w-4 h-4 rounded-full bg-[#c8d6e5] mx-auto mb-2 shadow-[0_0_8px_#c8d6e5]"></div>
+                                <div class="text-[10px] text-white font-bold">ICE</div>
+                            </button>
+                            <button class="theme-btn border border-white/5 rounded-xl p-3 bg-[#14020a] hover:border-accent transition text-center" data-theme="rose">
+                                <div class="w-4 h-4 rounded-full bg-[#f368e0] mx-auto mb-2 shadow-[0_0_8px_#f368e0]"></div>
+                                <div class="text-[10px] text-white font-bold">ROSE</div>
+                            </button>
+                            <button class="theme-btn border border-white/5 rounded-xl p-3 bg-[#140101] hover:border-accent transition text-center" data-theme="crimson">
+                                <div class="w-4 h-4 rounded-full bg-[#c23616] mx-auto mb-2 shadow-[0_0_8px_#c23616]"></div>
+                                <div class="text-[10px] text-white font-bold">CRIMSON</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-6 space-y-4">
+                        <h4 class="text-md font-bold text-white font-logo mb-2 flex items-center gap-2"><i class="fas fa-sliders-h text-accent"></i> PREFERENCES LAYOUT</h4>
+                        
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-xs text-white font-bold uppercase tracking-wide">Specular Accent Glow Color</div>
+                                <div class="text-[10px] text-gray-500">Global theme color override values</div>
+                            </div>
+                            <input type="color" id="setting-accent" class="w-10 h-10 rounded cursor-pointer bg-transparent border border-white/10" value="#39ff14">
+                        </div>
+
+                        <div class="flex items-center justify-between border-t border-white/5 pt-4">
+                            <div>
+                                <div class="text-xs text-white font-bold uppercase tracking-wide">Interactive Canvas Background</div>
+                                <div class="text-[10px] text-gray-500">Compute responsive background microparticle networks</div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="setting-particles" class="sr-only peer" checked>
+                                <div class="w-9 h-5 bg-gray-800 rounded-full peer peer-focus:ring-1 peer-focus:ring-accent peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-4 after:width-4 after:transition-all peer-checked:bg-accent"></div>
+                            </label>
+                        </div>
+
+                        <div class="flex items-center justify-between border-t border-white/5 pt-4">
+                            <div>
+                                <div class="text-xs text-white font-bold uppercase tracking-wide">Acoustic Audio Feedback</div>
+                                <div class="text-[10px] text-gray-500">Sound synthesis triggers on button click behaviors</div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="setting-audio" class="sr-only peer" checked>
+                                <div class="w-9 h-5 bg-gray-800 rounded-full peer peer-focus:ring-1 peer-focus:ring-accent peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-4 after:width-4 after:transition-all peer-checked:bg-accent"></div>
+                            </label>
+                        </div>
+
+                        <div class="border-t border-white/5 pt-4">
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5" data-i18n="launcherTarget">Launcher Shell Default Target</label>
+                            <select id="setting-launch-behavior" class="form-select text-xs">
+                                <option value="about-blank">about:blank Sandboxed Window (Recommended)</option>
+                                <option value="new-tab" data-i18n="newTab">Discrete Browser Thread Window (New Tab)</option>
+                                <option value="same-tab">Inline Dashboard Panel Overlay Frame (Same Tab)</option>
+                            </select>
+                        </div>
+
+                        <div class="border-t border-white/5 pt-4 grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5" data-i18n="animations">Animations</label>
+                                <select id="setting-animations" class="form-select text-xs">
+                                    <option value="full" data-i18n="animFull">Full animations</option>
+                                    <option value="reduced" data-i18n="animReduced">Reduced motion</option>
+                                    <option value="none" data-i18n="animNone">No animations</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5" data-i18n="defaultMirror">Default Mirror</label>
+                                <select id="setting-default-mirror" class="form-select text-xs"></select>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-white/5 pt-4 grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5" data-i18n="soundPack">Sound Pack</label>
+                                <select id="setting-sound-pack" class="form-select text-xs">
+                                    <option value="quantum">Quantum (Sci-Fi Synth)</option>
+                                    <option value="retro">Retro (8-bit Chiptune)</option>
+                                    <option value="minimal">Minimal (Subtle Clicks)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5" data-i18n="wallpaper">Custom Wallpaper</label>
+                                <input type="url" id="setting-wallpaper" class="form-input text-xs" placeholder="https://example.com/wallpaper.jpg">
+                            </div>
+                        </div>
+
+                        <div class="border-t border-white/5 pt-4 grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5" data-i18n="animatedBg">Animated Background</label>
+                                <select id="setting-animated-bg" class="form-select text-xs">
+                                    <option value="" data-i18n="noneOpt">None</option>
+                                    <option value="bubbles">Bubbles (rising)</option>
+                                    <option value="snow">Snow (falling)</option>
+                                    <option value="particles">Particles (constellation)</option>
+                                </select>
+                            </div>
+                            <div class="flex items-end pb-1">
+                                <p class="text-[11px] text-gray-500 leading-snug">Paints behind the UI on a hidden canvas — works over your wallpaper, tints to the accent color, and pauses when animations are off.</p>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-white/5 pt-4 grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5" data-i18n="aiAssistant">AI Assistant</label>
+                                <select id="setting-ai-enabled" class="form-select text-xs">
+                                    <option value="enabled" data-i18n="aiEnabled">Enabled (Local)</option>
+                                    <option value="disabled" data-i18n="aiDisabled">Disabled</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5" data-i18n="aiPersonality">AI Personality</label>
+                                <select id="setting-ai-personality" class="form-select text-xs">
+                                    <option value="quantum">Quantum (Technical)</option>
+                                    <option value="gamer">Gamer (Casual)</option>
+                                    <option value="analyst">Analyst (Data-driven)</option>
+                                    <option value="mentor">Mentor (Helpful)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-white/5 pt-4 grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5" data-i18n="language">Language</label>
+                                <select id="setting-language" class="form-select text-xs">
+                                    <option value="en">English</option>
+                                    <option value="es">Español</option>
+                                    <option value="fr">Français</option>
+                                    <option value="de">Deutsch</option>
+                                    <option value="ja">日本語</option>
+                                    <option value="zh">中文</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5" data-i18n="autoHide">Auto-Hide Dock</label>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="setting-autohide-dock" class="sr-only peer">
+                                    <div class="w-9 h-5 bg-gray-800 rounded-full peer peer-focus:ring-1 peer-focus:ring-accent peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-4 after:width-4 after:transition-all peer-checked:bg-accent"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-white/5 pt-4 grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5" data-i18n="compactMode">Compact Mode</label>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="setting-compact-mode" class="sr-only peer">
+                                    <div class="w-9 h-5 bg-gray-800 rounded-full peer peer-focus:ring-1 peer-focus:ring-accent peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-4 after:width-4 after:transition-all peer-checked:bg-accent"></div>
+                                </label>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5" data-i18n="showFps">Show FPS Counter</label>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="setting-fps-counter" class="sr-only peer">
+                                    <div class="w-9 h-5 bg-gray-800 rounded-full peer peer-focus:ring-1 peer-focus:ring-accent peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-4 after:width-4 after:transition-all peer-checked:bg-accent"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-white/5 pt-4 flex gap-2">
+                            <button id="btn-view-stats" class="btn-premium flex-1 text-xs py-2 justify-center"><i class="fas fa-chart-bar"></i> VIEW ANALYTICS</button>
+                            <button id="btn-collections" class="btn-outline flex-1 text-xs py-2 justify-center"><i class="fas fa-folder-plus"></i> COLLECTIONS</button>
+                            <button id="btn-account" class="btn-premium flex-1 text-xs py-2 justify-center"><i class="fas fa-user"></i> ACCOUNT</button>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-6 space-y-4">
+                        <h4 class="text-md font-bold text-white font-logo mb-2 flex items-center gap-2"><i class="fas fa-user-secret text-accent"></i> CLASSROOM STEALTH</h4>
+
+                        <div class="border-t border-white/5 pt-4">
+                            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5" data-i18n="cloakPreset">Tab Cloak Preset</label>
+                            <select id="setting-cloak-preset" class="form-select text-xs">
+                                <option value="">-- No cloak --</option>
+                                <option value="classroom">Google Classroom</option>
+                                <option value="drive">Google Drive</option>
+                                <option value="docs">Google Docs</option>
+                                <option value="gmail">Gmail</option>
+                                <option value="youtube">YouTube</option>
+                                <option value="google">Google</option>
+                                <option value="newtab">New Tab</option>
+                                <option value="khan">Khan Academy</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5" data-i18n="customTitle">Custom Tab Title</label>
+                                <input type="text" id="setting-cloak-title" class="form-input text-xs" placeholder="My Tab Name">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5" data-i18n="customFavicon">Custom Favicon URL</label>
+                                <input type="url" id="setting-cloak-favicon" class="form-input text-xs" placeholder="https://…/icon.png">
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="btn-cloak-apply" class="btn-premium flex-1 text-xs py-2 justify-center"><i class="fas fa-mask"></i> APPLY CLOAK</button>
+                            <button id="btn-cloak-reset" class="btn-outline flex-1 text-xs py-2 justify-center"><span data-i18n="reset">RESET</span></button>
+                        </div>
+
+                        <div class="border-t border-white/5 pt-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-xs text-white font-bold uppercase tracking-wide">Panic Key</div>
+                                    <div class="text-[10px] text-gray-500">Instantly jump to a safe URL</div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="setting-panic-enabled" class="sr-only peer">
+                                    <div class="w-9 h-5 bg-gray-800 rounded-full peer peer-focus:ring-1 peer-focus:ring-accent peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-4 after:width-4 after:transition-all peer-checked:bg-accent"></div>
+                                </label>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 mt-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">Key Combo</label>
+                                    <div class="flex gap-2">
+                                        <input type="text" id="setting-panic-key" class="form-input text-xs" readonly placeholder="Press Set…">
+                                        <button id="btn-panic-capture" class="btn-outline text-xs py-2 px-3 justify-center whitespace-nowrap"><span data-i18n="set">SET</span></button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">Safe URL</label>
+                                    <input type="url" id="setting-panic-url" class="form-input text-xs" placeholder="https://www.google.com">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-white/5 pt-4 grid grid-cols-2 gap-4">
+                            <div>
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-xs text-white font-bold uppercase tracking-wide">Hidden-Tab Cover</div>
+                                        <div class="text-[10px] text-gray-500">Cover screen when tab hidden (or a filter block-page decoy)</div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="setting-cover-enabled" class="sr-only peer">
+                                        <div class="w-9 h-5 bg-gray-800 rounded-full peer peer-focus:ring-1 peer-focus:ring-accent peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-4 after:width-4 after:transition-all peer-checked:bg-accent"></div>
+                                    </label>
+                                </div>
+                                <select id="setting-cover-preset" class="form-select text-xs mt-3">
+                                    <option value="classroom">Classroom cover</option>
+                                    <option value="docs">Docs cover</option>
+                                    <option value="drive">Drive cover</option>
+                                    <option value="goguardian">GoGuardian block page (decoy)</option>
+                                    <option value="securly">Securly block page (decoy)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-xs text-white font-bold uppercase tracking-wide">Performance Mode</div>
+                                        <div class="text-[10px] text-gray-500">Kill animations + particles</div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="setting-perf-mode" class="sr-only peer">
+                                        <div class="w-9 h-5 bg-gray-800 rounded-full peer peer-focus:ring-1 peer-focus:ring-accent peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-4 after:width-4 after:transition-all peer-checked:bg-accent"></div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Account panel -->
+                    <div id="settings-account" class="glass-panel p-6 space-y-4" style="display: none;">
+                        <h4 class="text-md font-bold text-white font-logo flex items-center gap-2"><i class="fas fa-user text-accent"></i> ACCOUNT</h4>
+                        <div id="account-content" class="space-y-3">
+                            <div class="text-xs text-gray-400">Username: <b id="account-username" class="text-white">—</b></div>
+                            <div class="text-xs text-gray-400">Email: <b id="account-email" class="text-white">—</b></div>
+                            <div class="flex items-center gap-3 pt-2">
+                                <span id="account-avatar-preview" class="auth-avatar auth-avatar-lg">?</span>
+                                <p class="text-xs text-gray-500 leading-relaxed">Profile picture — paste an https image URL or upload a file (shrunk to 128px, stored on your account, shown beside your name).</p>
+                            </div>
+                            <input id="account-avatar-url" type="url" class="form-input text-xs" placeholder="https://… image URL (or upload below)">
+                            <input id="account-avatar-file" type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="form-input text-xs">
+                            <div class="flex gap-2 pt-1">
+                                <button type="button" id="account-avatar-save" class="btn-premium text-xs px-4 py-2">SAVE PICTURE</button>
+                                <button type="button" id="account-avatar-remove" class="btn-outline text-xs px-3 py-2">REMOVE</button>
+                            </div>
+                            <p id="account-avatar-status" class="text-xs text-gray-400 min-h-[1rem]"></p>
+                        </div>
+                    </div>
+
+                    <!-- Factory wipe controls -->
+                    <div class="glass-panel p-6 border-red-500/10 bg-red-500/[0.01] hover:border-red-500/25 transition">
+                        <h4 class="text-md font-bold text-red-500 font-logo mb-2 flex items-center gap-2"><i class="fas fa-radiation"></i> DANGER SECTOR</h4>
+                        <p class="text-xs text-gray-400 leading-relaxed mb-4">Wipe local databases, reset customized accent parameters, purged mirrors, notebook sheets, and return system node status to absolute defaults.</p>
+                        <button id="btn-reset-settings" class="btn-premium bg-red-600 hover:bg-red-500 py-2.5 text-xs text-white" style="background: #ef4444; box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4)">
+                            PERFORM FACTORY PURGE
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mirror and Integration backup options -->
+                <div class="space-y-6">
+                    <div class="glass-panel p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-md font-bold text-white font-logo flex items-center gap-2"><i class="fas fa-server text-accent"></i> ROUTING GATEWAYS</h4>
+                            <button id="add-mirror-spec-btn" class="btn-premium px-3 py-1.5 text-xs"><i class="fas fa-plus"></i> ADD GATEWAY</button>
+                        </div>
+                        <p class="text-xs text-gray-400 mb-4 leading-relaxed">Add, modify, or toggled enable status parameters of intermediate proxy mirrors serving content into the browser context shell.</p>
+                        
+                        <div class="mirrors-config-table space-y-3 max-h-[340px] overflow-y-auto pr-1">
+                            <!-- Populated on live rendering from app.js -->
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-6 space-y-4">
+                        <h4 class="text-md font-bold text-white font-logo flex items-center gap-2"><i class="fas fa-file-import text-accent"></i> CONSOLE SPEC RESTORE & EXPORT</h4>
+                        <p class="text-xs text-gray-400 leading-relaxed">Direct copy-paste of JSON files allows fast backup or migration of user game list nodes, custom mirror gateway routes, and UI settings across browser client configurations.</p>
+                        <textarea id="setting-config-data" class="form-textarea h-24 font-mono text-[10px] leading-relaxed" placeholder="Compile configurations or input restoration code block..."></textarea>
+                        <div class="flex gap-2">
+                            <button id="btn-export-copy" class="btn-premium flex-grow text-xs py-2 justify-center"><i class="fas fa-copy"></i> COMPILE & COPY BACKUP</button>
+                            <button id="btn-import-apply" class="btn-outline text-xs py-2 px-4 justify-center hover:text-white"><i class="fas fa-check"></i> RESTORE VECTOR</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- AUTH GATE (login / register / code step). Static markup — JS only
+         toggles .open, swaps the three fieldsets, and binds the one form. -->
+    <div id="auth-gate">
+        <div class="auth-gate-card glass-panel">
+            <h1 class="pulsing-logo" style="font-size:2rem;">QUANTUM</h1>
+            <p class="text-xs tracking-widest text-gray-400 uppercase">Secure Access Required</p>
+            <div class="auth-gate-tabs">
+                <button type="button" class="btn-premium auth-gate-tab active" data-mode="login">LOG IN</button>
+                <button type="button" class="btn-outline auth-gate-tab" data-mode="register">SIGN UP</button>
+            </div>
+            <form id="auth-gate-form" class="space-y-4">
+                <div id="auth-gate-fields">
+                    <div id="gate-fields-login" class="space-y-4">
+                        <div><label class="block text-xs font-bold text-gray-400 uppercase mb-1.5">Username</label><input type="text" id="gate-username" class="form-input" autocomplete="username" required></div>
+                        <div><label class="block text-xs font-bold text-gray-400 uppercase mb-1.5">Password</label><input type="password" id="gate-password" class="form-input" autocomplete="current-password" required></div>
+                    </div>
+                    <div id="gate-fields-register" class="space-y-4 hidden">
+                        <div><label class="block text-xs font-bold text-gray-400 uppercase mb-1.5">Username</label><input type="text" id="gate-username-r" class="form-input" autocomplete="username" required></div>
+                        <div><label class="block text-xs font-bold text-gray-400 uppercase mb-1.5">Email</label><input type="email" id="gate-email-r" class="form-input" autocomplete="email" required></div>
+                        <div><label class="block text-xs font-bold text-gray-400 uppercase mb-1.5">Password</label><input type="password" id="gate-password-r" class="form-input" autocomplete="new-password" required></div>
+                    </div>
+                    <div id="gate-fields-code" class="space-y-4 hidden">
+                        <p class="text-xs text-gray-400 leading-relaxed">Enter the 6-digit code below. <span class="text-gray-500">(Codes are generated on this device — nothing is emailed. Click a line to fill it.)</span></p>
+                        <!-- FAKE DEV INBOX (decoy): local-api drops every generated
+                             OTP here instead of a server console. Click to fill. -->
+                        <div id="fake-dev-inbox" class="dev-inbox">
+                            <div class="dev-inbox-head"><i class="fas fa-terminal"></i> DEV INBOX <span class="dev-inbox-badge">FAKE · LOCAL</span></div>
+                            <div id="dev-inbox-list" class="dev-inbox-list">
+                                <div class="dev-inbox-item decoy"><span class="dev-inbox-to">ci@quantum-hub</span><span class="dev-inbox-body">deploy ok · build promoted · waiting for a code…</span></div>
+                            </div>
+                        </div>
+                        <div><label class="block text-xs font-bold text-gray-400 uppercase mb-1.5">Verification Code</label><input type="text" id="gate-code" class="form-input" inputmode="numeric" autocomplete="one-time-code" required></div>
+                    </div>
+                </div>
+                <p id="auth-gate-error" class="text-xs text-red-400 min-h-[1rem]"></p>
+                <button type="submit" class="btn-premium w-full py-3 text-sm justify-center" id="auth-gate-submit">LOG IN</button>
+                <!-- GUEST MODE: skip login entirely. Static markup — JS only binds the click. -->
+                <button type="button" class="btn-outline w-full py-2.5 text-xs justify-center" id="auth-gate-guest">CONTINUE AS GUEST</button>
+                <p class="text-[11px] text-gray-500 leading-relaxed text-center">Guests can play, browse and vote — log in later to save a profile, friends and ranks.</p>
+                <div class="border-t border-white/10 pt-4">
+                    <button type="button" class="btn-premium w-full py-2.5 text-xs justify-center proxy-launch-btn" data-local="ai/index.html" id="auth-gate-ai"><i class="fas fa-robot mr-1"></i> OPEN AI ASSISTANT</button>
+                    <p class="text-[10px] text-gray-600 leading-relaxed text-center mt-2">No account needed — runs locally on your machine.</p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ACCOUNT MENU (Account / Log out). Static markup — JS positions it
+         under the avatar button and binds the two items once. -->
+    <div id="user-menu" class="hidden" role="menu">
+        <button type="button" class="user-menu-item" data-action="account" role="menuitem"><i class="fas fa-user"></i><span>Account</span></button>
+        <button type="button" class="user-menu-item" data-action="logout" role="menuitem"><i class="fas fa-sign-out-alt"></i><span>Log out</span></button>
+    </div>
+
+    <!-- LOCAL-FILE MODE BANNER. Shown only when the hub runs from file:// —
+         accounts are device-local now, so no server is required at all. -->
+    <div id="file-banner" class="hidden">
+        <span>Local-file mode — accounts, codes and scores stay on this device (grab codes in the Dev Inbox). Nothing is emailed or uploaded.</span>
+        <button type="button" id="file-banner-x" title="Dismiss">✕</button>
+    </div>
+
+    <!-- FLOATING DOCK BOTTOM NAVIGATION BAR -->
+    <nav class="bottom-dock">
+        <button class="nav-item" data-target="panel-media">
+            <i class="fas fa-photo-video"></i>
+            <span data-i18n="navMedia">Media</span>
+        </button>
+        <button class="nav-item" data-target="panel-music">
+            <i class="fas fa-music"></i>
+            <span data-i18n="navMusic">Music</span>
+        </button>
+        <button class="nav-item active" data-target="panel-games">
+            <i class="fas fa-gamepad"></i>
+            <span data-i18n="navGames">Games</span>
+        </button>
+        <button class="nav-item" data-target="panel-proxy">
+            <i class="fas fa-network-wired"></i>
+            <span data-i18n="navProxy">Proxy</span>
+        </button>
+        <button class="nav-item" data-target="panel-tools">
+            <i class="fas fa-tools"></i>
+            <span data-i18n="navTools">Tools</span>
+        </button>
+        <button class="nav-item" data-target="panel-settings">
+            <i class="fas fa-cog"></i>
+            <span data-i18n="navSettings">Settings</span>
+        </button>
+    </nav>
+
+    <!-- Global container wrapper for toasts notifications -->
+    <div class="toast-container"></div>
+
+    <!-- VERSION is stamped by bump_version.py; index.html stays the clean
+         website markup. Edit the SOURCES (css/style.css, js/*.js), then run
+         py bump_version.py && py build_index.py (regenerates js/bundle.js and
+         standalone.html — never hand-edit those). -->
+    <script>window.HUB_VERSION = '2026.10.10-26';</script>
+    <script>
+    /* Start-screen failsafe (plain script, no modules): the overlay can never
+       trap the hub, even if app.js is stale, cached, or fails to boot. */
+    (function () {
+        function dismiss() {
+            var ov = document.getElementById('initial-overlay');
+            if (!ov || ov.classList.contains('dismissed')) return;
+            ov.classList.add('dismissed');
+            try { localStorage.setItem('hub_initial_dismissed', 'true'); } catch (e) {}
+        }
+        function ready(fn) {
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+            else fn();
+        }
+        ready(function () {
+            var ov = document.getElementById('initial-overlay');
+            if (!ov) return;
+            try {
+                if (localStorage.getItem('hub_initial_dismissed') === 'true') dismiss();
+            } catch (e) {}
+            ov.addEventListener('click', function (e) {
+                var card = e.target.closest ? e.target.closest('.mirror-card') : null;
+                var logo = e.target.closest ? e.target.closest('#quantum-logo') : null;
+                // If the full app is up, let its own handler do the launch;
+                // this listener only guarantees the overlay goes away.
+                setTimeout(dismiss, 50);
+                if (!window.app && (card || logo || e.target === ov)) dismiss();
+            });
+        });
+        // Dock failsafe: panel switching works even if app.js never boots.
+        ready(function () {
+            document.querySelectorAll('.nav-item[data-target]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    if (window.app && window.app.switchPanel) return; // app owns it
+                    var id = btn.getAttribute('data-target');
+                    document.querySelectorAll('.panel-container').forEach(function (p) {
+                        p.classList.toggle('active', p.id === id);
+                    });
+                    document.querySelectorAll('.nav-item').forEach(function (b) {
+                        b.classList.toggle('active', b === btn);
+                    });
+                });
+            });
+        });
+    })();
+    </script>
+    <!-- App bootstrap. https/http loads the real ES modules (js/app.js and
+         friends — the same files GitHub Pages serves). file:// blocks module
+         CORS, so double-clicking index.html runs the prebuilt classic bundle
+         js/bundle.js instead (py build_index.py). VERSION is stamped by
+         bump_version.py so cached copies invalidate. -->
+    <script data-hub-loader>
+    (function () {
+        var s = document.createElement('script');
+        if (location.protocol === 'file:') {
+            s.src = 'js/bundle.js?v=2026.10.10-26';
+        } else {
+            s.type = 'module';
+            s.src = 'js/app.js?v=2026.10.10-26';
+        }
+        (document.body || document.documentElement).appendChild(s);
+    })();
+    </script>
+</body>
+</html>

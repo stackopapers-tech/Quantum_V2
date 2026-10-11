@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<!-- (c) Quantum Hub — proprietary hub build. All rights reserved. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Snake Classic</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:#0f1410;font-family:'Segoe UI',system-ui,sans-serif;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none}
+  #wrap{position:relative;width:100%;max-width:520px;aspect-ratio:1/1;max-height:94vh}
+  canvas{width:100%;height:100%;display:block;background:#152015;border:2px solid #2c4430;border-radius:8px}
+  #hud{position:absolute;top:6px;left:10px;right:10px;display:flex;justify-content:space-between;
+    color:#9fd8a4;font-weight:700;font-size:15px;pointer-events:none;text-shadow:0 1px 2px #000}
+  #overlay{position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;
+    align-items:center;justify-content:center;color:#fff;text-align:center;
+    background:rgba(0,0,0,.65);border-radius:8px}
+  #overlay h1{font-size:clamp(24px,7vw,38px);color:#7dff9b}
+  #overlay p{font-size:14px;color:#aaa;max-width:80%}
+  #start{padding:10px 34px;font-size:17px;font-weight:700;background:#2e9e44;color:#fff;
+    border:none;border-radius:8px;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="cv"></canvas>
+  <div id="hud"><span>🍎 <span id="score">0</span></span><span>BEST <span id="best">0</span></span></div>
+  <div id="overlay">
+    <h1>SNAKE</h1>
+    <p>The 1997 Nokia classic, reborn. Eat, grow, survive.<br>
+       Arrows / WASD / swipe to steer.</p>
+    <button id="start">PLAY</button>
+  </div>
+</div>
+<script>
+(function(){
+  var cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+  var overlay=document.getElementById('overlay');
+  var N=21,snake,dir,ndir,food,score,dead,tick,ms,scoreEl,bestEl;
+  bestEl=document.getElementById('best');
+  bestEl.textContent=localStorage.getItem('snake_best')||0;
+  scoreEl=document.getElementById('score');
+
+  function size(){var r=cv.getBoundingClientRect();
+    cv.width=Math.round(r.width*devicePixelRatio/10)*10;
+    cv.height=cv.width;}
+  window.addEventListener('resize',size);size();
+
+  function reset(){
+    snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];dir={x:1,y:0};ndir=dir;
+    food=newFood();score=0;dead=false;ms=130;tick=0;scoreEl.textContent='0';
+  }
+  function newFood(){
+    while(true){var f={x:Math.floor(Math.random()*N),y:Math.floor(Math.random()*N)},hit=false;
+      for(var i=0;i<snake.length;i++)if(snake[i].x===f.x&&snake[i].y===f.y){hit=true;break;}
+      if(!hit)return f;}
+  }
+  function step(){
+    dir=ndir;
+    var h={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
+    if(h.x<0||h.x>=N||h.y<0||h.y>=N){return die();}
+    for(var i=0;i<snake.length-1;i++)if(snake[i].x===h.x&&snake[i].y===h.y)return die();
+    snake.unshift(h);
+    if(h.x===food.x&&h.y===food.y){
+      score+=10;scoreEl.textContent=score;food=newFood();
+      if(ms>70)ms-=2;
+    }else snake.pop();
+  }
+  function die(){
+    dead=true;playing=false;
+    var b=+bestEl.textContent;if(score>b){bestEl.textContent=score;
+      localStorage.setItem('snake_best',score);}
+    overlay.querySelector('h1').textContent='GAME OVER';
+    overlay.querySelector('p').innerHTML='Score: <b>'+score+'</b> — Best: '+bestEl.textContent;
+    document.getElementById('start').textContent='PLAY AGAIN';
+    overlay.style.display='flex';
+  }
+
+  var CELL;
+  function draw(){
+    CELL=cv.width/N;
+    ctx.fillStyle='#152015';ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.fillStyle='#1c2b1c';
+    for(var i=0;i<N;i+=2)for(var j=0;j<N;j+=2)ctx.fillRect(i*CELL,j*CELL,CELL,CELL);
+    // food
+    ctx.fillStyle='#ff5d5d';
+    ctx.beginPath();ctx.arc((food.x+.5)*CELL,(food.y+.5)*CELL,CELL*.38,0,7);ctx.fill();
+    // snake
+    for(var i=snake.length-1;i>=0;i--){
+      var t=1-i/snake.length*0.5;
+      ctx.fillStyle=i===0?'#7dff9b':'rgba(110,220,130,'+t+')';
+      var p=CELL*0.08;
+      ctx.fillRect(snake[i].x*CELL+p,snake[i].y*CELL+p,CELL-2*p,CELL-2*p);
+    }
+  }
+
+  var playing=false,last=0;
+  function loop(t){
+    if(playing&&t-last>ms){last=t;step();if(!dead)draw();}
+    requestAnimationFrame(loop);
+  }
+
+  function turn(x,y){
+    if(x===-dir.x&&y===-dir.y)return;
+    ndir={x:x,y:y};
+  }
+  document.addEventListener('keydown',function(e){
+    var m={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0],
+           w:[0,-1],s:[0,1],a:[-1,0],d:[1,0]};
+    if(m[e.key]){e.preventDefault();turn(m[e.key][0],m[e.key][1]);}
+  });
+  var ts=null;
+  cv.addEventListener('touchstart',function(e){ts=e.touches[0];},{passive:true});
+  cv.addEventListener('touchmove',function(e){
+    if(!ts)return;var t=e.touches[0];
+    var dx=t.clientX-ts.clientX,dy=t.clientY-ts.clientY;
+    if(Math.abs(dx)>18||Math.abs(dy)>18){
+      if(Math.abs(dx)>Math.abs(dy))turn(dx>0?1:-1,0);else turn(0,dy>0?1:-1);
+      ts=t;}
+    e.preventDefault();
+  },{passive:false});
+
+  document.getElementById('start').addEventListener('click',function(){
+    overlay.style.display='none';reset();draw();playing=true;last=0;
+  });
+
+  reset();draw();loop(0);
+})();
+</script>
+<div class="qhub-watermark" aria-hidden="true">◈ QUANTUM</div><style>.qhub-watermark{position:fixed;right:10px;bottom:10px;z-index:2147483647;font:700 11px monospace;letter-spacing:2px;color:#39ff14;background:rgba(0,0,0,.55);border:1px solid rgba(57,255,20,.5);border-radius:6px;padding:4px 8px;pointer-events:none;user-select:none;opacity:.85}</style></body>
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<!-- (c) Quantum Hub — proprietary hub build. All rights reserved. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Breakout</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:#12121c;font-family:'Segoe UI',system-ui,sans-serif;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none}
+  #wrap{position:relative;width:100%;max-width:560px;aspect-ratio:4/3;max-height:94vh}
+  canvas{width:100%;height:100%;display:block;background:#181826;border:2px solid #33334d;border-radius:8px}
+  #overlay{position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;
+    align-items:center;justify-content:center;color:#fff;text-align:center;
+    background:rgba(0,0,0,.65);border-radius:8px}
+  #overlay h1{font-size:clamp(24px,7vw,38px);color:#ffd479}
+  #overlay p{font-size:14px;color:#aaa;max-width:80%}
+  #start{padding:10px 34px;font-size:17px;font-weight:700;background:#d69b2e;color:#1a1a1a;
+    border:none;border-radius:8px;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="cv"></canvas>
+  <div id="overlay">
+    <h1>BREAKOUT</h1>
+    <p>The 1976 Atari brick-breaker. Clear every brick to advance.<br>
+       Mouse / arrows / drag — launch with click or Space.</p>
+    <button id="start">PLAY</button>
+  </div>
+</div>
+<script>
+(function(){
+  var cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+  var overlay=document.getElementById('overlay');
+  var COLORS=['#ff5d5d','#ff9b4d','#ffd479','#7dff9b','#7ec8ff','#c39bff'];
+  var paddle,ball,bricks,score,lives,level,playing=false,stuck,keys={};
+
+  function size(){var r=cv.getBoundingClientRect();
+    cv.width=Math.round(r.width*devicePixelRatio);
+    cv.height=Math.round(r.height*devicePixelRatio);}
+  window.addEventListener('resize',function(){size();layout();});
+  size();
+
+  function layout(){
+    var W=cv.width,H=cv.height;
+    paddle={w:W*0.18,h:H*0.025,x:W/2-W*0.09,y:H-H*0.06,speed:W*0.012};
+    ball={x:W/2,y:paddle.y-H*0.02,r:H*0.012,vx:0,vy:0,speed:W*0.006+level*W*0.0005};
+    var rows=4+(level%4),cols=8,bw=(W-40)/cols,bh=H*0.045;
+    bricks=[];
+    for(var r=0;r<rows;r++)for(var c=0;c<cols;c++)
+      bricks.push({x:20+c*bw,y:H*0.10+r*(bh+6),w:bw-6,h:bh,color:COLORS[r%6],alive:true});
+  }
+
+  function reset(levelStart){
+    if(levelStart)level=1;score=0;lives=3;
+    layout();stuck=true;
+    ball.vx=0;ball.vy=0;
+  }
+
+  function launch(){
+    if(!stuck)return;
+    stuck=false;var a=(Math.random()*60-30-90)*Math.PI/180;
+    ball.vx=Math.cos(a)*ball.speed;ball.vy=Math.sin(a)*ball.speed*-1;
+    ball.vy=Math.abs(Math.sin(a))*ball.speed*-1;
+  }
+
+  function step(){
+    var W=cv.width,H=cv.height;
+    if(keys.ArrowLeft||keys.a)paddle.x-=paddle.speed;
+    if(keys.ArrowRight||keys.d)paddle.x+=paddle.speed;
+    paddle.x=Math.max(0,Math.min(W-paddle.w,paddle.x));
+    if(stuck){ball.x=paddle.x+paddle.w/2;ball.y=paddle.y-ball.r-2;return;}
+    ball.x+=ball.vx;ball.y+=ball.vy;
+    if(ball.x<ball.r){ball.x=ball.r;ball.vx=-ball.vx;}
+    if(ball.x>W-ball.r){ball.x=W-ball.r;ball.vx=-ball.vx;}
+    if(ball.y<ball.r){ball.y=ball.r;ball.vy=-ball.vy;}
+    // paddle bounce
+    if(ball.vy>0&&ball.y+ball.r>paddle.y&&ball.y<paddle.y+paddle.h&&
+       ball.x>paddle.x-ball.r&&ball.x<paddle.x+paddle.w+ball.r){
+      ball.y=paddle.y-ball.r;
+      var hit=(ball.x-(paddle.x+paddle.w/2))/(paddle.w/2);
+      var sp=Math.sqrt(ball.vx*ball.vx+ball.vy*ball.vy)*1.02;
+      var ang=hit*Math.PI/3;
+      ball.vx=Math.sin(ang)*sp;ball.vy=-Math.abs(Math.cos(ang))*sp;
+    }
+    // bricks
+    for(var i=0;i<bricks.length;i++){
+      var b=bricks[i];if(!b.alive)continue;
+      if(ball.x>b.x-ball.r&&ball.x<b.x+b.w+ball.r&&ball.y>b.y-ball.r&&ball.y<b.y+b.h+ball.r){
+        b.alive=false;score+=10;
+        var ox=Math.min(ball.x-(b.x-ball.r),(b.x+b.w+ball.r)-ball.x);
+        var oy=Math.min(ball.y-(b.y-ball.r),(b.y+b.h+ball.r)-ball.y);
+        if(ox<oy)ball.vx=-ball.vx;else ball.vy=-ball.vy;
+        break;
+      }
+    }
+    if(bricks.every(function(b){return !b.alive;})){
+      level++;layout();stuck=true;
+      overlay.style.display='flex';
+      overlay.querySelector('h1').textContent='LEVEL '+level;
+      overlay.querySelector('p').innerHTML='Score: <b>'+score+'</b> — Lives: '+lives;
+      document.getElementById('start').textContent='CONTINUE';
+      playing=false;
+    }
+    if(ball.y>H+30){
+      lives--;
+      if(lives<=0){playing=false;overlay.style.display='flex';
+        overlay.querySelector('h1').textContent='GAME OVER';
+        overlay.querySelector('p').innerHTML='Score: <b>'+score+'</b> — Level '+level;
+        document.getElementById('start').textContent='PLAY AGAIN';
+        reset(true);
+      }else{stuck=true;ball.vx=0;ball.vy=0;}
+    }
+  }
+
+  function draw(){
+    var W=cv.width,H=cv.height;
+    ctx.clearRect(0,0,W,H);
+    ctx.font='bold '+(H*0.04)+'px "Segoe UI",sans-serif';ctx.textAlign='left';
+    ctx.fillStyle='#8888aa';ctx.fillText('SCORE '+score,14,H*0.055);
+    ctx.textAlign='right';ctx.fillText('♥ '+lives+'   LV '+level,W-14,H*0.055);
+    for(var i=0;i<bricks.length;i++){var b=bricks[i];if(!b.alive)continue;
+      ctx.fillStyle=b.color;ctx.fillRect(b.x,b.y,b.w,b.h);}
+    ctx.fillStyle='#e8e8f4';
+    ctx.fillRect(paddle.x,paddle.y,paddle.w,paddle.h);
+    ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,7);ctx.fill();
+  }
+
+  function loop(){
+    if(playing){step();}
+    draw();requestAnimationFrame(loop);
+  }
+
+  document.addEventListener('keydown',function(e){
+    keys[e.key]=true;
+    if(e.key===' '){e.preventDefault();launch();}
+  });
+  document.addEventListener('keyup',function(e){keys[e.key]=false;});
+  cv.addEventListener('mousemove',function(e){
+    var r=cv.getBoundingClientRect();
+    var x=(e.clientX-r.left)*(cv.width/r.width);
+    paddle.x=Math.max(0,Math.min(cv.width-paddle.w,x-paddle.w/2));
+  });
+  cv.addEventListener('touchmove',function(e){
+    var r=cv.getBoundingClientRect(),t=e.touches[0];
+    var x=(t.clientX-r.left)*(cv.width/r.width);
+    paddle.x=Math.max(0,Math.min(cv.width-paddle.w,x-paddle.w/2));
+    e.preventDefault();
+  },{passive:false});
+  cv.addEventListener('pointerdown',launch);
+
+  document.getElementById('start').addEventListener('click',function(){
+    overlay.style.display='none';
+    if(score===0&&lives===3)reset(true);
+    playing=true;
+  });
+
+  reset(true);loop();
+})();
+</script>
+<div class="qhub-watermark" aria-hidden="true">◈ QUANTUM</div><style>.qhub-watermark{position:fixed;right:10px;bottom:10px;z-index:2147483647;font:700 11px monospace;letter-spacing:2px;color:#39ff14;background:rgba(0,0,0,.55);border:1px solid rgba(57,255,20,.5);border-radius:6px;padding:4px 8px;pointer-events:none;user-select:none;opacity:.85}</style></body>
+</html>

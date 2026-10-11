@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<!-- (c) Quantum Hub — proprietary hub build. All rights reserved. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JS Console</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #e8e8ed; }
+  body { font-family: Consolas, 'Ubuntu Mono', monospace; display: flex; flex-direction: column; }
+  #error {
+    display: none;
+    background: #3a0d0d; color: #ff8080;
+    padding: 10px 14px; font-size: 13px; white-space: pre-wrap;
+    border-bottom: 1px solid #5a1414;
+  }
+  #output {
+    flex: 1; overflow-y: auto; padding: 10px 14px;
+    font-size: 14px; line-height: 1.5; min-height: 0;
+  }
+  #output hr { border: none; border-top: 1px solid #222; margin: 8px 0; }
+  #output button { cursor: pointer; width: 18px; height: 18px; border: none;
+    background-color: transparent; background-size: contain;
+    background-repeat: no-repeat; vertical-align: middle; }
+  #input { border-top: 1px solid #222; min-height: 60px; }
+  #input > div { min-height: 60px; font-size: 15px; }
+  .hint { padding: 8px 14px; font-size: 12px; color: #666; border-top: 1px solid #1a1a2e; }
+  .hint code { color: #39ff14; }
+</style>
+</head>
+<body>
+  <!-- Host shell for the pasted nettleweb JSConsole bundle.
+       The bundle expects: #error, #output, #input>div.
+       Save the bundle (from '/*! Copyright' through the final '})();')
+       as js-console-bundle.js next to this file. -->
+  <div id="error"></div>
+  <div id="output"></div>
+  <div id="input"><div></div></div>
+  <div class="hint">Type JS and press <code>Enter</code> to run. <code>/help</code> lists built-in commands.</div>
+  <script src="./js-console-bundle.js"></script>
+<div class="qhub-watermark" aria-hidden="true">◈ QUANTUM</div><style>.qhub-watermark{position:fixed;right:10px;bottom:10px;z-index:2147483647;font:700 11px monospace;letter-spacing:2px;color:#39ff14;background:rgba(0,0,0,.55);border:1px solid rgba(57,255,20,.5);border-radius:6px;padding:4px 8px;pointer-events:none;user-select:none;opacity:.85}</style></body>
+</html>

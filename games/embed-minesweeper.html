@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<!-- (c) Quantum Hub — proprietary hub build. All rights reserved. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Minesweeper</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:#1b2431;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:manipulation}
+  #app{width:100%;max-width:560px;padding:8px;display:flex;flex-direction:column;gap:8px;align-items:center}
+  #hud{display:flex;justify-content:space-between;width:100%;background:#263349;border-radius:8px;
+    padding:8px 12px;color:#fff;font-size:15px;font-weight:600}
+  #hud .btn{cursor:pointer;user-select:none;padding:2px 10px;border-radius:6px;background:#3a4a66}
+  #hud .btn:active{background:#4c6288}
+  #grid{display:grid;gap:2px;width:100%;max-width:100%}
+  .cell{aspect-ratio:1/1;background:#3a4a66;border-radius:3px;display:flex;align-items:center;
+    justify-content:center;font-weight:800;font-size:clamp(11px,3.6vw,18px);color:#fff;
+    user-select:none;cursor:pointer;transition:background .08s}
+  .cell:hover{background:#48597a}
+  .cell.open{background:#263349;cursor:default}
+  .cell.mine{background:#c0392b}
+  .cell.flag{background:#3a4a66}
+  .n1{color:#7ec8ff}.n2{color:#7dff9b}.n3{color:#ff9b7d}.n4{color:#c39bff}
+  .n5{color:#ffd479}.n6{color:#7dffe8}.n7{color:#ff7dc4}.n8{color:#d0d6e0}
+  #msg{color:#fff;font-weight:700;min-height:22px;text-align:center}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud">
+    <span>💣 <span id="mines">10</span></span>
+    <span class="btn" id="face">🙂 New</span>
+    <span>⏱ <span id="time">0</span></span>
+  </div>
+  <div id="grid"></div>
+  <div id="msg"></div>
+</div>
+<script>
+(function(){
+  var ROWS=9,COLS=9,MINES=10;
+  var grid,open,flag,over,won,firstClick,started,timer,t0,elapsed;
+  var el=document.getElementById('grid'),msg=document.getElementById('msg');
+  var minesEl=document.getElementById('mines'),timeEl=document.getElementById('time');
+  var faceEl=document.getElementById('face');
+
+  function reset(){
+    grid=[];open=[];flag=[];over=false;won=false;firstClick=true;started=false;
+    clearInterval(timer);elapsed=0;timeEl.textContent='0';
+    minesEl.textContent=MINES;msg.textContent='';faceEl.textContent='🙂 New';
+    el.innerHTML='';el.style.gridTemplateColumns='repeat('+COLS+',1fr)';
+    for(var r=0;r<ROWS;r++){grid.push(new Array(COLS).fill(0));
+      open.push(new Array(COLS).fill(false));flag.push(new Array(COLS).fill(false));}
+    for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){
+      var d=document.createElement('div');d.className='cell';d.dataset.r=r;d.dataset.c=c;
+      el.appendChild(d);}
+  }
+
+  function idx(r,c){return el.children[r*COLS+c];}
+  function inB(r,c){return r>=0&&r<ROWS&&c>=0&&c<COLS;}
+  function around(r,c,fn){
+    for(var dr=-1;dr<=1;dr++)for(var dc=-1;dc<=1;dc++){
+      if(!dr&&!dc)continue;var rr=r+dr,cc=c+dc;
+      if(inB(rr,cc))fn(rr,cc);}
+  }
+
+  function place(r0,c0){
+    var placed=0,safe={};
+    safe[r0+','+c0]=1;around(r0,c0,function(r,c){safe[r+','+c]=1;});
+    while(placed<MINES){
+      var r=Math.floor(Math.random()*ROWS),c=Math.floor(Math.random()*COLS);
+      if(grid[r][c]===9||safe[r+','+c])continue;
+      grid[r][c]=9;placed++;}
+    for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){
+      if(grid[r][c]===9)continue;var n=0;
+      around(r,c,function(rr,cc){if(grid[rr][cc]===9)n++;});
+      grid[r][c]=n;}
+  }
+
+  function startTimer(){
+    started=true;t0=Date.now();
+    timer=setInterval(function(){timeEl.textContent=Math.floor((Date.now()-t0)/1000);},500);
+  }
+
+  function reveal(r,c){
+    if(over||open[r][c]||flag[r][c])return;
+    open[r][c]=true;var d=idx(r,c);d.classList.add('open');
+    if(grid[r][c]===9){d.classList.add('mine');d.textContent='💣';lose();return;}
+    if(grid[r][c]>0){d.textContent=grid[r][c];d.classList.add('n'+grid[r][c]);return;}
+    around(r,c,function(rr,cc){if(!open[rr][cc])reveal(rr,cc);});
+  }
+
+  function checkWin(){
+    var o=0;for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++)if(open[r][c])o++;
+    if(o===ROWS*COLS-MINES){over=true;won=true;clearInterval(timer);
+      msg.textContent='🎉 You cleared the board in '+timeEl.textContent+'s!';
+      faceEl.textContent='😎 Win';}
+  }
+
+  function lose(){
+    over=true;clearInterval(timer);msg.textContent='💥 Boom! You hit a mine.';
+    faceEl.textContent='😵 Lose';
+    for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++)
+      if(grid[r][c]===9&&!open[r][c]){var d=idx(r,c);d.classList.add('mine');d.textContent='💣';}
+  }
+
+  var pressT=null,lp=false;
+  el.addEventListener('pointerdown',function(e){
+    var d=e.target.closest('.cell');if(!d||over)return;
+    lp=false;pressT=setTimeout(function(){lp=true;toggleFlag(d);},350);
+  });
+  el.addEventListener('pointerup',function(){clearTimeout(pressT);});
+  el.addEventListener('pointercancel',function(){clearTimeout(pressT);});
+  el.addEventListener('click',function(e){
+    var d=e.target.closest('.cell');if(!d||over||lp)return;
+    var r=+d.dataset.r,c=+d.dataset.c;
+    if(flag[r][c])return;
+    if(firstClick){place(r,c);firstClick=false;startTimer();}
+    reveal(r,c);checkWin();
+  });
+  el.addEventListener('contextmenu',function(e){e.preventDefault();});
+
+  function toggleFlag(d){
+    var r=+d.dataset.r,c=+d.dataset.c;
+    if(open[r][c]||over)return;
+    flag[r][c]=!flag[r][c];d.classList.toggle('flag');
+    d.textContent=flag[r][c]?'🚩':'';
+    var n=0;for(var i=0;i<ROWS;i++)for(var j=0;j<COLS;j++)if(flag[i][j])n++;
+    minesEl.textContent=MINES-n;
+  }
+
+  faceEl.addEventListener('click',reset);
+  reset();
+})();
+</script>
+<div class="qhub-watermark" aria-hidden="true">◈ QUANTUM</div><style>.qhub-watermark{position:fixed;right:10px;bottom:10px;z-index:2147483647;font:700 11px monospace;letter-spacing:2px;color:#39ff14;background:rgba(0,0,0,.55);border:1px solid rgba(57,255,20,.5);border-radius:6px;padding:4px 8px;pointer-events:none;user-select:none;opacity:.85}</style></body>
+</html>

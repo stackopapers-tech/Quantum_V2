@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<!-- (c) Quantum Hub — proprietary hub build. All rights reserved. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Solitaire Klondike</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+  html,body{height:100%;background:#0b6e4f;font-family:'Segoe UI',system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;overflow:hidden;touch-action:manipulation}
+  #hud{width:100%;max-width:720px;display:flex;justify-content:space-between;align-items:center;
+    padding:8px 12px;color:#fff;font-weight:700;font-size:14px}
+  #hud button{border:none;border-radius:6px;background:#0a5c42;color:#fff;
+    padding:5px 12px;font-weight:700;cursor:pointer;font-size:13px}
+  #board{width:100%;max-width:720px;flex:1;padding:0 10px 12px;display:flex;flex-direction:column;gap:10px}
+  .row{display:flex;gap:2.2%}
+  .slot{flex:1;position:relative;border:2px dashed rgba(255,255,255,.35);border-radius:8px;
+    min-height:0;padding-bottom:0}
+  #toprow{height:0;flex:0 0 auto}
+  #toprow .slot{aspect-ratio:2.5/3.5;height:auto}
+  #stock,#waste{cursor:pointer}
+  #tabrow{flex:1}
+  #tabrow .slot{border-color:rgba(255,255,255,.18);aspect-ratio:auto}
+  .card{position:absolute;left:0;width:100%;aspect-ratio:2.5/3.5;border-radius:8px;
+    background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.35);cursor:pointer;
+    display:flex;flex-direction:column;justify-content:space-between;
+    padding:6% 7%;font-weight:800;line-height:1;transition:box-shadow .1s}
+  .card .corner{font-size:clamp(10px,2.6vw,16px)}
+  .card .corner.b{align-self:flex-end;transform:rotate(180deg)}
+  .card .center{align-self:center;font-size:clamp(18px,5vw,32px)}
+  .card.red{color:#d32f2f}.card.black{color:#1a1a1a}
+  .card.down{background:linear-gradient(135deg,#3281ff,#1f4fa8);
+    border:3px solid #fff;display:flex;align-items:center;justify-content:center}
+  .card.down::after{content:'♦';color:rgba(255,255,255,.5);font-size:clamp(16px,4.5vw,28px)}
+  .card.sel{box-shadow:0 0 0 3px #ffd479,0 4px 10px rgba(0,0,0,.5);z-index:5}
+  #msg{color:#fff;font-weight:700;min-height:20px;text-align:center;font-size:14px;text-shadow:0 1px 2px #000}
+  @media (max-width:480px){#toprow .slot{aspect-ratio:2.5/3.4}}
+</style>
+</head>
+<body>
+<div id="hud">
+  <span>♠♥♦♣ Klondike</span>
+  <span id="status">Moves: 0</span>
+  <span><button id="new">New Game</button></span>
+</div>
+<div id="board">
+  <div class="row" id="toprow">
+    <div class="slot" id="stock"></div>
+    <div class="slot" id="waste"></div>
+    <div style="flex:2.2"></div>
+    <div class="slot" id="f0"></div><div class="slot" id="f1"></div>
+    <div class="slot" id="f2"></div><div class="slot" id="f3"></div>
+  </div>
+  <div class="row" id="tabrow">
+    <div class="slot" id="t0"></div><div class="slot" id="t1"></div>
+    <div class="slot" id="t2"></div><div class="slot" id="t3"></div>
+    <div class="slot" id="t4"></div><div class="slot" id="t5"></div>
+    <div class="slot" id="t6"></div>
+  </div>
+  <div id="msg"></div>
+</div>
+<script>
+(function(){
+  var SUITS=['♠','♥','♦','♣'],RED={'♥':1,'♦':1};
+  var stock,waste,founds,tab,moves,sel,won;
+  var $=function(id){return document.getElementById(id);};
+  var msg=$('msg'),status=$('status');
+
+  function newGame(){
+    var deck=[];
+    for(var s=0;s<4;s++)for(var r=1;r<=13;r++)deck.push({s:s,r:r,up:false});
+    for(var i=deck.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));
+      var t=deck[i];deck[i]=deck[j];deck[j]=t;}
+    stock=[];waste=[];founds=[[],[],[],[]];tab=[];moves=0;sel=null;won=false;
+    for(var p=0;p<7;p++){tab.push([]);
+      for(var k=0;k<=p;k++){var c=deck.pop();c.up=(k===p);tab[p].push(c);}}
+    stock=deck;
+    msg.textContent='';render();
+  }
+
+  function rankName(r){return ['','A','2','3','4','5','6','7','8','9','10','J','Q','K'][r];}
+
+  function cardEl(c,idx,total,container){
+    var d=document.createElement('div');
+    d.className='card '+(c.up?(RED[SUITS[c.s]]?'red':'black'):'down');
+    if(c.up){
+      var rn=rankName(c.r);
+      d.innerHTML='<span class="corner">'+rn+'<br>'+SUITS[c.s]+'</span>'+
+        '<span class="center">'+SUITS[c.s]+'</span>'+
+        '<span class="corner b">'+rn+'<br>'+SUITS[c.s]+'</span>';
+    }
+    // vertical stacking offset
+    var ch=container.clientWidth*3.5/2.5;
+    var slotH=container.clientHeight;
+    var overlap=total>1?Math.min(ch*0.28,(slotH-ch)/(total-1)):0;
+    d.style.top=(idx*overlap)+'px';
+    return d;
+  }
+
+  function render(){
+    // stock
+    var el=$('stock');el.innerHTML='';
+    if(stock.length){var back={up:false};el.appendChild(cardEl(back,0,1,el));}
+    // waste
+    el=$('waste');el.innerHTML='';
+    if(waste.length){el.appendChild(cardEl(waste[waste.length-1],0,1,el));}
+    // foundations
+    for(var f=0;f<4;f++){el=$('f'+f);el.innerHTML='';
+      if(founds[f].length)el.appendChild(cardEl(founds[f][founds[f].length-1],0,1,el));}
+    // tableau
+    for(var p=0;p<7;p++){
+      el=$('t'+p);el.innerHTML='';
+      var pile=tab[p];
+      for(var i=0;i<pile.length;i++)el.appendChild(cardEl(pile[i],i,pile.length,el));
+    }
+    status.textContent='Moves: '+moves;
+  }
+
+  function getSel(){
+    if(!sel)return null;
+    if(sel.where==='waste')return waste[waste.length-1];
+    if(sel.where==='tab')return tab[sel.pile][sel.idx];
+    return null;
+  }
+
+  function canStackTab(card,pile){
+    if(!pile.length)return card.r===13;
+    var top=pile[pile.length-1];
+    if(!top.up)return false;
+    return top.r===card.r+1&&(RED[SUITS[top.s]]!==RED[SUITS[card.s]]);
+  }
+  function canStackFound(card,f){
+    var pile=founds[f];
+    if(!pile.length)return card.r===1;
+    var top=pile[pile.length-1];
+    return top.s===card.s&&top.r===card.r-1;
+  }
+
+  function moveFrom(sel2,dest){
+    // returns true if moved
+    var card;
+    if(sel2.where==='waste'){
+      card=waste[waste.length-1];if(!card)return false;
+      if(dest.k==='f'&&canStackFound(card,dest.i)){founds[dest.i].push(waste.pop());}
+      else if(dest.k==='t'&&canStackTab(card,tab[dest.i])){tab[dest.i].push(waste.pop());}
+      else return false;
+    }else{
+      var pile=tab[sel2.pile];card=pile[sel2.idx];
+      // ensure run below sel2 is a valid sequence (always true if laid correctly)
+      for(var i=sel2.idx;i<pile.length-1;i++){
+        if(!(pile[i].r===pile[i+1].r+1&&RED[SUITS[pile[i].s]]!==RED[SUITS[pile[i+1].s]]))return false;
+      }
+      if(dest.k==='f'){
+        if(sel2.idx!==pile.length-1||!canStackFound(card,dest.i))return false;
+        founds[dest.i].push(pile.pop());
+      }else if(dest.k==='t'){
+        if(!canStackTab(card,tab[dest.i]))return false;
+        var moved=pile.splice(sel2.idx);
+        tab[dest.i]=tab[dest.i].concat(moved);
+      }else return false;
+      if(pile.length&&!pile[pile.length-1].up)pile[pile.length-1].up=true;
+    }
+    moves++;sel=null;render();checkWin();return true;
+  }
+
+  function tryAutoFound(){
+    var card=getSel();if(!card)return false;
+    for(var f=0;f<4;f++)if(canStackFound(card,f)){moveFrom(sel,{k:'f',i:f});return true;}
+    return false;
+  }
+
+  function checkWin(){
+    var n=founds[0].length+founds[1].length+founds[2].length+founds[3].length;
+    if(n===52&&!won){won=true;
+      msg.textContent='🎉 You won in '+moves+' moves! Deal yourself another.';}
+  }
+
+  // click handling
+  $('stock').addEventListener('click',function(){
+    if(won)return;
+    if(stock.length){var c=stock.pop();c.up=true;waste.push(c);}
+    else if(waste.length){stock=waste.reverse().map(function(c){c.up=false;return c;});waste=[];}
+    sel=null;render();
+  });
+
+  var board=$('board');
+  board.addEventListener('click',function(e){
+    if(won)return;
+    var el=e.target.closest('.card');
+    var slot=e.target.closest('.slot');
+
+    // foundation slot click (destination)
+    if(!el&&slot&&/^f\d$/.test(slot.id)){
+      var f=+slot.id[1];
+      if(sel){moveFrom(sel,{k:'f',i:f});}
+      return;
+    }
+    // tableau slot click (destination, empty pile)
+    if(!el&&slot&&/^t\d$/.test(slot.id)){
+      var t=+slot.id[1];
+      if(sel)moveFrom(sel,{k:'t',i:t});
+      return;
+    }
+    if(!el)return;
+
+    // find which pile this card belongs to
+    var host=el.parentElement;
+    if(host.id==='waste'){
+      var top=waste[waste.length-1];
+      if(el===host.lastElementChild){
+        if(sel&&sel.where==='waste'){if(!tryAutoFound()){sel=null;render();}}
+        else{sel={where:'waste'};render();el.classList.add('sel');}
+      }
+      return;
+    }
+    if(/^t\d$/.test(host.id)){
+      var p=+host.id[1],idx=[].indexOf.call(host.children,el);
+      var card=tab[p][idx];
+      if(!card.up){ // face-down cards shouldn't be clickable, but guard
+        return;}
+      var s={where:'tab',pile:p,idx:idx};
+      if(sel&&sel.where==='tab'&&sel.pile===p&&sel.idx===idx){
+        if(!tryAutoFound()){sel=null;render();}
+        return;
+      }
+      if(sel&&sel.where!=='tab'||sel&&sel.pile!==p){
+        // try move to this pile
+        if(moveFrom(sel,{k:'t',i:p}))return;
+      }
+      sel=s;render();
+      host.children[idx].classList.add('sel');
+      return;
+    }
+    if(/^f\d$/.test(host.id))return;
+  });
+
+  // foundation auto via double-click on waste is covered by click-twice logic above
+  $('new').addEventListener('click',newGame);
+  window.addEventListener('resize',render);
+  newGame();
+})();
+</script>
+<div class="qhub-watermark" aria-hidden="true">◈ QUANTUM</div><style>.qhub-watermark{position:fixed;right:10px;bottom:10px;z-index:2147483647;font:700 11px monospace;letter-spacing:2px;color:#39ff14;background:rgba(0,0,0,.55);border:1px solid rgba(57,255,20,.5);border-radius:6px;padding:4px 8px;pointer-events:none;user-select:none;opacity:.85}</style></body>
+</html>

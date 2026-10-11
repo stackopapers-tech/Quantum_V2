@@ -1,0 +1,35 @@
+# Environment variables - NEVER commit
+.env
+
+# Server encryption keys (legacy location)
+server_keys.json
+
+# Database
+hub_server.db
+*.db
+*.sqlite
+*.sqlite3
+
+# Dev inbox (contains verification codes)
+dev_inbox/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Test artifacts
+test_*.db

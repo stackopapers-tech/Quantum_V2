@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<!-- (c) Quantum Hub — proprietary hub build. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quantum • Player</title>
+<style>
+:root{--acc:#39ff14}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:#000;overflow:hidden;font:13px monospace;color:#eee}
+#v{position:fixed;inset:0;width:100%;height:100%;background:#000}
+.ov{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#000;z-index:5;text-align:center;padding:20px}
+.ov[hidden]{display:none}
+.spinner{width:46px;height:46px;border:4px solid #16162e;border-top-color:var(--acc);border-radius:50%;animation:qspin 1s linear infinite}
+@keyframes qspin{to{transform:rotate(360deg)}}
+#status{font:12px monospace;letter-spacing:2px;color:var(--acc);text-transform:uppercase}
+#ptitle{font:600 15px system-ui,sans-serif;color:#fff;max-width:70%}
+#play{cursor:pointer;user-select:none;width:84px;height:84px;border-radius:50%;border:3px solid var(--acc);color:var(--acc);display:flex;align-items:center;justify-content:center;font-size:34px;background:rgba(0,0,0,.55);transition:transform .15s;line-height:1;padding-left:6px}
+#play:hover{transform:scale(1.07)}
+#play.pulse{animation:qpulse 1.4s ease-in-out infinite}
+@keyframes qpulse{0%,100%{box-shadow:0 0 8px rgba(57,255,20,.35)}50%{box-shadow:0 0 34px rgba(57,255,20,.8)}}
+.hint{font:11px monospace;letter-spacing:1px;color:#777}
+.btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.btns a,.btns button{font:12px monospace;padding:9px 16px;border-radius:6px;border:1px solid var(--acc);background:transparent;color:var(--acc);cursor:pointer;text-decoration:none}
+.btns a:hover,.btns button:hover{background:rgba(57,255,20,.12)}
+.err{color:#ff5252;letter-spacing:2px;font-size:13px;font-weight:bold}
+#errMsg{font-size:12px;color:#888;max-width:440px}
+</style>
+</head>
+<body>
+<video id="v" playsinline controls preload="metadata"></video>
+<div class="ov" id="spinOv"><div class="spinner"></div><div id="status">Connecting…</div><div id="ptitle"></div></div>
+<div class="ov" id="playOv" hidden><div id="play" title="Play">▶</div><div id="status2" style="font:12px monospace;letter-spacing:2px;color:var(--acc)">PRESS PLAY</div><div class="hint" id="playTitle"></div></div>
+<div class="ov" id="errOv" hidden>
+  <div class="err">⚠ COULD NOT LOAD MEDIA</div>
+  <div id="errMsg"></div>
+  <div class="hint" id="errTitle"></div>
+  <div class="btns"><button id="retry">RETRY</button><a id="open" target="_blank" rel="noopener">OPEN DIRECTLY</a></div>
+</div>
+<script>
+/* (c) Quantum Hub — proprietary hub build. */
+(function () {
+    var q = new URLSearchParams(location.search);
+    var u = q.get('u') || '';
+    var t = q.get('t') || 'Media';
+    var acc = q.get('a') || '';
+    if (/^#[0-9a-fA-F]{6}$/.test(acc)) document.documentElement.style.setProperty('--acc', acc);
+    document.title = 'Quantum • ' + t;
+    var pt = document.getElementById('ptitle'); if (pt) pt.textContent = t;
+    var playT = document.getElementById('playTitle'); if (playT) playT.textContent = t;
+    var errT = document.getElementById('errTitle'); if (errT) errT.textContent = t;
+    var v = document.getElementById('v');
+    var spinOv = document.getElementById('spinOv');
+    var playOv = document.getElementById('playOv');
+    var errOv = document.getElementById('errOv');
+    var status = document.getElementById('status');
+    var openA = document.getElementById('open');
+    openA.href = u || '#';
+    try {
+        var s = JSON.parse(localStorage.getItem('hub_settings') || '{}');
+        if (typeof s.volume === 'number' && s.volume > 0) v.volume = Math.min(1, s.volume);
+        else v.volume = 0.8; // a saved 0 would make films open silently
+    } catch (e) { v.volume = 0.8; }
+    function show(el) { el.hidden = false; }
+    function hide(el) { el.hidden = true; }
+    function start() {
+        hide(errOv); hide(playOv); show(spinOv);
+        status.textContent = 'Connecting…';
+        v.src = u;
+        try { v.load(); } catch (e) {}
+        var p = v.play();
+        if (p && p.catch) p.catch(function () {}); // gesture needed — overlay waits
+    }
+    if (!u) {
+        hide(spinOv); show(errOv);
+        document.getElementById('errMsg').textContent = 'Missing media URL.';
+        return;
+    }
+    start();
+    v.addEventListener('loadstart', function () { status.textContent = 'Loading ' + t + '…'; });
+    v.addEventListener('loadedmetadata', function () { hide(spinOv); if (v.paused) { show(playOv); document.getElementById('play').classList.add('pulse'); } });
+    v.addEventListener('canplay', function () { if (v.paused) { show(playOv); } else { hide(playOv); hide(spinOv); } });
+    v.addEventListener('playing', function () { hide(playOv); hide(spinOv); hide(errOv); });
+    v.addEventListener('waiting', function () { show(spinOv); status.textContent = 'Buffering…'; });
+    v.addEventListener('error', function () {
+        hide(spinOv); hide(playOv); show(errOv);
+        document.getElementById('errMsg').textContent =
+            (v.error && v.error.code ? 'Error ' + v.error.code + ' — ' : '') +
+            'The stream could not be loaded. Retry, or open it directly.';
+    });
+    document.getElementById('play').addEventListener('click', function () { v.play().catch(function () {}); });
+    document.getElementById('retry').addEventListener('click', start);
+    window.addEventListener('message', function (e) {
+        if (e.data && e.data.type === 'qvol' && typeof e.data.v === 'number') {
+            try { v.volume = Math.max(0, Math.min(1, e.data.v)); } catch (err) {}
+        }
+    });
+})();
+</script>
+</body>
+</html>

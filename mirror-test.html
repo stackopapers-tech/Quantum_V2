@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<!-- (c) Quantum Hub — proprietary hub build. All rights reserved. -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About:Blank Launcher Test</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #0a0a0f; color: #e8e8ed;
+            min-height: 100vh; margin: 0; padding: 2rem;
+            display: flex; flex-direction: column; align-items: center; gap: 1.5rem;
+        }
+        h1 { font-size: 1.5rem; font-weight: 600; margin: 0; }
+        .subtitle { color: #888; font-size: 0.9rem; max-width: 600px; text-align: center; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; width: 100%; max-width: 900px; }
+        .card {
+            background: #12121a; border: 1px solid #2a2a3a; border-radius: 12px;
+            padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;
+            transition: border-color 0.2s, transform 0.1s;
+        }
+        .card:hover { border-color: #3a3a5a; }
+        .card:active { transform: scale(0.98); }
+        .card-header { display: flex; align-items: center; gap: 0.75rem; }
+        .icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+        .card-title { font-weight: 600; }
+        .card-desc { color: #888; font-size: 0.85rem; margin: 0; }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.75rem 1.25rem; border-radius: 8px; border: none;
+            font-weight: 600; font-size: 0.9rem; cursor: pointer; width: 100%;
+            transition: background 0.15s, transform 0.05s;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: #22c55e; color: #000; }
+        .btn-primary:hover { background: #1ea656; }
+        .btn-secondary { background: #2a2a3a; color: #fff; border: 1px solid #3a3a5a; }
+        .btn-secondary:hover { background: #33334a; }
+        .url-input {
+            width: 100%; padding: 0.75rem; background: #0a0a0f; border: 1px solid #2a2a3a;
+            border-radius: 8px; color: #fff; font-family: monospace; font-size: 0.8rem;
+        }
+        .url-input:focus { outline: none; border-color: #22c55e; }
+        .status { font-size: 0.75rem; color: #888; min-height: 1rem; }
+        .status.success { color: #22c55e; }
+        .status.error { color: #ef4444; }
+        .status.info { color: #3b82f6; }
+        .approach-badge {
+            display: inline-block; padding: 2px 8px; border-radius: 4px;
+            font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+        }
+        .approach-1 { background: #22c55e20; color: #22c55e; border: 1px solid #22c55e40; }
+        .approach-2 { background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b40; }
+        .approach-3 { background: #3b82f620; color: #3b82f6; border: 1px solid #3b82f640; }
+        .approach-4 { background: #ef444420; color: #ef4444; border: 1px solid #ef444440; }
+        .log { width: 100%; max-width: 900px; height: 200px; background: #050508; border: 1px solid #222; border-radius: 8px; padding: 1rem; font-family: monospace; font-size: 0.75rem; color: #888; overflow-y: auto; }
+        .log-entry { margin: 0.25rem 0; }
+        .log-entry.success { color: #22c55e; }
+        .log-entry.error { color: #ef4444; }
+        .log-entry.info { color: #3b82f6; }
+        .log-entry.fallback { color: #f59e0b; }
+    </style>
+</head>
+<body>
+    <h1>About:Blank Launcher Test</h1>
+    <p class="subtitle">Click a button to launch the target site via <code>about:blank</code>. Each approach is tried in order until one succeeds.</p>
+
+    <div class="grid" id="testGrid"></div>
+
+    <div class="card" style="max-width: 900px;">
+        <div class="card-header">
+            <div class="icon" style="background: #3b82f620; color: #3b82f6;">⚙</div>
+            <div>
+                <div class="card-title">Custom URL</div>
+                <p class="card-desc">Enter any HTTPS URL to test the launcher</p>
+            </div>
+        </div>
+        <input type="url" class="url-input" id="customUrl" placeholder="https://example.com" value="https://example.com">
+        <button class="btn btn-primary" id="launchCustom">Launch via about:blank</button>
+        <div class="status" id="customStatus"></div>
+    </div>
+
+    <div class="log" id="log" aria-live="polite"></div>
+
+    <script type="module" src="js/components/about-blank-launcher.js"></script>
+    <script>
+        // Test targets - all verified to work with approach 1 (navigation)
+        const TEST_TARGETS = [
+            {
+                id: 'example',
+                name: 'Example Domain',
+                url: 'https://example.com/',
+                icon: '🌐',
+                desc: 'Simple test page, always allows framing',
+                approaches: [1]
+            },
+            {
+                id: 'github',
+                name: 'GitHub Training',
+                url: 'https://github.github.io/training-kit/',
+                icon: '🐙',
+                desc: 'Static GitHub Pages site',
+                approaches: [1]
+            },
+            {
+                id: 'wikipedia',
+                name: 'Wikipedia',
+                url: 'https://en.wikipedia.org/wiki/Main_Page',
+                icon: '📖',
+                desc: 'Blocks framing (X-Frame-Options) — approach 2 will fail',
+                approaches: [1]
+            },
+            {
+                id: 'cloudflare',
+                name: 'Cloudflare Pages',
+                url: 'https://pages.cloudflare.com/',
+                icon: '☁',
+                desc: 'Modern static hosting',
+                approaches: [1]
+            },
+            {
+                id: 'httpbin',
+                name: 'HTTPBin',
+                url: 'https://httpbin.org/html',
+                icon: '📦',
+                desc: 'Test endpoint, returns simple HTML',
+                approaches: [1]
+            }
+        ];
+
+        const grid = document.getElementById('testGrid');
+        const log = document.getElementById('log');
+        const customUrl = document.getElementById('customUrl');
+        const customStatus = document.getElementById('customStatus');
+        let launchInProgress = false;
+
+        function addLog(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function setCustomStatus(message, type) {
+            customStatus.textContent = message;
+            customStatus.className = `status ${type}`;
+        }
+
+        function createCard(target) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-header">
+                    <div class="icon" style="background: #22c55e20; color: #22c55e;">${target.icon}</div>
+                    <div>
+                        <div class="card-title">${target.name}</div>
+                        <p class="card-desc">${target.desc}</p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: -0.5rem;">
+                    ${target.approaches.map(a => `<span class="approach-badge approach-${a}">Approach ${a}</span>`).join('')}
+                </div>
+                <button class="btn btn-primary" data-target="${target.id}">Launch via about:blank</button>
+                <div class="status" id="status-${target.id}"></div>
+            `;
+            return card;
+        }
+
+        TEST_TARGETS.forEach(t => grid.appendChild(createCard(t)));
+
+        // Event delegation for launch buttons
+        grid.addEventListener('click', async (e) => {
+            const btn = e.target.closest('[data-target]');
+            if (!btn || launchInProgress) return;
+            const targetId = btn.dataset.target;
+            const target = TEST_TARGETS.find(t => t.id === targetId);
+            if (!target) return;
+
+            launchInProgress = true;
+            btn.disabled = true;
+            btn.textContent = 'Launching…';
+            const statusEl = document.getElementById(`status-${targetId}`);
+            statusEl.textContent = 'Opening about:blank…';
+            statusEl.className = 'status info';
+
+            addLog(`Launching ${target.name} (${target.url})`, 'info');
+
+            const launcher = new AboutBlankLauncher({
+                targetUrl: target.url,
+                label: target.name,
+                onSuccess: (label) => {
+                    addLog(`${label}: Success (window opened & navigated)`, 'success');
+                    statusEl.textContent = 'Launched successfully';
+                    statusEl.className = 'status success';
+                },
+                onError: (err) => {
+                    addLog(`${target.name}: ${err.message}`, 'error');
+                    statusEl.textContent = 'Blocked — see modal';
+                    statusEl.className = 'status error';
+                },
+                onFallback: (label, method) => {
+                    addLog(`${label}: Fallback used (${method})`, 'fallback');
+                    statusEl.textContent = `Fallback: ${method}`;
+                    statusEl.className = 'status fallback';
+                }
+            });
+
+            launcher.launch();
+
+            // Re-enable after a moment
+            setTimeout(() => {
+                launchInProgress = false;
+                btn.disabled = false;
+                btn.textContent = 'Launch via about:blank';
+            }, 1000);
+        });
+
+        // Custom URL launch
+        document.getElementById('launchCustom').addEventListener('click', () => {
+            if (launchInProgress) return;
+            const url = customUrl.value.trim();
+            if (!url) {
+                setCustomStatus('Enter a URL', 'error');
+                return;
+            }
+
+            launchInProgress = true;
+            const btn = document.getElementById('launchCustom');
+            btn.disabled = true;
+            btn.textContent = 'Launching…';
+            setCustomStatus('Opening about:blank…', 'info');
+
+            addLog(`Custom launch: ${url}`, 'info');
+
+            const launcher = new AboutBlankLauncher({
+                targetUrl: url,
+                label: 'Custom URL',
+                onSuccess: (label) => {
+                    addLog(`${label}: Success`, 'success');
+                    setCustomStatus('Launched successfully', 'success');
+                },
+                onError: (err) => {
+                    addLog(`Custom: ${err.message}`, 'error');
+                    setCustomStatus('Blocked — see modal', 'error');
+                },
+                onFallback: (label, method) => {
+                    addLog(`${label}: Fallback (${method})`, 'fallback');
+                    setCustomStatus(`Fallback: ${method}`, 'fallback');
+                }
+            });
+
+            launcher.launch();
+
+            setTimeout(() => {
+                launchInProgress = false;
+                btn.disabled = false;
+                btn.textContent = 'Launch via about:blank';
+            }, 1000);
+        });
+
+        // Allow Enter in custom URL input
+        customUrl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('launchCustom').click();
+        });
+
+        addLog('Ready. Click a button to test about:blank launching.', 'info');
+    </script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<!-- (c) Quantum Hub — proprietary hub build. All rights reserved. -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Games</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #6a4c9c;
+            color: white;
+        }
+        header {
+            background-color: #5e3b8f;
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: flex-end;
+        }
+        header button {
+            background-color: #7f5f9f;
+            border: none;
+            padding: 10px 20px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-left: 20px;
+        }
+        header button:hover {
+            background-color: #9b6fcf;
+        }
+        .section {
+            padding: 40px;
+            text-align: center;
+            background-color: #7f5f9f;
+        }
+        .game-card {
+            display: inline-block;
+            width: 200px;
+            height: 250px;
+            background-color: #8e6ba7;
+            margin: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            color: white;
+            text-align: center;
+        }
+        .game-card img {
+            width: 100%;
+            height: 160px;
+            border-radius: 10px 10px 0 0;
+        }
+        .game-card h3 {
+            margin-top: 10px;
+        }
+        footer {
+            background-color: #5e3b8f;
+            color: white;
+            text-align: center;
+            padding: 20px 0;
+        }
+        iframe.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            z-index: 1000;
+        }
+    </style>
+    <script>
+        function openFullscreen(url) {
+            const iframe = document.createElement('iframe');
+            iframe.src = url;
+            iframe.className = 'fullscreen';
+            iframe.setAttribute('allowfullscreen', '');
+            document.body.appendChild(iframe);
+
+            iframe.onclick = () => {
+                iframe.remove();
+            };
+        }
+    </script>
+</head>
+<body>
+    <header>
+        <button onclick="location.href='index.html'">Games</button>
+        <button onclick="location.href='apps.html'">Apps</button>
+    </header>
+    <div class="section">
+        <h2>Games</h2>
+        <div class="game-card" onclick="openFullscreen('https://krunker.io/')"> 
+            <img src="https://via.placeholder.com/200x160" alt="Krunker.io">
+            <h3>Krunker.io</h3>
+        </div>
+        <div class="game-card" onclick="openFullscreen('https://agar.io/')">
+            <img src="https://via.placeholder.com/200x160" alt="Agar.io">
+            <h3>Agar.io</h3>
+        </div>
+        <div class="game-card" onclick="openFullscreen('https://slither.io/')">
+            <img src="https://via.placeholder.com/200x160" alt="Slither.io">
+            <h3>Slither.io</h3>
+        </div>
+        <div class="game-card" onclick="openFullscreen('https://shellshock.io/')">
+            <img src="https://via.placeholder.com/200x160" alt="Shell Shockers">
+            <h3>Shell Shockers</h3>
+        </div>
+        <div class="game-card" onclick="openFullscreen('https://diep.io/')">
+            <img src="https://via.placeholder.com/200x160" alt="Diep.io">
+            <h3>Diep.io</h3>
+        </div>
+    </div>
+    <footer>
+        <p>© 2024 insert website name here</p> 
+    </footer>
+</body>
+</html>

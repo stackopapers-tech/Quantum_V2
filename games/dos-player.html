@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<!-- (c) Quantum Hub — proprietary hub build. All rights reserved. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DOSBox Player (js-dos 8.3.8)</title>
+<style>
+  html, body { height: 100%; margin: 0; background: #0b0d12; color: #e8e8ed;
+    font-family: Consolas, 'Ubuntu Mono', monospace; }
+  body { display: flex; flex-direction: column; }
+  #bar { display: flex; gap: 8px; align-items: center; padding: 8px 12px;
+    background: #111; border-bottom: 1px solid #222; font-size: 12px; flex-shrink: 0; }
+  #bar input[type="text"] { flex: 1; background: #000; color: #39ff14;
+    border: 1px solid #333; border-radius: 4px; padding: 6px 8px;
+    font: 12px monospace; min-width: 0; }
+  #bar button, #bar label.pick { background: transparent; color: #888;
+    border: 1px solid #333; border-radius: 4px; font: 11px monospace;
+    padding: 6px 10px; cursor: pointer; white-space: nowrap; }
+  #bar button:hover, #bar label.pick:hover { color: #39ff14; border-color: #39ff14; }
+  #bar input[type="file"] { display: none; }
+  #dos { flex: 1; min-height: 0; width: 100%; }
+  #dos canvas { width: 100%; height: 100%; }
+</style>
+<link rel="stylesheet" href="https://v8.js-dos.com/latest/js-dos.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/js-dos@8.3.8/dist/js-dos.css">
+</head>
+<body>
+  <div id="bar">
+    <span style="color:#39ff14;font-weight:700;">DOSBox</span>
+    <input type="text" id="bundle-url"
+      value="https://v8.js-dos.com/bundles/digger.jsdos"
+      title="js-dos bundle (.jsdos) URL">
+    <button id="run-url" type="button">Run URL</button>
+    <label class="pick" for="bundle-file" title="Load a local .jsdos bundle">Open .jsdos…</label>
+    <input type="file" id="bundle-file" accept=".jsdos,.zip">
+  </div>
+  <div id="dos"></div>
+  <script>
+    // Primary: documented CDN build. Fallback: pinned 8.3.8 (matches pasted bundle).
+    function loadScript(src) {
+      return new Promise(function (resolve, reject) {
+        var s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = function () { s.remove(); reject(new Error('load failed: ' + src)); };
+        document.head.appendChild(s);
+      });
+    }
+    var started = false;
+    function boot(url) {
+      if (typeof Dos === 'undefined' || started && !url) return;
+      started = true;
+      document.getElementById('dos').innerHTML = '';
+      Dos(document.getElementById('dos'), { url: url });
+    }
+    loadScript('https://v8.js-dos.com/latest/js-dos.js')
+      .catch(function () { return loadScript('https://cdn.jsdelivr.net/npm/js-dos@8.3.8/dist/js-dos.js'); })
+      .then(function () {
+        boot(document.getElementById('bundle-url').value.trim());
+      })
+      .catch(function (e) {
+        document.getElementById('dos').innerHTML =
+          '<p style="padding:20px;color:#ff4444;">Player failed to load (network?). ' +
+          String((e && e.message) || e) + '</p>';
+      });
+    document.getElementById('run-url').addEventListener('click', function () {
+      started = false;
+      boot(document.getElementById('bundle-url').value.trim());
+    });
+    document.getElementById('bundle-file').addEventListener('change', function (ev) {
+      var f = ev.target.files && ev.target.files[0];
+      if (!f) return;
+      started = false;
+      boot(URL.createObjectURL(f));
+    });
+  </script>
+<div class="qhub-watermark" aria-hidden="true">◈ QUANTUM</div><style>.qhub-watermark{position:fixed;right:10px;bottom:10px;z-index:2147483647;font:700 11px monospace;letter-spacing:2px;color:#39ff14;background:rgba(0,0,0,.55);border:1px solid rgba(57,255,20,.5);border-radius:6px;padding:4px 8px;pointer-events:none;user-select:none;opacity:.85}</style></body>
+</html>

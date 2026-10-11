@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<!-- (c) Quantum Hub — proprietary hub build. All rights reserved. -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>QUANTUM GRID</title>
+    <style>
+        body {
+            margin: 0; overflow: hidden; background: #05050a;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #39ff14;
+        }
+        #ui {
+            position: absolute; top: 20px; left: 20px;
+            text-shadow: 0 0 10px #39ff14; pointer-events: none;
+        }
+        .overlay {
+            position: absolute; inset: 0; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
+            text-align: center; z-index: 100;
+        }
+        .btn {
+            padding: 12px 24px; background: transparent; border: 2px solid #39ff14;
+            color: #39ff14; cursor: pointer; font-weight: bold;
+            transition: 0.3s; text-transform: uppercase; margin-top: 20px;
+        }
+        .btn:hover { background: #39ff14; color: #000; box-shadow: 0 0 20px #39ff14; }
+        .hidden { display: none; }
+
+        #grid-container {
+            display: grid;
+            grid-template-columns: repeat(4, 100px);
+            grid-template-rows: repeat(4, 100px);
+            gap: 10px;
+            justify-content: center;
+            align-content: center;
+            height: 100vh;
+            width: 100vw;
+        }
+        .tile {
+            width: 100px; height: 100px;
+            background: rgba(20, 20, 40, 0.6);
+            border: 1px solid #1a1a3a;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; transition: 0.2s;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+        }
+        .tile:hover { border-color: #39ff14; box-shadow: 0 0 15px rgba(57, 255, 20, 0.3); }
+        .tile.active {
+            background: rgba(57, 255, 20, 0.2);
+            border-color: #39ff14;
+            color: #39ff14;
+            text-shadow: 0 0 10px #39ff14;
+            box-shadow: 0 0 20px rgba(57, 255, 20, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div style="font-size: 20px; font-weight: bold;">NODE_LINKER v1.0</div>
+        <div id="status">STATUS: UNSTABLE</div>
+    </div>
+
+    <div id="start-screen" class="overlay">
+        <h1 style="font-size: 3rem; margin-bottom: 0;">QUANTUM GRID</h1>
+        <p>ALIGN THE ENERGY NODES TO STABILIZE THE CORE.</p>
+        <button class="btn" onclick="startGame()">INITIALIZE LINK</button>
+    </div>
+
+    <div id="win-screen" class="overlay hidden">
+        <h1 style="font-size: 3rem; color: #39ff14;">CORE STABILIZED</h1>
+        <p>SYSTEMS ONLINE. NODE SYNC 100%</p>
+        <button class="btn" onclick="location.reload()">RESET GRID</button>
+    </div>
+
+    <div id="grid-container"></div>
+
+    <script>
+        const container = document.getElementById('grid-container');
+        const statusEl = document.getElementById('status');
+        let tiles = [];
+        let activeTiles = [];
+        const gridSize = 4;
+
+        function startGame() {
+            document.getElementById('start-screen').classList.add('hidden');
+            createGrid();
+        }
+
+        function createGrid() {
+            for (let i = 0; i < gridSize * gridSize; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.dataset.id = i;
+                tile.textContent = '○';
+                tile.addEventListener('click', () => toggleTile(i));
+                container.appendChild(tile);
+                tiles.push(tile);
+            }
+        }
+
+        function toggleTile(id) {
+            const tile = tiles[id];
+            if (tile.classList.contains('active')) {
+                tile.classList.remove('active');
+                tile.textContent = '\u25CB';
+                activeTiles = activeTiles.filter(t => t !== id);
+            } else {
+                tile.classList.add('active');
+                tile.textContent = '\u25CF';
+                activeTiles.push(id);
+            }
+            checkWin();
+        }
+
+        function checkWin() {
+            // WIN CONDITION: All tiles in a single row or column are active
+            let win = false;
+
+            // Check Rows
+            for (let r = 0; r < gridSize; r++) {
+                let rowActive = true;
+                for (let c = 0; c < gridSize; c++) {
+                    if (!tiles[r * gridSize + c].classList.contains('active')) rowActive = false;
+                }
+                if (rowActive) win = true;
+            }
+
+            // Check Cols
+            for (let c = 0; c < gridSize; c++) {
+                let colActive = true;
+                for (let r = 0; r < gridSize; r++) {
+                    if (!tiles[r * gridSize + c].classList.contains('active')) colActive = false;
+                }
+                if (colActive) win = true;
+            }
+
+            if (win) {
+                statusEl.textContent = 'STATUS: STABLE';
+                statusEl.style.color = '#39ff14';
+                setTimeout(() => {
+                    document.getElementById('win-screen').classList.remove('hidden');
+                }, 500);
+            } else {
+                statusEl.textContent = 'STATUS: UNSTABLE';
+            }
+        }
+    </script>
+</body>
+</html>

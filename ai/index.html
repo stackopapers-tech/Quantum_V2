@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<!-- (c) Quantum Hub — proprietary hub build. All rights reserved. -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum AI</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background-color: #0b0d12;
+            color: #e5e5e5;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .container { display: flex; height: 100vh; }
+        .sidebar {
+            width: 280px;
+            background-color: #111318;
+            border-right: 1px solid #222;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        .sidebar-header { padding: 16px; border-bottom: 1px solid #222; }
+        .logo {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 18px; font-weight: 600; color: #39ff14;
+            margin-bottom: 12px; letter-spacing: 1px;
+        }
+        .logo i { font-size: 20px; }
+        .new-chat-btn {
+            display: flex; align-items: center; gap: 8px;
+            background: none; border: 1px solid #333; color: #b3b3b3;
+            font-size: 14px; padding: 8px 12px; border-radius: 6px;
+            cursor: pointer; transition: all 0.2s; width: 100%;
+        }
+        .new-chat-btn:hover { border-color: #39ff14; color: #39ff14; }
+        .provider-config {
+            padding: 12px 16px; border-bottom: 1px solid #222;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .provider-config label {
+            font-size: 10px; color: #888; text-transform: uppercase;
+            letter-spacing: 0.5px; display: block; margin-bottom: 3px;
+        }
+        .provider-config select, .provider-config input {
+            width: 100%; padding: 7px 10px; background: #000;
+            border: 1px solid #333; border-radius: 6px; color: #e5e5e5;
+            font-size: 13px; outline: none;
+        }
+        .provider-config select:focus, .provider-config input:focus { border-color: #39ff14; }
+        .provider-config .config-field { display: none; }
+        .provider-config .config-field.visible { display: block; }
+        .config-hint { font-size: 10px; color: #666; line-height: 1.4; }
+        .sidebar-content { flex: 1; padding: 16px; overflow-y: auto; }
+        .section-title {
+            font-size: 11px; color: #808080; margin-bottom: 10px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .recent-item {
+            padding: 8px 0; color: #b3b3b3; font-size: 13px; cursor: pointer;
+            transition: color 0.2s; line-height: 1.4; white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis;
+        }
+        .recent-item:hover { color: #fff; }
+        .empty-state { padding: 8px 0; text-align: center; }
+        .empty-state span { color: #666; font-size: 13px; font-style: italic; }
+        .main-content {
+            flex: 1; display: flex; flex-direction: column;
+            background-color: #0b0d12; min-width: 0;
+        }
+        .content-area {
+            flex: 1; display: flex; flex-direction: column;
+            padding: 20px; max-width: 800px; margin: 0 auto;
+            width: 100%; position: relative; overflow: hidden;
+        }
+        .welcome-screen {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; flex: 1; padding: 40px;
+        }
+        .chat-container { display: none; flex-direction: column; height: 100%; }
+        .chat-container.active { display: flex; }
+        .chat-messages {
+            flex: 1; overflow-y: auto; overflow-x: hidden;
+            padding: 20px; margin-bottom: 20px;
+            scrollbar-width: thin; scrollbar-color: #333 #111;
+        }
+        .message { margin-bottom: 24px; display: flex; gap: 12px; }
+        .message.user { flex-direction: row-reverse; }
+        .message-avatar {
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: 600; flex-shrink: 0;
+        }
+        .message.user .message-avatar { background-color: #39ff14; color: #000; }
+        .message.assistant .message-avatar { background-color: #1a1a3a; color: #39ff14; }
+        .message-content {
+            max-width: 70%; background-color: #16181d; border-radius: 12px;
+            padding: 16px; color: #e5e5e5; line-height: 1.5;
+            word-wrap: break-word; overflow-wrap: break-word; white-space: pre-wrap;
+        }
+        .message.user .message-content {
+            background-color: #1a2a1a; color: #d0ffd0;
+        }
+        .message-text-part { padding: 0; white-space: pre-wrap; }
+        .typing-indicator {
+            display: none; align-items: center; gap: 8px;
+            color: #808080; font-style: italic; padding: 16px;
+        }
+        .typing-dots { display: flex; gap: 4px; }
+        .typing-dot {
+            width: 6px; height: 6px; background-color: #808080;
+            border-radius: 50%; animation: typing 1.4s infinite ease-in-out;
+        }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(1); opacity: 0.5; }
+            40% { transform: scale(1.2); opacity: 1; }
+        }
+        .greeting {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 40px; font-size: 32px; font-weight: 400; color: #fff;
+        }
+        .greeting i { color: #39ff14; font-size: 36px; }
+        .search-container {
+            width: 100%; max-width: 600px; position: relative; margin-bottom: 20px;
+        }
+        .chat-container .search-container {
+            position: sticky; bottom: 0; background-color: #0b0d12;
+            padding: 20px 0; margin: 0; max-width: none;
+        }
+        .search-input {
+            width: 100%; padding: 16px 120px 16px 16px;
+            background-color: #16181d; border: 1px solid #333;
+            border-radius: 12px; color: #fff; font-size: 16px; outline: none;
+            transition: border-color 0.2s; resize: none; min-height: 50px;
+            max-height: 150px; font-family: inherit;
+        }
+        .search-input:focus { border-color: #39ff14; }
+        .search-input::placeholder { color: #808080; }
+        .search-actions {
+            position: absolute; right: 8px; top: 50%;
+            transform: translateY(-50%); display: flex; gap: 4px;
+        }
+        .search-btn {
+            padding: 8px; background: none; border: none; color: #808080;
+            cursor: pointer; border-radius: 6px; transition: background-color 0.2s;
+        }
+        .search-btn:hover { background-color: #333; }
+        .send-btn {
+            padding: 8px; background-color: #39ff14; border: none;
+            color: #000; cursor: pointer; border-radius: 6px;
+            transition: background-color 0.2s; display: flex;
+            align-items: center; justify-content: center;
+        }
+        .send-btn:hover { background-color: #2ee600; }
+        .send-btn:disabled { background-color: #333; cursor: not-allowed; }
+        .action-buttons {
+            display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+        }
+        .action-btn {
+            display: flex; align-items: center; gap: 8px; padding: 12px 20px;
+            background-color: #16181d; border: 1px solid #333; border-radius: 8px;
+            color: #e5e5e5; font-size: 14px; cursor: pointer;
+            transition: all 0.2s; text-decoration: none;
+        }
+        .action-btn:hover { background-color: #1f2228; border-color: #555; transform: translateY(-1px); }
+        .action-icon { width: 16px; height: 16px; opacity: 0.8; }
+        .artifact-canvas {
+            background-color: #0d0d0d; border: 1px solid #333;
+            border-radius: 8px; margin: 16px; overflow: hidden;
+        }
+        .artifact-header {
+            display: flex; justify-content: space-between; align-items: center;
+            background-color: #1a1c22; padding: 8px 12px; border-bottom: 1px solid #333;
+        }
+        .artifact-title { font-size: 13px; font-weight: 500; color: #b3b3b3; }
+        .artifact-actions { display: flex; gap: 8px; }
+        .artifact-btn {
+            background: none; border: 1px solid #555; color: #b3b3b3;
+            padding: 4px 8px; border-radius: 4px; cursor: pointer;
+            font-size: 12px; display: flex; align-items: center; gap: 4px;
+        }
+        .artifact-btn:hover { background-color: #333; color: #fff; }
+        .artifact-btn.view-btn { border-color: #39ff14; color: #39ff14; }
+        .artifact-btn.view-btn:hover { background-color: #39ff14; color: #000; }
+        .artifact-code { padding: 12px; max-height: 400px; overflow: auto; }
+        .artifact-code pre { margin: 0; }
+        .artifact-code code {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 13px; color: #e5e5e5; white-space: pre;
+        }
+        .back-btn {
+            background: none; border: none; color: #888; cursor: pointer;
+            font-size: 13px; padding: 4px 0; display: flex; align-items: center; gap: 4px;
+        }
+        .back-btn:hover { color: #39ff14; }
+        .attached-files {
+            display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; width: 100%;
+            max-width: 600px; justify-content: center;
+        }
+        .chat-container .attached-files { max-width: none; justify-content: flex-start; }
+        .attached-file {
+            display: flex; align-items: center; gap: 6px; padding: 4px 10px;
+            background-color: #1a1c22; border: 1px solid #333; border-radius: 6px;
+            font-size: 12px; color: #b3b3b3;
+        }
+        .attached-file i { color: #39ff14; }
+        .attached-file .remove-file {
+            background: none; border: none; color: #888; cursor: pointer; font-size: 14px;
+            padding: 0 2px; margin-left: 4px;
+        }
+        .attached-file .remove-file:hover { color: #ff4444; }
+        .attached-file img { width: 20px; height: 20px; border-radius: 3px; object-fit: cover; }
+        .msg-attachments {
+            display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+        }
+        .msg-attachment-chip {
+            display: flex; align-items: center; gap: 6px; padding: 4px 8px;
+            background: rgba(57, 255, 20, 0.08); border: 1px solid rgba(57, 255, 20, 0.25);
+            border-radius: 6px; font-size: 11px; color: #b3b3b3; max-width: 100%;
+        }
+        .msg-attachment-chip i { color: #39ff14; }
+        .msg-attachment-chip img { width: 28px; height: 28px; border-radius: 4px; object-fit: cover; }
+        .msg-attachment-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        @media (max-width: 768px) {
+            .sidebar { width: 240px; }
+            .greeting { font-size: 24px; }
+            .action-buttons { flex-direction: column; width: 100%; }
+            .action-btn { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <input type="file" id="fileInput" multiple hidden>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo"><i class="fas fa-robot"></i> Quantum AI</div>
+                <button class="new-chat-btn" id="newChatBtn"><i class="fas fa-plus"></i> <span data-i18n="newChat">New chat</span></button>
+            </div>
+            <div class="provider-config">
+                <div>
+                    <label data-i18n="provider">Provider</label>
+                    <select id="providerSelect">
+                        <option value="ollama">Ollama (Local)</option>
+                        <option value="huggingface">HuggingFace Hub</option>
+                        <option value="opencode">OpenCode Models</option>
+                    </select>
+                </div>
+                <div>
+                    <label data-i18n="model">Model</label>
+                    <select id="modelSelect"></select>
+                </div>
+                <div class="config-field" id="hfConfig">
+                    <label data-i18n="hfToken">HuggingFace Token</label>
+                    <input type="password" id="hfToken" placeholder="hf_..." autocomplete="off">
+                    <div class="config-hint" data-i18n="hfHint">Paste a free token from huggingface.co/settings/tokens</div>
+                </div>
+                <div class="config-field" id="ollamaConfig">
+                    <label data-i18n="ollamaUrl">Ollama URL</label>
+                    <input type="text" id="ollamaUrl" placeholder="http://localhost:11434" autocomplete="off">
+                    <div class="config-hint" data-i18n="ollamaHint">Run <code>ollama serve</code> locally, then pull a model (e.g. <code>ollama pull llama3</code>)</div>
+                </div>
+                <div class="config-field" id="opencodeConfig">
+                    <label data-i18n="ocApiKey">API Key</label>
+                    <input type="password" id="ocApiKey" placeholder="sk-..." autocomplete="off">
+                    <label data-i18n="ocBaseUrl">Base URL</label>
+                    <input type="text" id="ocBaseUrl" placeholder="https://api.openai.com/v1" autocomplete="off">
+                    <div class="config-hint" data-i18n="ocHint">OpenAI-compatible endpoint. Use your key from OpenAI, Anthropic, Google, or any OpenCode-supported provider.</div>
+                </div>
+            </div>
+            <div class="sidebar-content">
+                <div class="section-title" data-i18n="recents">Recents</div>
+                <div class="recent-items" id="recentItems">
+                    <div class="empty-state" id="emptyState"><span data-i18n="noRecents">No recent conversations</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="content-area">
+                <!-- Welcome Screen -->
+                <div class="welcome-screen" id="welcomeScreen">
+                    <div class="greeting"><i class="fas fa-robot"></i> <span data-i18n="greeting">Quantum AI</span></div>
+                    <div class="search-container">
+                        <textarea class="search-input" id="welcomeInput" placeholder="How can I help you today?" rows="1"></textarea>
+                        <div class="search-actions">
+                            <button class="search-btn" id="welcomeAttachBtn" data-i18n-title="attachFile" title="Attach file">
+                                <i class="fas fa-paperclip"></i>
+                            </button>
+                            <button class="send-btn" id="sendBtn" data-i18n-title="send" title="Send">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="attached-files" id="welcomeAttachments"></div>
+                    <div class="action-buttons">
+                        <button class="action-btn" data-prompt="Help me write"><i class="fas fa-pen action-icon"></i> <span data-i18n="write">Write</span></button>
+                        <button class="action-btn" data-prompt="Teach me about"><i class="fas fa-graduation-cap action-icon"></i> <span data-i18n="learn">Learn</span></button>
+                        <button class="action-btn" data-prompt="Help me code"><i class="fas fa-code action-icon"></i> <span data-i18n="code">Code</span></button>
+                        <button class="action-btn" data-prompt="Help me with daily tasks"><i class="fas fa-star action-icon"></i> <span data-i18n="life">Life stuff</span></button>
+                    </div>
+                </div>
+
+                <!-- Chat Container -->
+                <div class="chat-container" id="chatContainer">
+                    <div class="chat-messages" id="chatMessages"></div>
+                    <div class="typing-indicator" id="typingIndicator">
+                        <div class="message-avatar"><i class="fas fa-robot"></i></div>
+                        <span data-i18n="thinking">Quantum AI is thinking</span>
+                        <div class="typing-dots">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    </div>
+                    <div class="search-container">
+                        <textarea class="search-input" id="chatInput" placeholder="Message Quantum AI..." rows="1"></textarea>
+                        <div class="search-actions">
+                            <button class="search-btn" id="chatAttachBtn" data-i18n-title="attachFile" title="Attach file">
+                                <i class="fas fa-paperclip"></i>
+                            </button>
+                            <button class="send-btn" id="chatSendBtn" data-i18n-title="send" title="Send">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="attached-files" id="chatAttachments"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ============================== i18n ============================== */
+        const I18N = {
+            en: { newChat: 'New chat', provider: 'Provider', model: 'Model', attachFile: 'Attach file', send: 'Send', hfToken: 'HuggingFace Token', hfHint: 'Paste a free token from huggingface.co/settings/tokens', ollamaUrl: 'Ollama URL', ollamaHint: 'Run ollama serve locally, then pull a model (e.g. ollama pull llama3)', ocApiKey: 'API Key', ocBaseUrl: 'Base URL', ocHint: 'OpenAI-compatible endpoint. Use your key from OpenAI, Anthropic, Google, or any OpenCode-supported provider.', recents: 'Recents', noRecents: 'No recent conversations', greeting: 'Quantum AI', write: 'Write', learn: 'Learn', code: 'Code', life: 'Life stuff', thinking: 'Quantum AI is thinking', welcomePh: 'How can I help you today?', chatPh: 'Message Quantum AI...', langName: 'English' },
+            es: { newChat: 'Nuevo chat', provider: 'Proveedor', model: 'Modelo', attachFile: 'Adjuntar archivo', send: 'Enviar', hfToken: 'Token de HuggingFace', hfHint: 'Pega un token gratuito de huggingface.co/settings/tokens', ollamaUrl: 'URL de Ollama', ollamaHint: 'Ejecuta ollama serve localmente, luego descarga un modelo (ej. ollama pull llama3)', ocApiKey: 'Clave API', ocBaseUrl: 'URL base', ocHint: 'Endpoint compatible con OpenAI. Usa tu clave de OpenAI, Anthropic, Google o cualquier proveedor compatible con OpenCode.', recents: 'Recientes', noRecents: 'No hay conversaciones recientes', greeting: 'Quantum AI', write: 'Escribir', learn: 'Aprender', code: 'Código', life: 'Tareas diarias', thinking: 'Quantum AI está pensando', welcomePh: '¿Cómo puedo ayudarte hoy?', chatPh: 'Mensaje a Quantum AI...', langName: 'Español' },
+            fr: { newChat: 'Nouveau chat', provider: 'Fournisseur', model: 'Modèle', attachFile: 'Joindre un fichier', send: 'Envoyer', hfToken: 'Jeton HuggingFace', hfHint: 'Collez un jeton gratuit depuis huggingface.co/settings/tokens', ollamaUrl: 'URL Ollama', ollamaHint: 'Lancez ollama serve localement, puis téléchargez un modèle (ex. ollama pull llama3)', ocApiKey: 'Clé API', ocBaseUrl: 'URL de base', ocHint: 'Endpoint compatible OpenAI. Utilisez votre clé OpenAI, Anthropic, Google ou tout fournisseur compatible OpenCode.', recents: 'Récents', noRecents: 'Aucune conversation récente', greeting: 'Quantum AI', write: 'Écrire', learn: 'Apprendre', code: 'Code', life: 'Tâches quotidiennes', thinking: 'Quantum AI réfléchit', welcomePh: 'Comment puis-je vous aider ?', chatPh: 'Message à Quantum AI...', langName: 'Français' },
+            de: { newChat: 'Neuer Chat', provider: 'Anbieter', model: 'Modell', attachFile: 'Datei anhängen', send: 'Senden', hfToken: 'HuggingFace-Token', hfHint: 'Füge ein kostenloses Token von huggingface.co/settings/tokens ein', ollamaUrl: 'Ollama-URL', ollamaHint: 'Führe ollama serve lokal aus, dann lade ein Modell (z.B. ollama pull llama3)', ocApiKey: 'API-Schlüssel', ocBaseUrl: 'Basis-URL', ocHint: 'OpenAI-kompatibler Endpunkt. Verwende deinen Schlüssel von OpenAI, Anthropic, Google oder einem anderen OpenCode-kompatiblen Anbieter.', recents: 'Kürzlich', noRecents: 'Keine kürzlichen Gespräche', greeting: 'Quantum AI', write: 'Schreiben', learn: 'Lernen', code: 'Code', life: 'Alltagsaufgaben', thinking: 'Quantum AI denkt nach', welcomePh: 'Wie kann ich Ihnen helfen?', chatPh: 'Nachricht an Quantum AI...', langName: 'Deutsch' },
+            ja: { newChat: '新しいチャット', provider: 'プロバイダー', model: 'モデル', attachFile: 'ファイルを添付', send: '送信', hfToken: 'HuggingFaceトークン', hfHint: 'huggingface.co/settings/tokens から無料トークンを貼り付け', ollamaUrl: 'Ollama URL', ollamaHint: 'ローカルで ollama serve を実行し、モデルをダウンロード (例: ollama pull llama3)', ocApiKey: 'APIキー', ocBaseUrl: 'ベースURL', ocHint: 'OpenAI互換エンドポイント。OpenAI、Anthropic、Google、またはOpenCode対応プロバイダーのキーを使用。', recents: '最近', noRecents: '最近の会話はありません', greeting: 'Quantum AI', write: '書く', learn: '学ぶ', code: 'コード', life: '日常のタスク', thinking: 'Quantum AIが考え中', welcomePh: '今日は何をお手伝いしましょうか？', chatPh: 'Quantum AIへのメッセージ...', langName: '日本語' },
+            zh: { newChat: '新对话', provider: '提供商', model: '模型', attachFile: '附件', send: '发送', hfToken: 'HuggingFace 令牌', hfHint: '从 huggingface.co/settings/tokens 粘贴免费令牌', ollamaUrl: 'Ollama 地址', ollamaHint: '在本地运行 ollama serve，然后拉取模型（如 ollama pull llama3）', ocApiKey: 'API 密钥', ocBaseUrl: '基础 URL', ocHint: 'OpenAI 兼容端点。使用 OpenAI、Anthropic、Google 或任何 OpenCode 支持提供商的密钥。', recents: '最近', noRecents: '暂无最近对话', greeting: 'Quantum AI', write: '写作', learn: '学习', code: '编程', life: '日常任务', thinking: 'Quantum AI 正在思考', welcomePh: '今天我能帮你什么？', chatPh: '给 Quantum AI 发消息...', langName: '中文' }
+        };
+
+        // Language: from the hub (?lang=), else browser, else English.
+        const params = new URLSearchParams(location.search);
+        let lang = (params.get('lang') || (navigator.language || 'en').slice(0, 2)).toLowerCase();
+        if (!I18N[lang]) lang = 'en';
+        document.documentElement.lang = lang;
+
+        function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
+        document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+        document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });
+        const wi = document.getElementById('welcomeInput');
+        const ci = document.getElementById('chatInput');
+        if (wi) wi.placeholder = t('welcomePh');
+        if (ci) ci.placeholder = t('chatPh');
+
+        // Every provider replies as Quantum AI, in the interface language.
+        const LANG_NAME = (I18N[lang] && I18N[lang].langName) || 'English';
+        const IDENTITY = 'You are Quantum AI, the assistant of Quantum Hub. Always identify yourself as Quantum AI — never as Llama, Mistral, Ollama, HuggingFace, or any other underlying model or provider. If asked which model powers you, say you are Quantum AI.';
+        const LANG_INSTRUCTION = IDENTITY + ' Always respond in ' + LANG_NAME + '.';
+
+        /* ============================== Providers ============================== */
+        const PROVIDERS = {
+            opencode: {
+                models: [
+                    { id: 'gpt-4o', name: 'GPT-4o' },
+                    { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
+                    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
+                    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
+                    { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet' },
+                    { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus' },
+                    { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku' },
+                    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
+                    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
+                    { id: 'deepseek-chat', name: 'DeepSeek Chat' },
+                    { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner' },
+                    { id: 'qwen-max', name: 'Qwen Max' },
+                    { id: 'qwen-plus', name: 'Qwen Plus' }
+                ]
+            },
+            huggingface: {
+                models: [
+                    { id: 'meta-llama/Llama-3.1-8B-Instruct', name: 'Llama 3.1 8B' },
+                    { id: 'mistralai/Mistral-7B-Instruct-v0.3', name: 'Mistral 7B' },
+                    { id: 'google/gemma-2-9b-it', name: 'Gemma 2 9B' },
+                    { id: 'microsoft/Phi-3-mini-4k-instruct', name: 'Phi-3 Mini' }
+                ]
+            },
+            ollama: {
+                models: [
+                    { id: 'llama3', name: 'Llama 3' },
+                    { id: 'mistral', name: 'Mistral' },
+                    { id: 'gemma2', name: 'Gemma 2' },
+                    { id: 'phi3', name: 'Phi 3' }
+                ]
+            }
+        };
+
+        const providerSelect = document.getElementById('providerSelect');
+        const modelSelect = document.getElementById('modelSelect');
+        const hfConfig = document.getElementById('hfConfig');
+        const ollamaConfig = document.getElementById('ollamaConfig');
+        const opencodeConfig = document.getElementById('opencodeConfig');
+
+        let refreshToken = 0;
+        async function refreshModels() {
+            const p = providerSelect.value;
+            const token = ++refreshToken;
+            modelSelect.innerHTML = '';
+            (PROVIDERS[p].models || []).forEach(m => {
+                const o = document.createElement('option');
+                o.value = m.id;
+                o.textContent = m.name;
+                modelSelect.appendChild(o);
+            });
+            hfConfig.classList.toggle('visible', p === 'huggingface');
+            ollamaConfig.classList.toggle('visible', p === 'ollama');
+            opencodeConfig.classList.toggle('visible', p === 'opencode');
+            // Ollama: list whatever models are actually installed locally.
+            if (p === 'ollama') {
+                try {
+                    const base = (document.getElementById('ollamaUrl').value || 'http://localhost:11434').trim().replace(/\/$/, '');
+                    const r = await fetch(base + '/api/tags', { signal: AbortSignal.timeout(2500) });
+                    if (token !== refreshToken) return; // provider changed while fetching
+                    const j = await r.json();
+                    if (Array.isArray(j.models) && j.models.length) {
+                        modelSelect.innerHTML = '';
+                        j.models.forEach(m => {
+                            const o = document.createElement('option');
+                            o.value = m.name;
+                            o.textContent = m.name;
+                            modelSelect.appendChild(o);
+                        });
+                    }
+                } catch (e) { /* keep the default list */ }
+            }
+            // Restore the last model picked for this provider, if still present.
+            try {
+                const savedModel = localStorage.getItem('q_ai_model_' + p);
+                if (savedModel && Array.from(modelSelect.options).some(o => o.value === savedModel)) {
+                    modelSelect.value = savedModel;
+                }
+            } catch (e) {}
+        }
+        providerSelect.addEventListener('change', refreshModels);
+        modelSelect.addEventListener('change', () => {
+            try { localStorage.setItem('q_ai_model_' + providerSelect.value, modelSelect.value); } catch (e) {}
+        });
+        document.getElementById('ollamaUrl').addEventListener('change', refreshModels);
+        document.getElementById('hfToken').addEventListener('change', e => {
+            try { localStorage.setItem('q_ai_hf_token', e.target.value); } catch (err) {}
+        });
+        document.getElementById('ocApiKey').addEventListener('change', e => {
+            try { localStorage.setItem('q_ai_oc_key', e.target.value); } catch (err) {}
+        });
+        document.getElementById('ocBaseUrl').addEventListener('change', e => {
+            try { localStorage.setItem('q_ai_oc_url', e.target.value); } catch (err) {}
+        });
+        // Restore saved config.
+        try {
+            const tok = localStorage.getItem('q_ai_hf_token');
+            if (tok) document.getElementById('hfToken').value = tok;
+            const ocKey = localStorage.getItem('q_ai_oc_key');
+            if (ocKey) document.getElementById('ocApiKey').value = ocKey;
+            const ocUrl = localStorage.getItem('q_ai_oc_url');
+            if (ocUrl) document.getElementById('ocBaseUrl').value = ocUrl;
+        } catch (e) {}
+        // Provider: from the hub (?provider=), else default Ollama (local).
+        const urlProvider = params.get('provider');
+        if (urlProvider && PROVIDERS[urlProvider]) {
+            providerSelect.value = urlProvider;
+        }
+        refreshModels();
+
+        /* ============================== File Attachments ============================== */
+        const fileInput = document.getElementById('fileInput');
+        let welcomeFiles = [];
+        let chatFiles = [];
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function isImageFile(file) {
+            return file.type.startsWith('image/');
+        }
+
+        function isTextFile(file) {
+            return file.type.startsWith('text/') || file.name.match(/\.(txt|md|json|csv|xml|yaml|yml|js|ts|py|java|c|cpp|h|css|html|htm|log|ini|cfg|conf|sh|bat|ps1)$/i);
+        }
+
+        function renderAttachments(containerId, files) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+            files.forEach((file, idx) => {
+                const el = document.createElement('div');
+                el.className = 'attached-file';
+                if (file.preview) {
+                    const img = document.createElement('img');
+                    img.src = file.preview;
+                    el.appendChild(img);
+                } else {
+                    const icon = document.createElement('i');
+                    icon.className = isImageFile(file.file) ? 'fas fa-image' : 'fas fa-file';
+                    el.appendChild(icon);
+                }
+                const name = document.createElement('span');
+                name.textContent = file.file.name + ' (' + formatFileSize(file.file.size) + ')';
+                el.appendChild(name);
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-file';
+                removeBtn.innerHTML = '&times;';
+                removeBtn.onclick = () => { files.splice(idx, 1); renderAttachments(containerId, files); };
+                el.appendChild(removeBtn);
+                container.appendChild(el);
+            });
+        }
+
+        function handleFiles(fileList, files, containerId) {
+            Array.from(fileList).forEach(file => {
+                const entry = { file, content: null, preview: null };
+                if (isImageFile(file)) {
+                    const reader = new FileReader();
+                    reader.onload = e => { entry.preview = e.target.result; entry.content = e.target.result; renderAttachments(containerId, files); };
+                    reader.readAsDataURL(file);
+                } else if (isTextFile(file)) {
+                    const reader = new FileReader();
+                    reader.onload = e => { entry.content = e.target.result; renderAttachments(containerId, files); };
+                    reader.readAsText(file);
+                } else {
+                    // Binary file - try to read as text anyway
+                    const reader = new FileReader();
+                    reader.onload = e => { entry.content = e.target.result; renderAttachments(containerId, files); };
+                    reader.readAsText(file);
+                }
+                files.push(entry);
+                renderAttachments(containerId, files);
+            });
+        }
+
+        // Attach button handlers
+        const welcomeAttachBtn = document.getElementById('welcomeAttachBtn');
+        const chatAttachBtn = document.getElementById('chatAttachBtn');
+        if (welcomeAttachBtn) welcomeAttachBtn.addEventListener('click', () => { fileInput.value = ''; fileInput.dataset.target = 'welcome'; fileInput.click(); });
+        if (chatAttachBtn) chatAttachBtn.addEventListener('click', () => { fileInput.value = ''; fileInput.dataset.target = 'chat'; fileInput.click(); });
+        fileInput.addEventListener('change', e => {
+            const target = e.target.dataset.target || 'chat';
+            if (target === 'welcome') handleFiles(e.target.files, welcomeFiles, 'welcomeAttachments');
+            else handleFiles(e.target.files, chatFiles, 'chatAttachments');
+        });
+
+        /* ============================== State ============================== */
+        let chatHistory = [];
+        let isStreaming = false;
+        let recentConversations = [];
+        let currentConversationId = null;
+
+        /* ============================== Chat UI ============================== */
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const chatContainer = document.getElementById('chatContainer');
+        const chatMessages = document.getElementById('chatMessages');
+        const welcomeInput = document.getElementById('welcomeInput');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatSendBtn = document.getElementById('chatSendBtn');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const newChatBtn = document.getElementById('newChatBtn');
+        const recentItems = document.getElementById('recentItems');
+        const emptyState = document.getElementById('emptyState');
+
+        function switchToChatView() {
+            welcomeScreen.style.display = 'none';
+            chatContainer.classList.add('active');
+        }
+        function switchToWelcomeView() {
+            welcomeScreen.style.display = 'flex';
+            chatContainer.classList.remove('active');
+        }
+
+        function addMessage(content, role, files) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.innerHTML = role === 'user' ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            if (role === 'assistant') {
+                renderFormattedMessage(content, messageContent);
+            } else {
+                messageContent.textContent = content;
+                // Show attached files as chips.
+                if (files && files.length) {
+                    const chips = document.createElement('div');
+                    chips.className = 'msg-attachments';
+                    files.forEach(f => {
+                        const chip = document.createElement('div');
+                        chip.className = 'msg-attachment-chip';
+                        if (f.preview) {
+                            const img = document.createElement('img');
+                            img.src = f.preview;
+                            chip.appendChild(img);
+                        } else {
+                            const icon = document.createElement('i');
+                            icon.className = isImageFile(f.file) ? 'fas fa-image' : 'fas fa-file';
+                            chip.appendChild(icon);
+                        }
+                        const label = document.createElement('span');
+                        label.textContent = f.file.name + ' (' + formatFileSize(f.file.size) + ')';
+                        chip.appendChild(label);
+                        chips.appendChild(chip);
+                    });
+                    messageContent.appendChild(chips);
+                }
+            }
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(messageContent);
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return messageContent;
+        }
+
+        function renderFormattedMessage(content, container) {
+            container.innerHTML = '';
+            const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
+            let lastIndex = 0;
+            let match;
+            while ((match = codeBlockRegex.exec(content)) !== null) {
+                if (match.index > lastIndex) {
+                    const textPart = document.createElement('div');
+                    textPart.className = 'message-text-part';
+                    textPart.textContent = content.substring(lastIndex, match.index);
+                    container.appendChild(textPart);
+                }
+                const [fullMatch, language, code] = match;
+                container.appendChild(createArtifactCanvas(code.trim(), language || 'text'));
+                lastIndex = match.index + fullMatch.length;
+            }
+            if (lastIndex < content.length) {
+                const textPart = document.createElement('div');
+                textPart.className = 'message-text-part';
+                textPart.textContent = content.substring(lastIndex);
+                container.appendChild(textPart);
+            }
+            if (container.children.length === 0 && content) {
+                const textPart = document.createElement('div');
+                textPart.className = 'message-text-part';
+                textPart.textContent = content;
+                container.appendChild(textPart);
+            }
+        }
+
+        function createArtifactCanvas(code, language) {
+            const canvas = document.createElement('div');
+            canvas.className = 'artifact-canvas';
+            const header = document.createElement('div');
+            header.className = 'artifact-header';
+            const title = document.createElement('div');
+            title.className = 'artifact-title';
+            title.textContent = language ? `${language} code` : 'Code Artifact';
+            const actions = document.createElement('div');
+            actions.className = 'artifact-actions';
+            if (language.toLowerCase() === 'html') {
+                const viewBtn = document.createElement('button');
+                viewBtn.className = 'artifact-btn view-btn';
+                viewBtn.textContent = 'View';
+                viewBtn.onclick = () => {
+                    const blob = new Blob([code], { type: 'text/html' });
+                    window.open(URL.createObjectURL(blob), '_blank');
+                };
+                actions.appendChild(viewBtn);
+            }
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'artifact-btn';
+            copyBtn.textContent = 'Copy';
+            copyBtn.onclick = () => {
+                navigator.clipboard.writeText(code).then(() => {
+                    copyBtn.textContent = 'Copied!';
+                    setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+                });
+            };
+            actions.appendChild(copyBtn);
+            header.appendChild(title);
+            header.appendChild(actions);
+            const codeArea = document.createElement('div');
+            codeArea.className = 'artifact-code';
+            const pre = document.createElement('pre');
+            const codeEl = document.createElement('code');
+            codeEl.textContent = code;
+            pre.appendChild(codeEl);
+            codeArea.appendChild(pre);
+            canvas.appendChild(header);
+            canvas.appendChild(codeArea);
+            return canvas;
+        }
+
+        function showTypingIndicator() { typingIndicator.style.display = 'flex'; }
+        function hideTypingIndicator() {
+            typingIndicator.style.display = 'none';
+            const lbl = typingIndicator.querySelector('span[data-i18n]');
+            if (lbl) lbl.textContent = t('thinking');
+        }
+
+        function setInputState(enabled) {
+            [welcomeInput, chatInput, sendBtn, chatSendBtn].forEach(el => {
+                if (el) { el.disabled = !enabled; el.style.opacity = enabled ? '1' : '0.6'; }
+            });
+        }
+
+        function scrollToBottom() {
+            requestAnimationFrame(() => { chatMessages.scrollTop = chatMessages.scrollHeight; });
+        }
+
+        function autoResize(textarea) {
+            if (!textarea) return;
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+        }
+
+        /* ============================== Recents ============================== */
+        function updateRecentItems() {
+            if (!recentItems) return;
+            recentItems.innerHTML = '';
+            if (recentConversations.length === 0) {
+                const div = document.createElement('div');
+                div.className = 'empty-state';
+                div.innerHTML = `<span>${t('noRecents')}</span>`;
+                recentItems.appendChild(div);
+                return;
+            }
+            recentConversations.forEach(conv => {
+                const div = document.createElement('div');
+                div.className = 'recent-item';
+                div.textContent = conv.title;
+                div.addEventListener('click', () => loadConversation(conv.id));
+                recentItems.appendChild(div);
+            });
+        }
+
+        function createNewConversation(firstMessage) {
+            currentConversationId = 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            const title = firstMessage.length > 50 ? firstMessage.substring(0, 50) + '...' : firstMessage;
+            recentConversations.unshift({ id: currentConversationId, title, messages: [], timestamp: new Date() });
+            if (recentConversations.length > 10) recentConversations = recentConversations.slice(0, 10);
+            updateRecentItems();
+        }
+
+        function loadConversation(id) {
+            const conv = recentConversations.find(c => c.id === id);
+            if (!conv) return;
+            currentConversationId = id;
+            chatHistory = [...conv.messages];
+            switchToChatView();
+            chatMessages.innerHTML = '';
+            chatHistory.forEach(msg => addMessage(msg.content, msg.role));
+            chatInput.focus();
+        }
+
+        /* ============================== Send ============================== */
+        function errText(e) {
+            if (!e) return 'Unknown error.';
+            if (typeof e === 'string') return e;
+            // Plain string fields first (e.error is often an object, not a string).
+            const cands = [e.message, e.code, e.msg, e.detail, e.error];
+            for (const c of cands) if (typeof c === 'string' && c) return c;
+            if (e.error && typeof e.error === 'object') {
+                const inner = e.error.message || e.error.code || e.error.type || e.error.name;
+                if (typeof inner === 'string' && inner) return inner;
+            }
+            try {
+                const s = JSON.stringify(e);
+                if (s && s !== '{}' && s !== '[]') return s.slice(0, 200);
+            } catch (x) {}
+            if (String(e) === '[object Object]') {
+                return 'Request failed — the provider may be unreachable or the model is not available.';
+            }
+            return String(e);
+        }
+
+        async function sendMessage(message, files) {
+            if (isStreaming) return;
+            const pendingFiles = files || [];
+            addMessage(message, 'user', pendingFiles);
+            showTypingIndicator();
+            setInputState(false);
+            chatHistory.push({ role: 'user', content: message, files: pendingFiles });
+
+            try {
+                isStreaming = true;
+                const provider = providerSelect.value;
+                const model = modelSelect.value;
+
+                if (provider === 'huggingface') {
+                    await sendHuggingFace(message, model);
+                } else if (provider === 'ollama') {
+                    await sendOllama(message, model);
+                } else if (provider === 'opencode') {
+                    await sendOpenCode(message, model);
+                }
+            } catch (error) {
+                console.error('Send error:', error);
+                addMessage('Error: ' + errText(error), 'assistant');
+            } finally {
+                isStreaming = false;
+                setInputState(true);
+                hideTypingIndicator();
+                chatInput.focus();
+            }
+        }
+
+        // HuggingFace: try the current OpenAI-compatible router first, then the
+        // classic inference endpoint, then a plain text-generation fallback.
+        async function sendHuggingFace(message, model) {
+            const token = (document.getElementById('hfToken').value || '').trim();
+            if (!token) throw new Error('Paste your HuggingFace token in the Provider panel first.');
+            const messages = buildOpenAIMessages();
+            const auth = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+            const attempts = [
+                { url: 'https://router.huggingface.co/v1/chat/completions', body: { model, messages, max_tokens: 1024 }, kind: 'openai' },
+                { url: `https://api-inference.huggingface.co/models/${encodeURIComponent(model)}`, body: { messages }, kind: 'messages' },
+                { url: `https://api-inference.huggingface.co/models/${encodeURIComponent(model)}`, body: { inputs: messages.map(m => `${m.role}: ${m.content}`).join('\n') + '\nassistant:' }, kind: 'raw' }
+            ];
+
+            let lastErr = null;
+            for (const a of attempts) {
+                try {
+                    const res = await fetch(a.url, { method: 'POST', headers: auth, body: JSON.stringify(a.body) });
+                    if (!res.ok) {
+                        const errText = await res.text().catch(() => '');
+                        lastErr = new Error(`HuggingFace error ${res.status}: ${errText.slice(0, 120)}`);
+                        continue;
+                    }
+                    const data = await res.json();
+                    let text = '';
+                    if (a.kind === 'openai') text = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
+                    else if (Array.isArray(data)) text = (data[0] && data[0].generated_text) || '';
+                    else text = (data && data.generated_text) || '';
+                    if (!text) { lastErr = new Error('Empty response from HuggingFace.'); continue; }
+                    const messageContent = addMessage('', 'assistant');
+                    hideTypingIndicator();
+                    renderFormattedMessage(text, messageContent);
+                    scrollToBottom();
+                    chatHistory.push({ role: 'assistant', content: text });
+                    return;
+                } catch (e) { lastErr = e; }
+            }
+            throw lastErr || new Error('HuggingFace request failed.');
+        }
+
+        // Build Ollama-compatible messages: text files folded into the
+        // message body, images sent as base64 in the `images` array.
+        function buildOllamaChatMessages() {
+            const msgs = [{ role: 'system', content: LANG_INSTRUCTION }];
+            chatHistory.forEach(m => {
+                if (m.role === 'user' && m.files && m.files.length) {
+                    let text = m.content || '';
+                    const images = [];
+                    m.files.forEach(f => {
+                        if (f.preview && f.content && f.content.startsWith('data:image/')) {
+                            const b64 = f.content.split(',')[1] || '';
+                            if (b64) images.push(b64);
+                        } else if (f.content && !f.preview) {
+                            text += `\n\n--- File: ${f.file.name} ---\n${f.content}`;
+                        }
+                    });
+                    const entry = { role: 'user', content: text };
+                    if (images.length) entry.images = images;
+                    msgs.push(entry);
+                } else {
+                    msgs.push({ role: m.role, content: m.content });
+                }
+            });
+            return msgs;
+        }
+
+        // Ollama local server (streaming)
+        async function sendOllama(message, model) {
+            const baseUrl = (document.getElementById('ollamaUrl').value || 'http://localhost:11434').trim().replace(/\/$/, '');
+            const res = await fetch(`${baseUrl}/api/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model,
+                    messages: buildOllamaChatMessages(),
+                    stream: true
+                })
+            });
+            if (!res.ok) {
+                const errText = await res.text().catch(() => '');
+                throw new Error(`Ollama error ${res.status}: ${errText.slice(0, 120)} — is ollama serve running?`);
+            }
+            const messageContent = addMessage('', 'assistant');
+            hideTypingIndicator();
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let fullResponse = '';
+            let buffer = '';
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop();
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    try {
+                        const chunk = JSON.parse(line);
+                        const piece = (chunk.message && chunk.message.content) || '';
+                        if (piece) {
+                            fullResponse += piece;
+                            renderFormattedMessage(fullResponse, messageContent);
+                            scrollToBottom();
+                        }
+                    } catch (e) {}
+                }
+            }
+            renderFormattedMessage(fullResponse, messageContent);
+            chatHistory.push({ role: 'assistant', content: fullResponse });
+        }
+
+        // Build messages for OpenAI-compatible providers:
+        // text file content is folded into the user message.
+        function buildOpenAIMessages() {
+            const msgs = [{ role: 'system', content: LANG_INSTRUCTION }];
+            chatHistory.forEach(m => {
+                if (m.role === 'user' && m.files && m.files.length) {
+                    let text = m.content || '';
+                    m.files.forEach(f => {
+                        if (f.content && !f.preview) {
+                            text += `\n\n--- File: ${f.file.name} ---\n${f.content}`;
+                        } else if (f.preview) {
+                            text += `\n\n[Image attached: ${f.file.name}]`;
+                        }
+                    });
+                    msgs.push({ role: 'user', content: text });
+                } else {
+                    msgs.push({ role: m.role, content: m.content });
+                }
+            });
+            return msgs;
+        }
+
+        // OpenCode models: OpenAI-compatible chat completions
+        async function sendOpenCode(message, model) {
+            const apiKey = (document.getElementById('ocApiKey').value || '').trim();
+            if (!apiKey) throw new Error('Paste your API key in the Provider panel first.');
+            const baseUrl = (document.getElementById('ocBaseUrl').value || 'https://api.openai.com/v1').trim().replace(/\/$/, '');
+            const res = await fetch(`${baseUrl}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model,
+                    messages: buildOpenAIMessages(),
+                    stream: true
+                })
+            });
+            if (!res.ok) {
+                const errText = await res.text().catch(() => '');
+                throw new Error(`OpenCode error ${res.status}: ${errText.slice(0, 120)}`);
+            }
+            const messageContent = addMessage('', 'assistant');
+            hideTypingIndicator();
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let fullResponse = '';
+            let buffer = '';
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop();
+                for (const line of lines) {
+                    if (!line.trim() || !line.startsWith('data:')) continue;
+                    const data = line.slice(5).trim();
+                    if (data === '[DONE]') continue;
+                    try {
+                        const chunk = JSON.parse(data);
+                        const piece = (chunk.choices && chunk.choices[0] && chunk.choices[0].delta && chunk.choices[0].delta.content) || '';
+                        if (piece) {
+                            fullResponse += piece;
+                            renderFormattedMessage(fullResponse, messageContent);
+                            scrollToBottom();
+                        }
+                    } catch (e) {}
+                }
+            }
+            renderFormattedMessage(fullResponse, messageContent);
+            chatHistory.push({ role: 'assistant', content: fullResponse });
+        }
+
+        /* ============================== Wiring ============================== */
+        function handleWelcomeMessage() {
+            const message = welcomeInput.value.trim();
+            if (!message || isStreaming) return;
+            welcomeInput.value = '';
+            autoResize(welcomeInput);
+            // Capture attachments before switching views.
+            const files = welcomeFiles.slice();
+            welcomeFiles = [];
+            renderAttachments('welcomeAttachments', welcomeFiles);
+            createNewConversation(message);
+            switchToChatView();
+            sendMessage(message, files);
+        }
+
+        function handleChatMessage() {
+            const message = chatInput.value.trim();
+            if (!message || isStreaming) return;
+            chatInput.value = '';
+            autoResize(chatInput);
+            const files = chatFiles.slice();
+            chatFiles = [];
+            renderAttachments('chatAttachments', chatFiles);
+            sendMessage(message, files);
+        }
+
+        sendBtn.addEventListener('click', handleWelcomeMessage);
+        chatSendBtn.addEventListener('click', handleChatMessage);
+        [welcomeInput, chatInput].forEach(textarea => {
+            textarea.addEventListener('input', () => autoResize(textarea));
+            textarea.addEventListener('keydown', e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (textarea === welcomeInput) handleWelcomeMessage();
+                    else handleChatMessage();
+                }
+            });
+        });
+
+        document.querySelectorAll('.action-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const prompt = btn.getAttribute('data-prompt');
+                if (prompt && welcomeInput) {
+                    welcomeInput.value = prompt;
+                    welcomeInput.focus();
+                    autoResize(welcomeInput);
+                }
+            });
+        });
+
+        newChatBtn.addEventListener('click', () => {
+            chatHistory = [];
+            currentConversationId = null;
+            switchToWelcomeView();
+            chatMessages.innerHTML = '';
+            welcomeInput.value = '';
+            autoResize(welcomeInput);
+            welcomeInput.focus();
+            autoResize(chatInput);
+            // Clear any pending attachments.
+            welcomeFiles = [];
+            chatFiles = [];
+            renderAttachments('welcomeAttachments', welcomeFiles);
+            renderAttachments('chatAttachments', chatFiles);
+        });
+
+        updateRecentItems();
+        welcomeInput.focus();
+    </script>
+</body>
+</html>
