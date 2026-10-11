@@ -4,6 +4,12 @@ A web launcher with mirror-based launching, an importable game library, media
 catalog, dev tools, an AI assistant, and cross-device server accounts.
 Vanilla ES modules, no build step.
 
+## Live deployments
+
+| Deployment | URL |
+| --- | --- |
+| Netlify mirror | <https://quantum2v.netlify.app/> |
+
 ---
 
 ## Run it
