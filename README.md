@@ -22,6 +22,7 @@ Vanilla ES modules, no build step.
 py server.py                     # http://127.0.0.1:8000 (loopback only)
 py server.py 8080                # custom port
 py server.py --host 0.0.0.0 --port 8000   # LAN: other devices use http://YOUR-IP:8000
+py server.py --lan 8130          # classroom: LAN + prints the exact URLs students open
 ```
 
 `server.py` serves the static files (with no-store cache headers like

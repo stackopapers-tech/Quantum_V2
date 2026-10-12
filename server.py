@@ -1594,6 +1594,31 @@ class HubHandler(SimpleHTTPRequestHandler):
 
 # ---------------------------------------------------------------- main
 
+def lan_ips():
+    # LAN addresses worth printing for classroom use (loopback excluded).
+    # The UDP-connect trick picks the real outbound interface without
+    # sending any traffic; getaddrinfo supplements it.
+    found = []
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        found.append(s.getsockname()[0])
+        s.close()
+    except Exception:
+        pass
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None,
+                                       socket.AF_INET, socket.SOCK_STREAM):
+            found.append(info[4][0])
+    except Exception:
+        pass
+    out = []
+    for ip in found:
+        if ip and not ip.startswith("127.") and ip not in out:
+            out.append(ip)
+    return out
+
+
 def main():
     # Positional port still works (py server.py 8129); --host/--port flags
     # also work in any order. Values consumed by flags are never mistaken
@@ -1624,6 +1649,9 @@ def main():
         except ValueError:
             print(f"ERROR: invalid port '{positional[0]}'")
             sys.exit(2)
+    if "--lan" in argv and "--host" not in argv:
+        # Classroom mode: reachable from student machines on the LAN.
+        host = "0.0.0.0"
     if not HAS_CRYPTO:
         print("WARNING: running without AES/Argon2 (cryptography missing).")
     init_db()
@@ -1638,6 +1666,9 @@ def main():
     if host not in ("127.0.0.1", "localhost", "::1"):
         print("WARNING: bound to a non-loopback address WITHOUT TLS. Put a TLS")
         print("terminator (reverse proxy) in front before exposing this publicly.")
+        for ip in lan_ips():
+            print(f"  students open: http://{ip}:{port}")
+        print("  (Windows may ask to allow Python through the firewall — allow it.)")
     print("Ctrl+C to stop.")
     with httpd:
         try:
