@@ -379,11 +379,13 @@ iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#000}
 .topbar a{color:${acc}}
 .topbar button{margin-left:auto;background:transparent;color:#888;border:1px solid #333;border-radius:4px;font:11px monospace;padding:4px 10px;cursor:pointer}
 .topbar .vol{width:70px;accent-color:${acc};margin-left:8px}
+.topbar .loadhint{color:#666;font-size:11px}
+.topbar .loadhint.warn{color:#ffb300}
 .wrap{position:fixed;inset:0;padding-top:28px;box-sizing:border-box}
 .wm{position:fixed;right:10px;bottom:10px;z-index:10000;font:700 11px monospace;letter-spacing:2px;color:${acc};background:rgba(0,0,0,.55);border:1px solid ${acc};border-radius:6px;padding:4px 8px;pointer-events:none;user-select:none;opacity:.85}
 </style></head>
 <body>
-<div class="topbar"><span>◈ QUANTUM</span><span>${safeLabel}</span><a href="${safeUrl}" target="_blank" rel="noopener">Open directly</a><input class="vol" type="range" min="0" max="100" value="80" title="Volume"><button onclick="window.close()">Close</button></div>
+<div class="topbar"><span>◈ QUANTUM</span><span>${safeLabel}</span><span class="loadhint" id="qloadhint">Loading…</span><a href="${safeUrl}" target="_blank" rel="noopener">Open directly</a><input class="vol" type="range" min="0" max="100" value="80" title="Volume"><button onclick="window.close()">Close</button></div>
 <div class="wrap"><iframe src="${frameSrc}" sandbox="allow-scripts allow-same-origin allow-pointer-lock" allowfullscreen allow="fullscreen; gamepad; autoplay"></iframe></div>
 <div class="wm">◈ QUANTUM HUB</div>
 <script>(function(){var v=80;try{var s=JSON.parse(localStorage.getItem('hub_settings')||'{}');if(typeof s.volume==='number'&&s.volume>0)v=Math.round(s.volume*100)}catch(e){}
@@ -393,6 +395,42 @@ try{var d=fr.contentDocument;if(d)d.querySelectorAll('video,audio').forEach(func
 vol.addEventListener('input',ap);ap();setTimeout(ap,600);setTimeout(ap,1800);setTimeout(ap,4000)})();</script>
 </body></html>`);
             win.document.close();
+
+            // Load-hint driver (opener side, deferred): query the popup
+            // document on a later tick — immediately after document.close()
+            // the parser may not have materialized the elements yet, so an
+            // instant query silently finds nothing. The opener watches the
+            // frame through the same-origin popup document and flips the
+            // topbar hint when a site refuses to render in the frame.
+            try {
+                setTimeout(() => {
+                    if (win.closed) return;
+                    let frEl = null, lhEl = null;
+                    try {
+                        frEl = win.document.querySelector('iframe');
+                        lhEl = win.document.getElementById('qloadhint');
+                    } catch (e2) { return; }
+                    if (!frEl || !lhEl) return;
+                    let frameLoaded = false;
+                    frEl.addEventListener('load', () => {
+                        frameLoaded = true;
+                        try {
+                            const lh = win.document.getElementById('qloadhint');
+                            if (lh) lh.style.display = 'none';
+                        } catch (e3) {}
+                    });
+                    setTimeout(() => {
+                        if (win.closed || frameLoaded) return;
+                        try {
+                            const lh = win.document.getElementById('qloadhint');
+                            if (lh) {
+                                lh.textContent = 'Still blank? This site may block embedding — use Open directly.';
+                                lh.className = 'loadhint warn';
+                            }
+                        } catch (e3) {}
+                    }, 8000);
+                }, 400);
+            } catch (e) {}
 
             // Modern security: Remove the link to the original window
             // Note: some browsers throw errors if the target is cross-origin

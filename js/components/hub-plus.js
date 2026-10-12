@@ -3,15 +3,15 @@
    favorites, random, ratings, GOTD, streaks, i18n, lite, txt backup,
    updates, feedback, media previews, similar, ranks, forms, install,
    stats, polls, profiles, social (friends/chat/block/report). */
-import toast from './toast.js?v=2026.10.11-8';
-import modals from './modal.js?v=2026.10.11-8';
-import { TV_CATALOG, MOVIE_CATALOG, ANIME_CATALOG, TOP_TIER } from '../data/catalog.js?v=2026.10.11-8';
+import toast from './toast.js?v=2026.10.11-11';
+import modals from './modal.js?v=2026.10.11-11';
+import { TV_CATALOG, MOVIE_CATALOG, ANIME_CATALOG, TOP_TIER } from '../data/catalog.js?v=2026.10.11-11';
 
-import { TMDB_IDS } from '../data/tmdb-ids.js?v=2026.10.11-8';
-import { openGameViewer } from './game-viewer.js?v=2026.10.11-8';
+import { TMDB_IDS } from '../data/tmdb-ids.js?v=2026.10.11-11';
+import { openGameViewer } from './game-viewer.js?v=2026.10.11-11';
 
-import { launchViaAboutBlank } from './about-blank-launcher.js?v=2026.10.11-8';
-import { localHubApi } from '../local-api.js?v=2026.10.11-8';
+import { launchViaAboutBlank } from './about-blank-launcher.js?v=2026.10.11-11';
+import { localHubApi } from '../local-api.js?v=2026.10.11-11';
 
 const $ = (s, r) => (r || document).querySelector(s);
 const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
@@ -1364,7 +1364,11 @@ async function openWatch(app, title) {
 // the target page — so about:blank + iframe is the workable path.)
 function openBlockedSite(app, url, label) {
     try {
-        if (launchViaAboutBlank(url, label)) return;
+        // onFallback: the anchor-click fallback can't confirm a tab opened —
+        // say so plainly instead of going silent when popups are blocked.
+        if (launchViaAboutBlank(url, label, {
+            onFallback: () => { try { toast.show(`If no new tab appeared, allow popups for this site and retry.`, 'error', 6000); } catch (e2) {} },
+        })) return;
     } catch (e) {}
     app.launchContent(url, 'about-blank', label);
 }

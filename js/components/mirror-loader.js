@@ -20,8 +20,8 @@
  * Image-based reachability probe (no CORS needed for <img> load events).
  * Used when fetch is blocked by CORS but the host may still serve iframes.
  */
-import { openGameViewer } from './game-viewer.js?v=2026.10.11-8';
-import { isMediaUrl, mediaFrameUrl } from './about-blank-launcher.js?v=2026.10.11-8';
+import { openGameViewer } from './game-viewer.js?v=2026.10.11-11';
+import { isMediaUrl, mediaFrameUrl } from './about-blank-launcher.js?v=2026.10.11-11';
 export function probeImage(url, timeoutMs = 8000) {
     return new Promise(resolve => {
         let done = false;
