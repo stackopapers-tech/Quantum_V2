@@ -296,6 +296,7 @@
                         <option value="ollama">Ollama (Local)</option>
                         <option value="huggingface">HuggingFace Hub</option>
                         <option value="opencode">OpenCode Models</option>
+                        <option value="webgpu">In-Browser (WebGPU)</option>
                     </select>
                 </div>
                 <div>
@@ -320,6 +321,10 @@
                     <label data-i18n="ocBaseUrl">Base URL</label>
                     <input type="text" id="ocBaseUrl" placeholder="https://api.openai.com/v1" autocomplete="off">
                     <div class="config-hint" data-i18n="ocHint">OpenAI-compatible endpoint. Use your key from OpenAI, Anthropic, Google, or any OpenCode-supported provider.</div>
+                </div>
+                <div class="config-field" id="webgpuConfig">
+                    <div class="config-hint">Runs fully in this browser — no server, no install, nothing leaves the device. First chat downloads the model once (stays cached). Needs Chrome/Edge with WebGPU.</div>
+                    <button class="pull-btn" id="webgpuUnloadBtn">Unload model (free memory)</button>
                 </div>
                 <div class="ai-status" id="aiStatus">Checking providers…</div>
             </div>
@@ -471,6 +476,13 @@
                     { id: 'gemma2', name: 'Gemma 2' },
                     { id: 'phi3', name: 'Phi 3' }
                 ]
+            },
+            webgpu: {
+                models: [
+                    { id: 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC', name: 'Qwen 0.5B in-browser (~400 MB)' },
+                    { id: 'SmolLM2-135M-Instruct-q0f16-MLC', name: 'SmolLM 135M in-browser (~100 MB)' },
+                    { id: 'Llama-3.2-1B-Instruct-q4f16_1-MLC', name: 'Llama 3.2 1B in-browser (~1.3 GB)' }
+                ]
             }
         };
 
@@ -479,6 +491,7 @@
         const hfConfig = document.getElementById('hfConfig');
         const ollamaConfig = document.getElementById('ollamaConfig');
         const opencodeConfig = document.getElementById('opencodeConfig');
+        const webgpuConfig = document.getElementById('webgpuConfig');
 
         const aiStatus = document.getElementById('aiStatus');
         const OLLAMA_DEFAULT = 'http://localhost:11434';
@@ -578,6 +591,7 @@
             hfConfig.classList.toggle('visible', p === 'huggingface');
             ollamaConfig.classList.toggle('visible', p === 'ollama');
             opencodeConfig.classList.toggle('visible', p === 'opencode');
+            webgpuConfig.classList.toggle('visible', p === 'webgpu');
             // Ollama: list whatever models are actually installed locally —
             // or on the hub server when this page is served over LAN.
             if (p === 'ollama') {
@@ -652,6 +666,15 @@
                     } else {
                         setStatus('bad', '○ Endpoint unreachable or key rejected — check key + base URL');
                     }
+                }
+            }
+            // In-browser: no probe possible — just report WebGPU readiness.
+            // The model itself downloads on first chat (cached after).
+            if (p === 'webgpu') {
+                if (navigator.gpu) {
+                    setStatus('ok', '● WebGPU available — model downloads on first chat, then runs offline-capable');
+                } else {
+                    setStatus('bad', '○ No WebGPU on this device/browser — try Chrome or Edge on a real computer');
                 }
             }
             // Restore the last model picked for this provider, if still present.
@@ -1158,6 +1181,8 @@
                     await sendOllama(message, model);
                 } else if (provider === 'opencode') {
                     await sendOpenCode(message, model);
+                } else if (provider === 'webgpu') {
+                    await sendWebGPU(message, model);
                 }
             } catch (error) {
                 console.error('Send error:', error);
@@ -1355,6 +1380,69 @@
             renderFormattedMessage(fullResponse, messageContent);
             chatHistory.push({ role: 'assistant', content: fullResponse });
         }
+
+        /* ============================== In-browser AI (WebGPU) ============================== */
+        // Locked-down machines (no Ollama, no terminal, no LAN server) run a
+        // small model directly in the page. Runtime loads from CDN with a
+        // fallback; weights download from HuggingFace once, then stay cached
+        // in the browser. window.__webllmStub exists only for automated tests.
+        const WEBLLM_CDNS = [
+            'https://esm.run/@mlc-ai/web-llm@0.2.79',
+            'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.79/+esm'
+        ];
+        let webEngine = null;    // { model, engine }
+        let webLoading = null;   // in-flight init promise (one at a time)
+        async function loadWebLLM() {
+            if (window.__webllmStub) return window.__webllmStub;
+            let lastErr = null;
+            for (const u of WEBLLM_CDNS) {
+                try { return await import(u); } catch (e) { lastErr = e; }
+            }
+            throw lastErr || new Error('WebLLM runtime unreachable — CDN blocked?');
+        }
+        async function ensureWebEngine(model) {
+            if (webEngine && webEngine.model === model) return webEngine.engine;
+            if (webLoading) return webLoading;
+            if (!navigator.gpu) throw new Error('No WebGPU on this device/browser — try Chrome or Edge.');
+            showTypingIndicator();
+            webLoading = (async () => {
+                const webllm = await loadWebLLM();
+                const engine = await webllm.CreateMLCEngine(model, {
+                    initProgressCallback: (rep) => {
+                        try {
+                            const pct = (rep && rep.progress != null) ? ' ' + Math.round(rep.progress * 100) + '%' : '';
+                            setStatus('', 'Loading in-browser model… ' + ((rep && rep.text) || '') + pct);
+                        } catch (e) {}
+                    }
+                });
+                webEngine = { model, engine };
+                webLoading = null;
+                return engine;
+            })();
+            try { return await webLoading; }
+            catch (e) { webLoading = null; throw e; }
+        }
+        async function sendWebGPU(message, model) {
+            const engine = await ensureWebEngine(model);
+            const res = await engine.chat.completions.create({
+                messages: buildOpenAIMessages(),
+                temperature: 0.7,
+                max_tokens: 1024
+            });
+            const text = (res.choices && res.choices[0] && res.choices[0].message && res.choices[0].message.content) || '';
+            if (!text) throw new Error('Empty reply from the in-browser model.');
+            const messageContent = addMessage('', 'assistant');
+            hideTypingIndicator();
+            renderFormattedMessage(text, messageContent);
+            scrollToBottom();
+            chatHistory.push({ role: 'assistant', content: text });
+        }
+        const webgpuUnloadBtn = document.getElementById('webgpuUnloadBtn');
+        if (webgpuUnloadBtn) webgpuUnloadBtn.addEventListener('click', async () => {
+            try { if (webEngine && webEngine.engine && webEngine.engine.unload) await webEngine.engine.unload(); } catch (e) {}
+            webEngine = null;
+            setStatus('', 'Model unloaded.');
+        });
 
         /* ============================== Wiring ============================== */
         function handleWelcomeMessage() {
