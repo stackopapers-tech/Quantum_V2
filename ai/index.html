@@ -58,6 +58,48 @@
         .ai-status.ok { color: #39ff14; }
         .ai-status.warn { color: #ffb300; }
         .ai-status.bad { color: #ff5252; }
+        .pull-btn {
+            width: 100%; margin-top: 6px; padding: 7px 10px; background: none;
+            border: 1px solid #39ff14; color: #39ff14; border-radius: 6px;
+            font-size: 13px; cursor: pointer; transition: all 0.2s;
+        }
+        .pull-btn:hover { background-color: rgba(57, 255, 20, 0.1); }
+        .get-hint a { color: #39ff14; }
+        .pull-overlay {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000; padding: 16px;
+        }
+        .pull-overlay[hidden] { display: none; }
+        .pull-card {
+            background: #111318; border: 1px solid #333; border-radius: 12px;
+            padding: 24px; max-width: 420px; width: 100%;
+        }
+        .pull-title { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+        .pull-desc { font-size: 13px; color: #b3b3b3; line-height: 1.5; margin-bottom: 12px; }
+        .pull-card label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 3px; }
+        .pull-card select {
+            width: 100%; padding: 7px 10px; background: #000;
+            border: 1px solid #333; border-radius: 6px; color: #e5e5e5;
+            font-size: 13px; outline: none; margin-bottom: 12px;
+        }
+        .pull-progress { margin-bottom: 12px; }
+        .pull-progress[hidden] { display: none; }
+        .pull-bar { height: 8px; background: #000; border: 1px solid #333; border-radius: 4px; overflow: hidden; }
+        .pull-fill { height: 100%; width: 0%; background: #39ff14; transition: width 0.2s; }
+        .pull-status { font-size: 12px; color: #888; margin-top: 6px; min-height: 16px; }
+        .pull-actions { display: flex; gap: 8px; }
+        .pull-go {
+            flex: 1; padding: 9px; background-color: #39ff14; border: none;
+            color: #000; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;
+        }
+        .pull-go:hover { background-color: #2ee600; }
+        .pull-go:disabled { background-color: #333; color: #888; cursor: not-allowed; }
+        .pull-cancel {
+            padding: 9px 16px; background: none; border: 1px solid #555;
+            color: #b3b3b3; border-radius: 6px; font-size: 14px; cursor: pointer;
+        }
+        .pull-cancel:hover { border-color: #888; color: #fff; }
         .sidebar-content { flex: 1; padding: 16px; overflow-y: auto; }
         .section-title {
             font-size: 11px; color: #808080; margin-bottom: 10px;
@@ -269,6 +311,8 @@
                     <label data-i18n="ollamaUrl">Ollama URL</label>
                     <input type="text" id="ollamaUrl" placeholder="http://localhost:11434" autocomplete="off">
                     <div class="config-hint" data-i18n="ollamaHint">Run <code>ollama serve</code> locally, then pull a model (e.g. <code>ollama pull llama3</code>)</div>
+                    <button class="pull-btn" id="ollamaPullBtn" data-i18n="pullBtn">Download a model</button>
+                    <div class="config-hint get-hint" id="ollamaGetHint" style="display:none">No server found — <a href="https://ollama.com/download" target="_blank" rel="noopener">get Ollama free</a>, run it, then come back.</div>
                 </div>
                 <div class="config-field" id="opencodeConfig">
                     <label data-i18n="ocApiKey">API Key</label>
@@ -342,15 +386,36 @@
         </div>
     </div>
 
+    <div class="pull-overlay" id="pullOverlay" hidden>
+        <div class="pull-card">
+            <div class="pull-title" data-i18n="pullTitle">Download an Ollama model</div>
+            <div class="pull-desc" data-i18n="pullDesc">Ollama is running but has no models yet. Pick one to download — this can take a while on slow connections.</div>
+            <label data-i18n="model">Model</label>
+            <select id="pullModel">
+                <option value="qwen2.5:0.5b">qwen2.5:0.5b — about 400 MB (recommended)</option>
+                <option value="smollm2:135m">smollm2:135m — about 100 MB (fastest, weakest)</option>
+                <option value="llama3.2:1b">llama3.2:1b — about 1.3 GB (smarter, slower)</option>
+            </select>
+            <div class="pull-progress" id="pullProgress" hidden>
+                <div class="pull-bar"><div class="pull-fill" id="pullFill"></div></div>
+                <div class="pull-status" id="pullStatus"></div>
+            </div>
+            <div class="pull-actions">
+                <button class="pull-go" id="pullGo" data-i18n="pullGo">Download</button>
+                <button class="pull-cancel" id="pullCancel" data-i18n="pullCancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         /* ============================== i18n ============================== */
         const I18N = {
-            en: { newChat: 'New chat', provider: 'Provider', model: 'Model', attachFile: 'Attach file', send: 'Send', hfToken: 'HuggingFace Token', hfHint: 'Paste a free token from huggingface.co/settings/tokens', ollamaUrl: 'Ollama URL', ollamaHint: 'Run ollama serve locally, then pull a model (e.g. ollama pull llama3)', ocApiKey: 'API Key', ocBaseUrl: 'Base URL', ocHint: 'OpenAI-compatible endpoint. Use your key from OpenAI, Anthropic, Google, or any OpenCode-supported provider.', recents: 'Recents', noRecents: 'No recent conversations', greeting: 'Quantum AI', write: 'Write', learn: 'Learn', code: 'Code', life: 'Life stuff', thinking: 'Quantum AI is thinking', welcomePh: 'How can I help you today?', chatPh: 'Message Quantum AI...', langName: 'English' },
-            es: { newChat: 'Nuevo chat', provider: 'Proveedor', model: 'Modelo', attachFile: 'Adjuntar archivo', send: 'Enviar', hfToken: 'Token de HuggingFace', hfHint: 'Pega un token gratuito de huggingface.co/settings/tokens', ollamaUrl: 'URL de Ollama', ollamaHint: 'Ejecuta ollama serve localmente, luego descarga un modelo (ej. ollama pull llama3)', ocApiKey: 'Clave API', ocBaseUrl: 'URL base', ocHint: 'Endpoint compatible con OpenAI. Usa tu clave de OpenAI, Anthropic, Google o cualquier proveedor compatible con OpenCode.', recents: 'Recientes', noRecents: 'No hay conversaciones recientes', greeting: 'Quantum AI', write: 'Escribir', learn: 'Aprender', code: 'Código', life: 'Tareas diarias', thinking: 'Quantum AI está pensando', welcomePh: '¿Cómo puedo ayudarte hoy?', chatPh: 'Mensaje a Quantum AI...', langName: 'Español' },
-            fr: { newChat: 'Nouveau chat', provider: 'Fournisseur', model: 'Modèle', attachFile: 'Joindre un fichier', send: 'Envoyer', hfToken: 'Jeton HuggingFace', hfHint: 'Collez un jeton gratuit depuis huggingface.co/settings/tokens', ollamaUrl: 'URL Ollama', ollamaHint: 'Lancez ollama serve localement, puis téléchargez un modèle (ex. ollama pull llama3)', ocApiKey: 'Clé API', ocBaseUrl: 'URL de base', ocHint: 'Endpoint compatible OpenAI. Utilisez votre clé OpenAI, Anthropic, Google ou tout fournisseur compatible OpenCode.', recents: 'Récents', noRecents: 'Aucune conversation récente', greeting: 'Quantum AI', write: 'Écrire', learn: 'Apprendre', code: 'Code', life: 'Tâches quotidiennes', thinking: 'Quantum AI réfléchit', welcomePh: 'Comment puis-je vous aider ?', chatPh: 'Message à Quantum AI...', langName: 'Français' },
-            de: { newChat: 'Neuer Chat', provider: 'Anbieter', model: 'Modell', attachFile: 'Datei anhängen', send: 'Senden', hfToken: 'HuggingFace-Token', hfHint: 'Füge ein kostenloses Token von huggingface.co/settings/tokens ein', ollamaUrl: 'Ollama-URL', ollamaHint: 'Führe ollama serve lokal aus, dann lade ein Modell (z.B. ollama pull llama3)', ocApiKey: 'API-Schlüssel', ocBaseUrl: 'Basis-URL', ocHint: 'OpenAI-kompatibler Endpunkt. Verwende deinen Schlüssel von OpenAI, Anthropic, Google oder einem anderen OpenCode-kompatiblen Anbieter.', recents: 'Kürzlich', noRecents: 'Keine kürzlichen Gespräche', greeting: 'Quantum AI', write: 'Schreiben', learn: 'Lernen', code: 'Code', life: 'Alltagsaufgaben', thinking: 'Quantum AI denkt nach', welcomePh: 'Wie kann ich Ihnen helfen?', chatPh: 'Nachricht an Quantum AI...', langName: 'Deutsch' },
-            ja: { newChat: '新しいチャット', provider: 'プロバイダー', model: 'モデル', attachFile: 'ファイルを添付', send: '送信', hfToken: 'HuggingFaceトークン', hfHint: 'huggingface.co/settings/tokens から無料トークンを貼り付け', ollamaUrl: 'Ollama URL', ollamaHint: 'ローカルで ollama serve を実行し、モデルをダウンロード (例: ollama pull llama3)', ocApiKey: 'APIキー', ocBaseUrl: 'ベースURL', ocHint: 'OpenAI互換エンドポイント。OpenAI、Anthropic、Google、またはOpenCode対応プロバイダーのキーを使用。', recents: '最近', noRecents: '最近の会話はありません', greeting: 'Quantum AI', write: '書く', learn: '学ぶ', code: 'コード', life: '日常のタスク', thinking: 'Quantum AIが考え中', welcomePh: '今日は何をお手伝いしましょうか？', chatPh: 'Quantum AIへのメッセージ...', langName: '日本語' },
-            zh: { newChat: '新对话', provider: '提供商', model: '模型', attachFile: '附件', send: '发送', hfToken: 'HuggingFace 令牌', hfHint: '从 huggingface.co/settings/tokens 粘贴免费令牌', ollamaUrl: 'Ollama 地址', ollamaHint: '在本地运行 ollama serve，然后拉取模型（如 ollama pull llama3）', ocApiKey: 'API 密钥', ocBaseUrl: '基础 URL', ocHint: 'OpenAI 兼容端点。使用 OpenAI、Anthropic、Google 或任何 OpenCode 支持提供商的密钥。', recents: '最近', noRecents: '暂无最近对话', greeting: 'Quantum AI', write: '写作', learn: '学习', code: '编程', life: '日常任务', thinking: 'Quantum AI 正在思考', welcomePh: '今天我能帮你什么？', chatPh: '给 Quantum AI 发消息...', langName: '中文' }
+            en: { newChat: 'New chat', provider: 'Provider', model: 'Model', attachFile: 'Attach file', send: 'Send', hfToken: 'HuggingFace Token', hfHint: 'Paste a free token from huggingface.co/settings/tokens', ollamaUrl: 'Ollama URL', ollamaHint: 'Run ollama serve locally, then pull a model (e.g. ollama pull llama3)', ocApiKey: 'API Key', ocBaseUrl: 'Base URL', ocHint: 'OpenAI-compatible endpoint. Use your key from OpenAI, Anthropic, Google, or any OpenCode-supported provider.', recents: 'Recents', noRecents: 'No recent conversations', greeting: 'Quantum AI', write: 'Write', learn: 'Learn', code: 'Code', life: 'Life stuff', thinking: 'Quantum AI is thinking', welcomePh: 'How can I help you today?', chatPh: 'Message Quantum AI...', pullTitle: 'Download an Ollama model', pullDesc: 'Ollama is running but has no models yet. Pick one to download — this can take a while on slow connections.', pullBtn: 'Download a model', pullGo: 'Download', pullCancel: 'Cancel', langName: 'English' },
+            es: { newChat: 'Nuevo chat', provider: 'Proveedor', model: 'Modelo', attachFile: 'Adjuntar archivo', send: 'Enviar', hfToken: 'Token de HuggingFace', hfHint: 'Pega un token gratuito de huggingface.co/settings/tokens', ollamaUrl: 'URL de Ollama', ollamaHint: 'Ejecuta ollama serve localmente, luego descarga un modelo (ej. ollama pull llama3)', ocApiKey: 'Clave API', ocBaseUrl: 'URL base', ocHint: 'Endpoint compatible con OpenAI. Usa tu clave de OpenAI, Anthropic, Google o cualquier proveedor compatible con OpenCode.', recents: 'Recientes', noRecents: 'No hay conversaciones recientes', greeting: 'Quantum AI', write: 'Escribir', learn: 'Aprender', code: 'Código', life: 'Tareas diarias', thinking: 'Quantum AI está pensando', welcomePh: '¿Cómo puedo ayudarte hoy?', chatPh: 'Mensaje a Quantum AI...', pullTitle: 'Descargar un modelo de Ollama', pullDesc: 'Ollama funciona pero no tiene modelos. Elige uno para descargar — puede tardar según tu conexión.', pullBtn: 'Descargar un modelo', pullGo: 'Descargar', pullCancel: 'Cancelar', langName: 'Español' },
+            fr: { newChat: 'Nouveau chat', provider: 'Fournisseur', model: 'Modèle', attachFile: 'Joindre un fichier', send: 'Envoyer', hfToken: 'Jeton HuggingFace', hfHint: 'Collez un jeton gratuit depuis huggingface.co/settings/tokens', ollamaUrl: 'URL Ollama', ollamaHint: 'Lancez ollama serve localement, puis téléchargez un modèle (ex. ollama pull llama3)', ocApiKey: 'Clé API', ocBaseUrl: 'URL de base', ocHint: 'Endpoint compatible OpenAI. Utilisez votre clé OpenAI, Anthropic, Google ou tout fournisseur compatible OpenCode.', recents: 'Récents', noRecents: 'Aucune conversation récente', greeting: 'Quantum AI', write: 'Écrire', learn: 'Apprendre', code: 'Code', life: 'Tâches quotidiennes', thinking: 'Quantum AI réfléchit', welcomePh: 'Comment puis-je vous aider ?', chatPh: 'Message à Quantum AI...', pullTitle: 'Télécharger un modèle Ollama', pullDesc: 'Ollama fonctionne mais sans modèle. Choisissez-en un à télécharger — cela peut prendre un moment.', pullBtn: 'Télécharger un modèle', pullGo: 'Télécharger', pullCancel: 'Annuler', langName: 'Français' },
+            de: { newChat: 'Neuer Chat', provider: 'Anbieter', model: 'Modell', attachFile: 'Datei anhängen', send: 'Senden', hfToken: 'HuggingFace-Token', hfHint: 'Füge ein kostenloses Token von huggingface.co/settings/tokens ein', ollamaUrl: 'Ollama-URL', ollamaHint: 'Führe ollama serve lokal aus, dann lade ein Modell (z.B. ollama pull llama3)', ocApiKey: 'API-Schlüssel', ocBaseUrl: 'Basis-URL', ocHint: 'OpenAI-kompatibler Endpunkt. Verwende deinen Schlüssel von OpenAI, Anthropic, Google oder einem anderen OpenCode-kompatiblen Anbieter.', recents: 'Kürzlich', noRecents: 'Keine kürzlichen Gespräche', greeting: 'Quantum AI', write: 'Schreiben', learn: 'Lernen', code: 'Code', life: 'Alltagsaufgaben', thinking: 'Quantum AI denkt nach', welcomePh: 'Wie kann ich Ihnen helfen?', chatPh: 'Nachricht an Quantum AI...', pullTitle: 'Ollama-Modell herunterladen', pullDesc: 'Ollama läuft, hat aber keine Modelle. Wähle eines zum Herunterladen — je nach Verbindung dauert es.', pullBtn: 'Modell herunterladen', pullGo: 'Herunterladen', pullCancel: 'Abbrechen', langName: 'Deutsch' },
+            ja: { newChat: '新しいチャット', provider: 'プロバイダー', model: 'モデル', attachFile: 'ファイルを添付', send: '送信', hfToken: 'HuggingFaceトークン', hfHint: 'huggingface.co/settings/tokens から無料トークンを貼り付け', ollamaUrl: 'Ollama URL', ollamaHint: 'ローカルで ollama serve を実行し、モデルをダウンロード (例: ollama pull llama3)', ocApiKey: 'APIキー', ocBaseUrl: 'ベースURL', ocHint: 'OpenAI互換エンドポイント。OpenAI、Anthropic、Google、またはOpenCode対応プロバイダーのキーを使用。', recents: '最近', noRecents: '最近の会話はありません', greeting: 'Quantum AI', write: '書く', learn: '学ぶ', code: 'コード', life: '日常のタスク', thinking: 'Quantum AIが考え中', welcomePh: '今日は何をお手伝いしましょうか？', chatPh: 'Quantum AIへのメッセージ...', pullTitle: 'Ollamaモデルをダウンロード', pullDesc: 'Ollamaは動作中ですがモデルがありません。ダウンロードするモデルを選択してください。', pullBtn: 'モデルをダウンロード', pullGo: 'ダウンロード', pullCancel: 'キャンセル', langName: '日本語' },
+            zh: { newChat: '新对话', provider: '提供商', model: '模型', attachFile: '附件', send: '发送', hfToken: 'HuggingFace 令牌', hfHint: '从 huggingface.co/settings/tokens 粘贴免费令牌', ollamaUrl: 'Ollama 地址', ollamaHint: '在本地运行 ollama serve，然后拉取模型（如 ollama pull llama3）', ocApiKey: 'API 密钥', ocBaseUrl: '基础 URL', ocHint: 'OpenAI 兼容端点。使用 OpenAI、Anthropic、Google 或任何 OpenCode 支持提供商的密钥。', recents: '最近', noRecents: '暂无最近对话', greeting: 'Quantum AI', write: '写作', learn: '学习', code: '编程', life: '日常任务', thinking: 'Quantum AI 正在思考', welcomePh: '今天我能帮你什么？', chatPh: '给 Quantum AI 发消息...', pullTitle: '下载 Ollama 模型', pullDesc: 'Ollama 运行正常，但还没有模型。选择一个下载（视网速而定）。', pullBtn: '下载模型', pullGo: '下载', pullCancel: '取消', langName: '中文' }
         };
 
         // Language: from the hub (?lang=), else browser, else English.
@@ -416,6 +481,11 @@
         const opencodeConfig = document.getElementById('opencodeConfig');
 
         const aiStatus = document.getElementById('aiStatus');
+        const OLLAMA_DEFAULT = 'http://localhost:11434';
+        function ollamaBaseUrl() {
+            const v = ((document.getElementById('ollamaUrl') || {}).value || '').trim().replace(/\/$/, '');
+            return v || OLLAMA_DEFAULT;
+        }
         function setStatus(mode, text) {
             if (!aiStatus) return;
             aiStatus.className = 'ai-status ' + (mode || '');
@@ -478,6 +548,10 @@
                 setStatus('', 'Checking Ollama…');
                 const probe = await probeOllama(base);
                 if (token !== refreshToken) return; // provider changed while fetching
+                try {
+                    const gh = document.getElementById('ollamaGetHint');
+                    if (gh) gh.style.display = probe.ok ? 'none' : '';
+                } catch (e2) {}
                 if (probe.ok && probe.models.length) {
                     modelSelect.innerHTML = '';
                     probe.models.forEach(name => {
@@ -546,7 +620,10 @@
         modelSelect.addEventListener('change', () => {
             try { localStorage.setItem('q_ai_model_' + providerSelect.value, modelSelect.value); } catch (e) {}
         });
-        document.getElementById('ollamaUrl').addEventListener('change', refreshModels);
+        document.getElementById('ollamaUrl').addEventListener('change', () => {
+            try { localStorage.setItem('q_ai_ollama_url', document.getElementById('ollamaUrl').value); } catch (e) {}
+            refreshModels();
+        });
         document.getElementById('hfToken').addEventListener('change', e => {
             try { localStorage.setItem('q_ai_hf_token', e.target.value); } catch (err) {}
         });
@@ -564,6 +641,14 @@
             if (ocKey) document.getElementById('ocApiKey').value = ocKey;
             const ocUrl = localStorage.getItem('q_ai_oc_url');
             if (ocUrl) document.getElementById('ocBaseUrl').value = ocUrl;
+            // Ollama URL: restore the saved one, else fill in localhost
+            // automatically so a fresh page just works.
+            const savedOllama = localStorage.getItem('q_ai_ollama_url');
+            if (savedOllama) document.getElementById('ollamaUrl').value = savedOllama;
+            else {
+                document.getElementById('ollamaUrl').value = OLLAMA_DEFAULT;
+                try { localStorage.setItem('q_ai_ollama_url', OLLAMA_DEFAULT); } catch (e2) {}
+            }
         } catch (e) {}
         // Provider: from the hub (?provider=), else auto-connect to the
         // first provider that actually answers — Ollama (local, zero
@@ -599,8 +684,98 @@
             }
             providerSelect.value = 'ollama';
             await refreshModels();
+            // Server up but model-less: ask (once per visit) whether to
+            // download a model right here.
+            if (ol.ok && !ol.models.length) {
+                let asked = false;
+                try { asked = sessionStorage.getItem('q_pull_asked') === '1'; } catch (e) {}
+                if (!asked && typeof openDownloadModal === 'function') openDownloadModal();
+            }
         }
         autoConnect();
+
+        /* ============================== Model download ============================== */
+        // Ollama is up but has no models: offer a one-click download with
+        // live progress (POST /api/pull, streamed). Always asks first —
+        // models are hundreds of MB. One in-flight pull at a time.
+        const pullOverlay = document.getElementById('pullOverlay');
+        const pullModel = document.getElementById('pullModel');
+        const pullGo = document.getElementById('pullGo');
+        const pullCancel = document.getElementById('pullCancel');
+        const pullProgress = document.getElementById('pullProgress');
+        const pullFill = document.getElementById('pullFill');
+        const pullStatus = document.getElementById('pullStatus');
+        let pullAbort = null, pulling = false;
+
+        function openDownloadModal() {
+            if (!pullOverlay) return;
+            try { sessionStorage.setItem('q_pull_asked', '1'); } catch (e) {}
+            if (pullProgress) pullProgress.hidden = true;
+            if (pullFill) pullFill.style.width = '0%';
+            if (pullStatus) pullStatus.textContent = '';
+            if (pullGo) pullGo.disabled = false;
+            pullOverlay.hidden = false;
+        }
+        function closeDownloadModal() {
+            if (pullAbort) { try { pullAbort.abort(); } catch (e) {} pullAbort = null; }
+            pulling = false;
+            if (pullOverlay) pullOverlay.hidden = true;
+        }
+        if (pullCancel) pullCancel.addEventListener('click', closeDownloadModal);
+        if (pullOverlay) pullOverlay.addEventListener('click', (e) => { if (e.target === pullOverlay) closeDownloadModal(); });
+        const ollamaPullBtn = document.getElementById('ollamaPullBtn');
+        if (ollamaPullBtn) ollamaPullBtn.addEventListener('click', openDownloadModal);
+        if (pullGo) pullGo.addEventListener('click', async () => {
+            if (pulling) return;
+            const name = pullModel ? pullModel.value : 'qwen2.5:0.5b';
+            pulling = true;
+            pullGo.disabled = true;
+            if (pullProgress) pullProgress.hidden = false;
+            if (pullFill) pullFill.style.width = '0%';
+            if (pullStatus) pullStatus.textContent = 'Starting…';
+            pullAbort = new AbortController();
+            try {
+                const res = await fetch(ollamaBaseUrl() + '/api/pull', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, stream: true }),
+                    signal: pullAbort.signal
+                });
+                if (!res.ok) throw new Error('Pull rejected (HTTP ' + res.status + ')');
+                const reader = res.body.getReader();
+                const dec = new TextDecoder();
+                let buf = '';
+                for (;;) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buf += dec.decode(value, { stream: true });
+                    const lines = buf.split('\n');
+                    buf = lines.pop();
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+                        let j = null;
+                        try { j = JSON.parse(line); } catch (x) { continue; }
+                        if (j.error) throw new Error(j.error);
+                        const st = j.status || '';
+                        if (j.total && j.completed != null && j.total > 0 && pullFill && pullStatus) {
+                            const pct = Math.min(100, Math.round(j.completed / j.total * 100));
+                            pullFill.style.width = pct + '%';
+                            pullStatus.textContent = st + ' ' + pct + '%';
+                        } else if (pullStatus) {
+                            pullStatus.textContent = st || 'Working…';
+                        }
+                    }
+                }
+                closeDownloadModal();
+                await refreshModels();
+            } catch (e) {
+                if (pullStatus) pullStatus.textContent = (e && e.name === 'AbortError') ? 'Cancelled.' : ('Failed: ' + ((e && e.message) || e));
+                if (pullGo) pullGo.disabled = false;
+            } finally {
+                pulling = false;
+                pullAbort = null;
+            }
+        });
 
         /* ============================== File Attachments ============================== */
         const fileInput = document.getElementById('fileInput');
