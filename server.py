@@ -37,6 +37,7 @@ Nothing here is a restriction bypass: it is an ordinary account database.
 import base64
 import hashlib
 import hmac
+import http.client
 import ipaddress
 import json
 import os
@@ -702,6 +703,20 @@ def check_password_policy(password: str):
     return None
 
 
+# ---------------------------------------------------------------- Ollama relay (zero-config AI for LAN browsers)
+#
+# Students on locked-down machines can't install Ollama or use a terminal,
+# so the hub server shares ITS Ollama: LAN browsers auto-route their AI
+# through <hub-origin>/api/ollama/* with zero setup on their end. Only two
+# fixed upstream paths on 127.0.0.1:11434 — never an open proxy. Anyone who
+# can reach the server can chat with its Ollama and list its models (same
+# exposure as the hub pages themselves); per-IP rate limits apply.
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "127.0.0.1")
+OLLAMA_PORT = int(os.environ.get("OLLAMA_PORT", "11434"))
+OLLAMA_TIMEOUT = 300                # long generations must not get cut off
+OLLAMA_BODY_LIMIT = 8 * 1024 * 1024  # chat bodies carry base64 image attachments
+OLLAMA_DOWN_MSG = "hub has no Ollama running — start 'ollama serve' on the hub server"
+
 # ---------------------------------------------------------------- rate limiting
 
 RATE = {}
@@ -849,6 +864,9 @@ class HubHandler(SimpleHTTPRequestHandler):
                                   "time": int(time.time()),
                                   "relay": True})
             return
+        if parsed.path == "/api/ollama/tags":
+            self.api_ollama_tags()
+            return
         if parsed.path == "/relay":
             self._serve_relay(parsed, path_form=False)
             return
@@ -915,6 +933,89 @@ class HubHandler(SimpleHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             pass
 
+    def api_ollama_tags(self):
+        # GET /api/ollama/tags — installed models on the hub server.
+        if not rate_allow("ollama:" + self.client_ip(), 60, 60):
+            self._send_json(429, {"ok": False, "error": "rate limited — slow down"})
+            return
+        try:
+            conn = http.client.HTTPConnection(OLLAMA_HOST, OLLAMA_PORT, timeout=15)
+            conn.request("GET", "/api/tags")
+            res = conn.getresponse()
+            body = res.read()
+            conn.close()
+        except Exception:
+            self._send_json(502, {"ok": False, "error": OLLAMA_DOWN_MSG})
+            return
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+    def api_ollama_chat(self):
+        # POST /api/ollama/chat — NDJSON chat stream, forwarded chunk by
+        # chunk (connection-close delimited) so tokens stream live.
+        if not rate_allow("ollama:" + self.client_ip(), 30, 60):
+            self._send_json(429, {"ok": False, "error": "rate limited — slow down"})
+            return
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        if length <= 0 or length > OLLAMA_BODY_LIMIT:
+            self._send_json(413, {"ok": False, "error": "body too large"})
+            return
+        try:
+            raw = self.rfile.read(length)
+            json.loads(raw.decode("utf-8"))  # must be JSON; Ollama validates the rest
+        except Exception:
+            self._send_json(400, {"ok": False, "error": "invalid JSON body"})
+            return
+        try:
+            conn = http.client.HTTPConnection(OLLAMA_HOST, OLLAMA_PORT, timeout=OLLAMA_TIMEOUT)
+            conn.request("POST", "/api/chat", body=raw, headers={"Content-Type": "application/json"})
+            upstream = conn.getresponse()
+        except Exception:
+            self._send_json(502, {"ok": False, "error": OLLAMA_DOWN_MSG})
+            return
+        if upstream.status != 200:
+            try:
+                detail = upstream.read(300).decode("utf-8", errors="replace")
+            except Exception:
+                detail = ""
+            try:
+                conn.close()
+            except Exception:
+                pass
+            self._send_json(502, {"ok": False, "error": ("ollama error %d: %s" % (upstream.status, detail[:160]))})
+            return
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "application/x-ndjson")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            while True:
+                chunk = upstream.read(65536)
+                if not chunk:
+                    break
+                self.wfile.write(chunk)
+                self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
     def do_POST(self):
         parsed = urlparse(self.path)
         if not parsed.path.startswith("/api/"):
@@ -922,6 +1023,11 @@ class HubHandler(SimpleHTTPRequestHandler):
             return
         if not rate_allow("ip:" + self.client_ip(), 120, 60):
             self._send_json(429, {"ok": False, "error": "rate limited — slow down"})
+            return
+        if parsed.path == "/api/ollama/chat":
+            # Raw-body relay (chat bodies carry base64 images — far past the
+            # 64K JSON helper's budget), so it bypasses _read_json.
+            self.api_ollama_chat()
             return
         data = self._read_json()
         try:
@@ -1489,15 +1595,35 @@ class HubHandler(SimpleHTTPRequestHandler):
 # ---------------------------------------------------------------- main
 
 def main():
-    args = [a for a in sys.argv[1:] if not a.startswith("--")]
-    port = int(args[0]) if args else 8000
+    # Positional port still works (py server.py 8129); --host/--port flags
+    # also work in any order. Values consumed by flags are never mistaken
+    # for the positional port (that bug crashed --host 0.0.0.0 launches).
+    argv = sys.argv[1:]
+    consumed = set()
     host = "127.0.0.1"
+    port = 8000
     www = ROOT
-    for i, a in enumerate(sys.argv):
-        if a == "--host" and i + 1 < len(sys.argv):
-            host = sys.argv[i + 1]
-        if a == "--www" and i + 1 < len(sys.argv):
-            www = sys.argv[i + 1] if os.path.isabs(sys.argv[i + 1]) else os.path.join(ROOT, sys.argv[i + 1])
+    for i, a in enumerate(argv):
+        if a == "--host" and i + 1 < len(argv):
+            host = argv[i + 1]
+            consumed.add(i + 1)
+        elif a == "--port" and i + 1 < len(argv):
+            consumed.add(i + 1)
+            try:
+                port = int(argv[i + 1])
+            except ValueError:
+                print(f"ERROR: invalid --port '{argv[i + 1]}'")
+                sys.exit(2)
+        elif a == "--www" and i + 1 < len(argv):
+            www = argv[i + 1] if os.path.isabs(argv[i + 1]) else os.path.join(ROOT, argv[i + 1])
+            consumed.add(i + 1)
+    positional = [a for i, a in enumerate(argv) if not a.startswith("--") and i not in consumed]
+    if positional:
+        try:
+            port = int(positional[0])
+        except ValueError:
+            print(f"ERROR: invalid port '{positional[0]}'")
+            sys.exit(2)
     if not HAS_CRYPTO:
         print("WARNING: running without AES/Argon2 (cryptography missing).")
     init_db()

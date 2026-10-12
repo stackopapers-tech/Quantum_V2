@@ -486,6 +486,21 @@
             const v = ((document.getElementById('ollamaUrl') || {}).value || '').trim().replace(/\/$/, '');
             return v || OLLAMA_DEFAULT;
         }
+        // LAN browsers (school machines with no Ollama of their own) ride
+        // the hub server's Ollama instead: same-origin /api/ollama/* needs
+        // no install, no terminal, no config. Localhost/file:// keeps
+        // talking straight to local Ollama.
+        function hubRelayBase() {
+            try {
+                const h = location.hostname || '';
+                if (!h || h === 'localhost' || h === '127.0.0.1' || h === '[::1]') return null;
+                if (location.protocol !== 'http:' && location.protocol !== 'https:') return null;
+                return location.origin + '/api/ollama';
+            } catch (e) { return null; }
+        }
+        function effectiveOllamaBase() {
+            return hubRelayBase() || ollamaBaseUrl();
+        }
         function setStatus(mode, text) {
             if (!aiStatus) return;
             aiStatus.className = 'ai-status ' + (mode || '');
@@ -493,15 +508,36 @@
         }
 
         // Health probes: "reachable" means it can actually answer right now.
-        async function probeOllama(base) {
+        // One retry — first paint on slow school WiFi/tunnels routinely
+        // eats the first attempt while the pipe warms up.
+        // URL rule (central): a base ending in /api/ollama is the hub
+        // relay root (the /api part is already in it); plain Ollama roots
+        // need the /api prefix. Keeps every caller correct.
+        function ollamaTagsUrl(base) {
             base = (base || 'http://localhost:11434').trim().replace(/\/$/, '');
-            try {
-                const r = await fetch(base + '/api/tags', { signal: AbortSignal.timeout(3000) });
-                if (!r.ok) return { ok: false };
-                const j = await r.json();
-                const models = Array.isArray(j.models) ? j.models.map(m => m.name).filter(Boolean) : [];
-                return { ok: true, models };
-            } catch (e) { return { ok: false }; }
+            return /\/api\/ollama$/.test(base) ? base + '/tags' : base + '/api/tags';
+        }
+        function ollamaChatUrl(base) {
+            base = (base || 'http://localhost:11434').trim().replace(/\/$/, '');
+            return /\/api\/ollama$/.test(base) ? base + '/chat' : base + '/api/chat';
+        }
+        async function probeOllama(base) {
+            const url = ollamaTagsUrl(base);
+            const attempt = async () => {
+                try {
+                    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+                    if (!r.ok) return { ok: false };
+                    const j = await r.json();
+                    const models = Array.isArray(j.models) ? j.models.map(m => m.name).filter(Boolean) : [];
+                    return { ok: true, models };
+                } catch (e) { return { ok: false }; }
+            };
+            let out = await attempt();
+            if (!out.ok) {
+                await new Promise(r => setTimeout(r, 700));
+                out = await attempt();
+            }
+            return out;
         }
         async function probeHuggingFace(token) {
             // Validates the token (whoami), not model serving — the send
@@ -542,16 +578,20 @@
             hfConfig.classList.toggle('visible', p === 'huggingface');
             ollamaConfig.classList.toggle('visible', p === 'ollama');
             opencodeConfig.classList.toggle('visible', p === 'opencode');
-            // Ollama: list whatever models are actually installed locally.
+            // Ollama: list whatever models are actually installed locally —
+            // or on the hub server when this page is served over LAN.
             if (p === 'ollama') {
-                const base = (document.getElementById('ollamaUrl').value || 'http://localhost:11434').trim().replace(/\/$/, '');
+                const relay = hubRelayBase();
+                const base = relay || ollamaBaseUrl();
                 setStatus('', 'Checking Ollama…');
                 const probe = await probeOllama(base);
                 if (token !== refreshToken) return; // provider changed while fetching
                 try {
                     const gh = document.getElementById('ollamaGetHint');
-                    if (gh) gh.style.display = probe.ok ? 'none' : '';
+                    if (gh) gh.style.display = (!probe.ok && !relay) ? '' : 'none';
                 } catch (e2) {}
+                const pb = document.getElementById('ollamaPullBtn');
+                if (pb) pb.style.display = relay ? 'none' : '';
                 if (probe.ok && probe.models.length) {
                     modelSelect.innerHTML = '';
                     probe.models.forEach(name => {
@@ -560,11 +600,17 @@
                         o.textContent = name;
                         modelSelect.appendChild(o);
                     });
-                    setStatus('ok', '● Connected — Ollama · ' + probe.models.length + ' local model(s)');
+                    setStatus('ok', relay
+                        ? '● Connected — hub server Ollama · ' + probe.models.length + ' model(s), no install needed'
+                        : '● Connected — Ollama · ' + probe.models.length + ' local model(s)');
                 } else if (probe.ok) {
-                    setStatus('warn', '○ Ollama is up but has no models — run `ollama pull llama3`');
+                    setStatus('warn', relay
+                        ? '○ Hub server Ollama has no models yet'
+                        : '○ Ollama is up but has no models — run `ollama pull llama3`');
                 } else {
-                    setStatus('bad', '○ Ollama not reachable at ' + base + ' — run `ollama serve`');
+                    setStatus('bad', relay
+                        ? '○ Hub server has no Ollama running'
+                        : '○ Ollama not reachable at ' + base + ' — run `ollama serve`');
                 }
             }
             // HuggingFace: token present + valid means ready to try.
@@ -662,7 +708,8 @@
                 return;
             }
             setStatus('', 'Checking providers…');
-            const ollamaBase = document.getElementById('ollamaUrl').value || 'http://localhost:11434';
+            const relayBase = hubRelayBase();
+            const ollamaBase = relayBase || ollamaBaseUrl();
             const ol = await probeOllama(ollamaBase);
             if (ol.ok && ol.models.length) {
                 providerSelect.value = 'ollama';
@@ -685,8 +732,9 @@
             providerSelect.value = 'ollama';
             await refreshModels();
             // Server up but model-less: ask (once per visit) whether to
-            // download a model right here.
-            if (ol.ok && !ol.models.length) {
+            // download a model right here. Skipped on the hub relay —
+            // models live on the server, students can't pull to it.
+            if (ol.ok && !ol.models.length && !hubRelayBase()) {
                 let asked = false;
                 try { asked = sessionStorage.getItem('q_pull_asked') === '1'; } catch (e) {}
                 if (!asked && typeof openDownloadModal === 'function') openDownloadModal();
@@ -727,6 +775,12 @@
         if (ollamaPullBtn) ollamaPullBtn.addEventListener('click', openDownloadModal);
         if (pullGo) pullGo.addEventListener('click', async () => {
             if (pulling) return;
+            // Relay mode: models live on the hub server — whoever runs it
+            // adds them; pulling from a student browser makes no sense.
+            if (hubRelayBase()) {
+                if (pullStatus) pullStatus.textContent = 'Models live on the hub server — whoever runs it adds them.';
+                return;
+            }
             const name = pullModel ? pullModel.value : 'qwen2.5:0.5b';
             pulling = true;
             pullGo.disabled = true;
@@ -1182,10 +1236,11 @@
             return msgs;
         }
 
-        // Ollama local server (streaming)
+        // Ollama local server (streaming) — or the hub server's Ollama over
+        // LAN, same API shape, zero setup on locked-down machines.
         async function sendOllama(message, model) {
-            const baseUrl = (document.getElementById('ollamaUrl').value || 'http://localhost:11434').trim().replace(/\/$/, '');
-            const res = await fetch(`${baseUrl}/api/chat`, {
+            const baseUrl = effectiveOllamaBase();
+            const res = await fetch(ollamaChatUrl(baseUrl), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
