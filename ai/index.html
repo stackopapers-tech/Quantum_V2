@@ -496,6 +496,8 @@
                 models: [
                     { id: 'openai/gpt-oss-20b', name: 'GPT-OSS 20B' },
                     { id: 'openai/gpt-oss-120b', name: 'GPT-OSS 120B' },
+                    { id: 'moonshotai/kimi-k3', name: 'Kimi K3' },
+                    { id: 'nvidia/nemotron-3.5-lightning-30b-a3b', name: 'Nemotron 3.5 Lightning 30B' },
                     { id: 'meta/llama-3.2-11b-vision-instruct', name: 'Llama 3.2 11B Vision' },
                     { id: 'meta/llama-3.2-1b-instruct', name: 'Llama 3.2 1B (fast)' },
                     { id: 'meta/llama-3.2-3b-instruct', name: 'Llama 3.2 3B' },
@@ -1534,7 +1536,7 @@
             const payload = {
                 model,
                 messages: buildVisionMessages(),
-                max_tokens: 1024,
+                max_tokens: 4096,
                 temperature: 1,
                 top_p: 1,
                 stream: true
@@ -1546,6 +1548,7 @@
                 const decoder = new TextDecoder();
                 let fullResponse = '';
                 let buffer = '';
+                let thinkingMarked = false;
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
@@ -1558,9 +1561,19 @@
                         if (data === '[DONE]') continue;
                         try {
                             const chunk = JSON.parse(data);
-                            const piece = (chunk.choices && chunk.choices[0] && chunk.choices[0].delta && chunk.choices[0].delta.content) || '';
+                            const delta = (chunk.choices && chunk.choices[0] && chunk.choices[0].delta) || {};
+                            // Thinking models stream reasoning separately —
+                            // surface it (marked once) instead of dropping it.
+                            const think = delta.reasoning_content || '';
+                            if (think) {
+                                fullResponse += (!thinkingMarked ? '💭 ' : '') + think;
+                                thinkingMarked = true;
+                            }
+                            const piece = delta.content || '';
                             if (piece) {
                                 fullResponse += piece;
+                            }
+                            if (think || piece) {
                                 renderFormattedMessage(fullResponse, messageContent);
                                 scrollToBottom();
                             }
