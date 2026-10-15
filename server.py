@@ -717,6 +717,18 @@ OLLAMA_TIMEOUT = 300                # long generations must not get cut off
 OLLAMA_BODY_LIMIT = 8 * 1024 * 1024  # chat bodies carry base64 image attachments
 OLLAMA_DOWN_MSG = "hub has no Ollama running — start 'ollama serve' on the hub server"
 
+# ---------------------------------------------------------------- NVIDIA relay (browser-reachable API key use)
+#
+# integrate.api.nvidia.com is OpenAI-compatible but sends no CORS headers,
+# so browsers cannot call it directly — every browser attempt dies as a
+# failed fetch. The hub server relays it: the key travels per-request in
+# the POST body (never stored server-side) and only this exact host is
+# ever proxied — never an open proxy. Per-IP rate limits apply.
+NVIDIA_HOST = "integrate.api.nvidia.com"
+NVIDIA_BASE = "https://" + NVIDIA_HOST + "/v1"
+NVIDIA_TIMEOUT = 300
+NVIDIA_BODY_LIMIT = 9 * 1024 * 1024  # chat bodies carry base64 image attachments
+
 # ---------------------------------------------------------------- rate limiting
 
 RATE = {}
@@ -1016,6 +1028,123 @@ class HubHandler(SimpleHTTPRequestHandler):
             except Exception:
                 pass
 
+    def api_nvidia_models(self):
+        # POST /api/nvidia/models {key} — model list, upstream body passed
+        # through verbatim so OpenAI-shaped clients keep working.
+        if not rate_allow("nvidia:" + self.client_ip(), 30, 60):
+            self._send_json(429, {"ok": False, "error": "rate limited — slow down"})
+            return
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        if length <= 0 or length > 65536:
+            self._send_json(413, {"ok": False, "error": "body too large"})
+            return
+        try:
+            data = json.loads(self.rfile.read(length).decode("utf-8"))
+            key = str(data.get("key") or "")
+        except Exception:
+            self._send_json(400, {"ok": False, "error": "invalid JSON body"})
+            return
+        if not key:
+            self._send_json(400, {"ok": False, "error": "missing API key"})
+            return
+        try:
+            conn = http.client.HTTPSConnection(NVIDIA_HOST, timeout=20)
+            conn.request("GET", "/v1/models", headers={"Authorization": "Bearer " + key})
+            upstream = conn.getresponse()
+            body = upstream.read(65536)
+            status = upstream.status
+            conn.close()
+        except Exception:
+            self._send_json(502, {"ok": False, "error": "nvidia unreachable"})
+            return
+        if status != 200:
+            try:
+                detail = body.decode("utf-8", errors="replace")
+            except Exception:
+                detail = ""
+            self._send_json(status if status in (400, 401, 403, 404, 429) else 502,
+                            {"ok": False, "error": ("nvidia error %d: %s" % (status, detail[:160]))})
+            return
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+    def api_nvidia_chat(self):
+        # POST /api/nvidia/chat {key, payload} — SSE chat stream, forwarded
+        # chunk by chunk (connection-close delimited) so tokens stream live.
+        if not rate_allow("nvidia:" + self.client_ip(), 20, 60):
+            self._send_json(429, {"ok": False, "error": "rate limited — slow down"})
+            return
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        if length <= 0 or length > NVIDIA_BODY_LIMIT:
+            self._send_json(413, {"ok": False, "error": "body too large"})
+            return
+        try:
+            data = json.loads(self.rfile.read(length).decode("utf-8"))
+            key = str(data.get("key") or "")
+            payload = data.get("payload")
+        except Exception:
+            self._send_json(400, {"ok": False, "error": "invalid JSON body"})
+            return
+        if not key or not isinstance(payload, dict):
+            self._send_json(400, {"ok": False, "error": "need {key, payload}"})
+            return
+        raw = json.dumps(payload).encode("utf-8")
+        try:
+            conn = http.client.HTTPSConnection(NVIDIA_HOST, timeout=NVIDIA_TIMEOUT)
+            conn.request("POST", "/v1/chat/completions", body=raw,
+                         headers={"Content-Type": "application/json",
+                                  "Authorization": "Bearer " + key})
+            upstream = conn.getresponse()
+        except Exception:
+            self._send_json(502, {"ok": False, "error": "nvidia unreachable"})
+            return
+        if upstream.status != 200:
+            try:
+                detail = upstream.read(2000).decode("utf-8", errors="replace")
+            except Exception:
+                detail = ""
+            try:
+                conn.close()
+            except Exception:
+                pass
+            self._send_json(upstream.status if upstream.status in (400, 401, 403, 404, 429) else 502,
+                            {"ok": False, "error": ("nvidia error %d: %s" % (upstream.status, detail[:160]))})
+            return
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            while True:
+                chunk = upstream.read(65536)
+                if not chunk:
+                    break
+                self.wfile.write(chunk)
+                self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
     def do_POST(self):
         parsed = urlparse(self.path)
         if not parsed.path.startswith("/api/"):
@@ -1028,6 +1157,12 @@ class HubHandler(SimpleHTTPRequestHandler):
             # Raw-body relay (chat bodies carry base64 images — far past the
             # 64K JSON helper's budget), so it bypasses _read_json.
             self.api_ollama_chat()
+            return
+        if parsed.path == "/api/nvidia/models":
+            self.api_nvidia_models()
+            return
+        if parsed.path == "/api/nvidia/chat":
+            self.api_nvidia_chat()
             return
         data = self._read_json()
         try:

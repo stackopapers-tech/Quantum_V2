@@ -68,6 +68,12 @@
                     </div>
                 </div>
             </div>
+            <!-- No-mirror entry: paste any link and open it directly. -->
+            <div class="direct-link-row" id="direct-link-row">
+                <span class="direct-link-hint">…or open a link directly, no mirror:</span>
+                <input id="direct-link-input" class="form-input" type="text" placeholder="https://…" autocomplete="off" spellcheck="false">
+                <button id="direct-link-go" class="btn-premium" type="button">GO <i class="fas fa-arrow-right"></i></button>
+            </div>
         </div>
     </div>
 
@@ -712,6 +718,8 @@
                                     <option value="ollama">Ollama (Local)</option>
                                     <option value="huggingface">HuggingFace Hub</option>
                                     <option value="opencode">OpenCode Models</option>
+                                    <option value="webgpu">In-Browser (WebGPU)</option>
+                                    <option value="nvidia">NVIDIA API</option>
                                 </select>
                                 <button class="btn-premium px-8 py-3 text-sm proxy-launch-btn" data-local="ai/index.html"><i class="fas fa-external-link-alt mr-2"></i><span data-i18n="goToAIHub">GO TO AI HUB</span></button>
                             </div>
@@ -1320,7 +1328,7 @@
          website markup. Edit the SOURCES (css/style.css, js/*.js), then run
          py bump_version.py && py build_index.py (regenerates js/bundle.js and
          standalone.html — never hand-edit those). -->
-    <script>window.HUB_VERSION = '2026.10.11-11';</script>
+    <script>window.HUB_VERSION = '2026.10.15-2';</script>
     <script>
     /* Start-screen failsafe (plain script, no modules): the overlay can never
        trap the hub, even if app.js is stale, cached, or fails to boot. */
@@ -1343,6 +1351,8 @@
             ov.addEventListener('click', function (e) {
                 var card = e.target.closest ? e.target.closest('.mirror-card') : null;
                 var logo = e.target.closest ? e.target.closest('#quantum-logo') : null;
+                var direct = e.target.closest ? e.target.closest('#direct-link-row') : null;
+                if (direct) return; // typing/pasting a link must never dismiss
                 // If the full app is up, let its own handler do the launch;
                 // this listener only guarantees the overlay goes away.
                 setTimeout(dismiss, 50);
@@ -1375,10 +1385,10 @@
     (function () {
         var s = document.createElement('script');
         if (location.protocol === 'file:') {
-            s.src = 'js/bundle.js?v=2026.10.11-11';
+            s.src = 'js/bundle.js?v=2026.10.15-2';
         } else {
             s.type = 'module';
-            s.src = 'js/app.js?v=2026.10.11-11';
+            s.src = 'js/app.js?v=2026.10.15-2';
         }
         (document.body || document.documentElement).appendChild(s);
     })();

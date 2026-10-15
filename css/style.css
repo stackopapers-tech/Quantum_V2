@@ -564,6 +564,12 @@ main {
 .mirror-badge.status-ok { color: #4ade80; border-color: rgba(74, 222, 128, 0.4); background: rgba(74, 222, 128, 0.08); }
 .mirror-badge.status-custom { color: var(--accent); border-color: rgba(var(--accent-rgb), 0.4); background: rgba(var(--accent-rgb), 0.08); }
 
+/* Direct-link row (start screen): open any URL with no mirror involved */
+.direct-link-row { display: flex; gap: 0.6rem; align-items: center; justify-content: center; margin-top: 1.25rem; flex-wrap: wrap; }
+.direct-link-hint { font-size: 0.75rem; color: #9ca3af; letter-spacing: 0.05rem; }
+#direct-link-input { width: min(22rem, 100%); }
+#direct-link-go { white-space: nowrap; }
+
 /* Hero banner wraps so the continue-playing banner drops below intro text */
 .hero-banner { flex-wrap: wrap; }
 #continue-hero { flex-basis: 100%; }

@@ -297,6 +297,7 @@
                         <option value="huggingface">HuggingFace Hub</option>
                         <option value="opencode">OpenCode Models</option>
                         <option value="webgpu">In-Browser (WebGPU)</option>
+                        <option value="nvidia">NVIDIA API</option>
                     </select>
                 </div>
                 <div>
@@ -321,6 +322,13 @@
                     <label data-i18n="ocBaseUrl">Base URL</label>
                     <input type="text" id="ocBaseUrl" placeholder="https://api.openai.com/v1" autocomplete="off">
                     <div class="config-hint" data-i18n="ocHint">OpenAI-compatible endpoint. Use your key from OpenAI, Anthropic, Google, or any OpenCode-supported provider.</div>
+                </div>
+                <div class="config-field" id="nvidiaConfig">
+                    <label data-i18n="ocApiKey">API Key</label>
+                    <input type="password" id="nvApiKey" placeholder="nvapi-..." autocomplete="off">
+                    <label data-i18n="ocBaseUrl">Base URL</label>
+                    <input type="text" id="nvBaseUrl" placeholder="https://integrate.api.nvidia.com/v1" autocomplete="off">
+                    <div class="config-hint">NVIDIA hosted models (OpenAI-compatible). Free key at build.nvidia.com — image attachments ride along on vision models.</div>
                 </div>
                 <div class="config-field" id="webgpuConfig">
                     <div class="config-hint">Runs fully in this browser — no server, no install, nothing leaves the device. First chat downloads the model once (stays cached). Needs Chrome/Edge with WebGPU.</div>
@@ -483,6 +491,12 @@
                     { id: 'SmolLM2-135M-Instruct-q0f16-MLC', name: 'SmolLM 135M in-browser (~100 MB)' },
                     { id: 'Llama-3.2-1B-Instruct-q4f16_1-MLC', name: 'Llama 3.2 1B in-browser (~1.3 GB)' }
                 ]
+            },
+            nvidia: {
+                models: [
+                    { id: 'openai/gpt-oss-20b', name: 'GPT-OSS 20B' },
+                    { id: 'meta/llama-3.2-11b-vision-instruct', name: 'Llama 3.2 11B Vision' }
+                ]
             }
         };
 
@@ -492,6 +506,7 @@
         const ollamaConfig = document.getElementById('ollamaConfig');
         const opencodeConfig = document.getElementById('opencodeConfig');
         const webgpuConfig = document.getElementById('webgpuConfig');
+        const nvidiaConfig = document.getElementById('nvidiaConfig');
 
         const aiStatus = document.getElementById('aiStatus');
         const OLLAMA_DEFAULT = 'http://localhost:11434';
@@ -577,6 +592,50 @@
             } catch (e) { return { ok: false }; }
         }
 
+        // Hub-server detection (cached): same-origin /api/health answering
+        // means server.py is serving this page, so its relays are available.
+        let __hubServerCache = null;
+        async function hubServer() {
+            if (__hubServerCache !== null) return __hubServerCache;
+            let ok = false;
+            try {
+                if (location.protocol === 'http:' || location.protocol === 'https:') {
+                    const r = await fetch(location.origin + '/api/health');
+                    if (r.ok) {
+                        const j = await r.json();
+                        ok = !!(j && j.ok);
+                    }
+                }
+            } catch (e) {}
+            __hubServerCache = ok;
+            return ok;
+        }
+
+        // NVIDIA probe: relay through the hub server when it's serving us
+        // (browsers can't reach NVIDIA directly — no CORS headers), else a
+        // direct attempt that fails honestly.
+        async function probeNvidia(baseUrl, apiKey) {
+            if (await hubServer()) {
+                for (let attempt = 0; attempt < 2; attempt++) {
+                    try {
+                        const r = await fetch(location.origin + '/api/nvidia/models', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ key: apiKey })
+                        });
+                        if (!r.ok) return { ok: false };
+                        const j = await r.json();
+                        const models = Array.isArray(j.data) ? j.data.map(m => m.id).filter(Boolean) : [];
+                        return { ok: true, models };
+                    } catch (e) {
+                        if (attempt === 0) await new Promise(r => setTimeout(r, 700));
+                    }
+                }
+                return { ok: false };
+            }
+            return probeOpenCode(baseUrl, apiKey);
+        }
+
         let refreshToken = 0;
         async function refreshModels() {
             const p = providerSelect.value;
@@ -592,6 +651,7 @@
             ollamaConfig.classList.toggle('visible', p === 'ollama');
             opencodeConfig.classList.toggle('visible', p === 'opencode');
             webgpuConfig.classList.toggle('visible', p === 'webgpu');
+            nvidiaConfig.classList.toggle('visible', p === 'nvidia');
             // Ollama: list whatever models are actually installed locally —
             // or on the hub server when this page is served over LAN.
             if (p === 'ollama') {
@@ -668,6 +728,34 @@
                     }
                 }
             }
+            // NVIDIA: same OpenAI-compatible shape (integrate.api.nvidia.com).
+            if (p === 'nvidia') {
+                const key = (document.getElementById('nvApiKey').value || '').trim();
+                const url = (document.getElementById('nvBaseUrl').value || '').trim() || 'https://integrate.api.nvidia.com/v1';
+                if (!key) {
+                    setStatus('warn', '○ Paste your NVIDIA API key (free at build.nvidia.com)');
+                } else {
+                    setStatus('', 'Checking endpoint…');
+                    const probe = await probeNvidia(url, key);
+                    if (token !== refreshToken) return;
+                    const viaHub = await hubServer();
+                    if (probe.ok && probe.models.length) {
+                        modelSelect.innerHTML = '';
+                        probe.models.forEach(id => {
+                            const o = document.createElement('option');
+                            o.value = id;
+                            o.textContent = id;
+                            modelSelect.appendChild(o);
+                        });
+                        setStatus('ok', '● Connected — NVIDIA · ' + probe.models.length + ' model(s)' + (viaHub ? ' via hub' : ''));
+                    } else if (probe.ok) {
+                        setStatus('ok', '● Connected — NVIDIA endpoint reachable' + (viaHub ? ' via hub' : ''));
+                    } else {
+                        setStatus('bad', '○ NVIDIA unreachable or key rejected — check key (nvapi-…)');
+                    }
+                }
+            }
+            // In-browser: no probe possible — just report WebGPU readiness.
             // In-browser: no probe possible — just report WebGPU readiness.
             // The model itself downloads on first chat (cached after).
             if (p === 'webgpu') {
@@ -702,6 +790,12 @@
         document.getElementById('ocBaseUrl').addEventListener('change', e => {
             try { localStorage.setItem('q_ai_oc_url', e.target.value); } catch (err) {}
         });
+        document.getElementById('nvApiKey').addEventListener('change', e => {
+            try { localStorage.setItem('q_ai_nv_key', e.target.value); } catch (err) {}
+        });
+        document.getElementById('nvBaseUrl').addEventListener('change', e => {
+            try { localStorage.setItem('q_ai_nv_url', e.target.value); } catch (err) {}
+        });
         // Restore saved config.
         try {
             const tok = localStorage.getItem('q_ai_hf_token');
@@ -710,6 +804,10 @@
             if (ocKey) document.getElementById('ocApiKey').value = ocKey;
             const ocUrl = localStorage.getItem('q_ai_oc_url');
             if (ocUrl) document.getElementById('ocBaseUrl').value = ocUrl;
+            const nvKey = localStorage.getItem('q_ai_nv_key');
+            if (nvKey) document.getElementById('nvApiKey').value = nvKey;
+            const nvUrl = localStorage.getItem('q_ai_nv_url');
+            if (nvUrl) document.getElementById('nvBaseUrl').value = nvUrl;
             // Ollama URL: restore the saved one, else fill in localhost
             // automatically so a fresh page just works.
             const savedOllama = localStorage.getItem('q_ai_ollama_url');
@@ -749,6 +847,13 @@
             const ocUrl = (document.getElementById('ocBaseUrl').value || '').trim();
             if (ocKey && ocUrl && (await probeOpenCode(ocUrl, ocKey)).ok) {
                 providerSelect.value = 'opencode';
+                await refreshModels();
+                return;
+            }
+            const nvKey = (document.getElementById('nvApiKey').value || '').trim();
+            const nvUrl = (document.getElementById('nvBaseUrl').value || '').trim() || 'https://integrate.api.nvidia.com/v1';
+            if (nvKey && (await probeNvidia(nvUrl, nvKey)).ok) {
+                providerSelect.value = 'nvidia';
                 await refreshModels();
                 return;
             }
@@ -1181,6 +1286,8 @@
                     await sendOllama(message, model);
                 } else if (provider === 'opencode') {
                     await sendOpenCode(message, model);
+                } else if (provider === 'nvidia') {
+                    await sendNVIDIA(message, model);
                 } else if (provider === 'webgpu') {
                     await sendWebGPU(message, model);
                 }
@@ -1379,6 +1486,110 @@
             }
             renderFormattedMessage(fullResponse, messageContent);
             chatHistory.push({ role: 'assistant', content: fullResponse });
+        }
+
+        // Build messages for vision-capable OpenAI-compatible providers:
+        // text files fold into the message body, attached IMAGES ride as
+        // image_url parts (data URLs) so vision models actually see them.
+        function buildVisionMessages() {
+            const msgs = [{ role: 'system', content: LANG_INSTRUCTION }];
+            chatHistory.forEach(m => {
+                if (m.role === 'user' && m.files && m.files.length) {
+                    const parts = [{ type: 'text', text: m.content || '' }];
+                    m.files.forEach(f => {
+                        if (f.preview && f.content && f.content.startsWith('data:image/')) {
+                            parts.push({ type: 'image_url', image_url: { url: f.content } });
+                        } else if (f.content && !f.preview) {
+                            parts[0].text += `\n\n--- File: ${f.file.name} ---\n${f.content}`;
+                        } else if (f.preview) {
+                            parts[0].text += `\n\n[Image attached: ${f.file.name}]`;
+                        }
+                    });
+                    msgs.push({ role: 'user', content: parts });
+                } else {
+                    msgs.push({ role: m.role, content: m.content });
+                }
+            });
+            return msgs;
+        }
+
+        // NVIDIA hosted models: OpenAI-compatible chat completions
+        // (integrate.api.nvidia.com). Images ride along on vision models.
+        // NVIDIA sends no CORS headers, so hub-served pages relay through
+        // the server; anywhere else falls back to a direct attempt.
+        async function sendNVIDIA(message, model) {
+            const apiKey = (document.getElementById('nvApiKey').value || '').trim();
+            if (!apiKey) throw new Error('Paste your NVIDIA API key in the Provider panel first (free at build.nvidia.com).');
+            const baseUrl = (document.getElementById('nvBaseUrl').value || 'https://integrate.api.nvidia.com/v1').trim().replace(/\/$/, '');
+            const payload = {
+                model,
+                messages: buildVisionMessages(),
+                max_tokens: 1024,
+                temperature: 1,
+                top_p: 1,
+                stream: true
+            };
+            async function runStream(res) {
+                const messageContent = addMessage('', 'assistant');
+                hideTypingIndicator();
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let fullResponse = '';
+                let buffer = '';
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+                    for (const line of lines) {
+                        if (!line.trim() || !line.startsWith('data:')) continue;
+                        const data = line.slice(5).trim();
+                        if (data === '[DONE]') continue;
+                        try {
+                            const chunk = JSON.parse(data);
+                            const piece = (chunk.choices && chunk.choices[0] && chunk.choices[0].delta && chunk.choices[0].delta.content) || '';
+                            if (piece) {
+                                fullResponse += piece;
+                                renderFormattedMessage(fullResponse, messageContent);
+                                scrollToBottom();
+                            }
+                        } catch (e) {}
+                    }
+                }
+                renderFormattedMessage(fullResponse, messageContent);
+                chatHistory.push({ role: 'assistant', content: fullResponse });
+            }
+            if (await hubServer()) {
+                const res = await fetch(location.origin + '/api/nvidia/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: apiKey, payload })
+                });
+                if (!res.ok) {
+                    let msg = '';
+                    try {
+                        const j = await res.json();
+                        msg = (j && j.error) || '';
+                    } catch (e) {}
+                    throw new Error('NVIDIA error ' + res.status + (msg ? ': ' + String(msg).slice(0, 120) : ''));
+                }
+                await runStream(res);
+                return;
+            }
+            const res = await fetch(`${baseUrl}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) {
+                const errText = await res.text().catch(() => '');
+                throw new Error(`NVIDIA error ${res.status}: ${errText.slice(0, 120)}`);
+            }
+            await runStream(res);
         }
 
         /* ============================== In-browser AI (WebGPU) ============================== */

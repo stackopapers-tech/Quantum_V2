@@ -1,28 +1,28 @@
 // (c) Quantum Hub — proprietary hub build. All rights reserved.
 // Quantum Hub — core application: catalog, themes, launch engine, settings.
-import { DEFAULT_SETTINGS, DEFAULT_MIRRORS, DEFAULT_GAMES, DEMO_MEDIA, PROXY_DATA, DEFAULT_COLLECTIONS, ACHIEVEMENT_DEFS, DEFAULT_SOUND_PACKS } from './data/defaults.js?v=2026.10.11-11';
-import { TV_CATALOG, MOVIE_CATALOG, ANIME_CATALOG, TOP_TIER } from './data/catalog.js?v=2026.10.11-11';
-import toast from './components/toast.js?v=2026.10.11-11';
-import modals from './components/modal.js?v=2026.10.11-11';
-import { AboutBlankLauncher, launchViaAboutBlank, normalizeHttpUrl, isValidHttpUrl } from './components/about-blank-launcher.js?v=2026.10.11-11';
-import { MirrorLoader, MIRROR_SETS, expandUnblockedMirrors, mirrorCandidates, mirrorUrlGuesses } from './components/mirror-loader.js?v=2026.10.11-11';
-import { POLARIS_GAMES } from './data/polaris-games.js?v=2026.10.11-11';
-import { GAMESITE_GAMES } from './data/gamesite-games.js?v=2026.10.11-11';
-import { GMS55_GAMES } from './data/gms55-games.js?v=2026.10.11-11';
-import { PASTED_GAMES } from './data/pasted-games.js?v=2026.10.11-11';
-import { ESCAPE_ROAD_GAMES } from './data/escape-road-games.js?v=2026.10.11-11';
-import { SELENITE_GAMES } from './data/selenite-games.js?v=2026.10.11-11';
-import { DOTNET_GAMES } from './data/dotnet-games.js?v=2026.10.11-11';
-import { PETEZAH_GAMES } from './data/petezah-games.js?v=2026.10.11-11';
-import { AI_SKILLS, AI_DESIGN_SYSTEMS } from './data/ai-skills.js?v=2026.10.11-11';
-import { openGameViewer } from './components/game-viewer.js?v=2026.10.11-11';
-import { PasswordPolicy, FailedAttemptTracker, SecurityPolicy, defaultPasswordPolicy, defaultFailedTracker } from './components/password-policy.js?v=2026.10.11-11';
-import { userDB } from './components/user-db.js?v=2026.10.11-11';
-import { initHubPlus } from './components/hub-plus.js?v=2026.10.11-11';
-import { initMusicDeck } from './components/music-deck.js?v=2026.10.11-11';
-import { applyAnimatedBg } from './components/animated-bg.js?v=2026.10.11-11';
-import './components/stealth.js?v=2026.10.11-11';
-import { localApi, localInbox } from './local-api.js?v=2026.10.11-11';
+import { DEFAULT_SETTINGS, DEFAULT_MIRRORS, DEFAULT_GAMES, DEMO_MEDIA, PROXY_DATA, DEFAULT_COLLECTIONS, ACHIEVEMENT_DEFS, DEFAULT_SOUND_PACKS } from './data/defaults.js?v=2026.10.15-2';
+import { TV_CATALOG, MOVIE_CATALOG, ANIME_CATALOG, TOP_TIER } from './data/catalog.js?v=2026.10.15-2';
+import toast from './components/toast.js?v=2026.10.15-2';
+import modals from './components/modal.js?v=2026.10.15-2';
+import { AboutBlankLauncher, launchViaAboutBlank, normalizeHttpUrl, isValidHttpUrl } from './components/about-blank-launcher.js?v=2026.10.15-2';
+import { MirrorLoader, MIRROR_SETS, expandUnblockedMirrors, mirrorCandidates, mirrorUrlGuesses } from './components/mirror-loader.js?v=2026.10.15-2';
+import { POLARIS_GAMES } from './data/polaris-games.js?v=2026.10.15-2';
+import { GAMESITE_GAMES } from './data/gamesite-games.js?v=2026.10.15-2';
+import { GMS55_GAMES } from './data/gms55-games.js?v=2026.10.15-2';
+import { PASTED_GAMES } from './data/pasted-games.js?v=2026.10.15-2';
+import { ESCAPE_ROAD_GAMES } from './data/escape-road-games.js?v=2026.10.15-2';
+import { SELENITE_GAMES } from './data/selenite-games.js?v=2026.10.15-2';
+import { DOTNET_GAMES } from './data/dotnet-games.js?v=2026.10.15-2';
+import { PETEZAH_GAMES } from './data/petezah-games.js?v=2026.10.15-2';
+import { AI_SKILLS, AI_DESIGN_SYSTEMS } from './data/ai-skills.js?v=2026.10.15-2';
+import { openGameViewer } from './components/game-viewer.js?v=2026.10.15-2';
+import { PasswordPolicy, FailedAttemptTracker, SecurityPolicy, defaultPasswordPolicy, defaultFailedTracker } from './components/password-policy.js?v=2026.10.15-2';
+import { userDB } from './components/user-db.js?v=2026.10.15-2';
+import { initHubPlus } from './components/hub-plus.js?v=2026.10.15-2';
+import { initMusicDeck } from './components/music-deck.js?v=2026.10.15-2';
+import { applyAnimatedBg } from './components/animated-bg.js?v=2026.10.15-2';
+import './components/stealth.js?v=2026.10.15-2';
+import { localApi, localInbox } from './local-api.js?v=2026.10.15-2';
 
 class GameHubApplication {
     constructor() {
@@ -2267,6 +2267,35 @@ false, messagesContainer);
         overlay.querySelectorAll('.mirror-card').forEach(card => {
             card.addEventListener('click', () => this.chooseInitialMirror(card.dataset.mirrorId));
         });
+
+        // No-mirror entry: paste any link, open it directly.
+        const goBtn = document.getElementById('direct-link-go');
+        const goInput = document.getElementById('direct-link-input');
+        if (goBtn) goBtn.addEventListener('click', () => this.openDirectLink());
+        if (goInput) goInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.openDirectLink();
+            }
+            e.stopPropagation();
+        });
+    }
+
+    openDirectLink() {
+        const input = document.getElementById('direct-link-input');
+        const raw = (input?.value || '').trim();
+        const url = normalizeHttpUrl(raw);
+        if (!url) {
+            toast.show('Paste a link first (https://…).', 'error');
+            return;
+        }
+        let host = url;
+        try { host = new URL(url).hostname; } catch (e) {}
+        launchViaAboutBlank(url, host, {
+            onSuccess: () => toast.show(`Opened ${host} in a cloaked tab.`, 'success', 3000),
+            onFallback: () => toast.show(`If no new tab appeared, allow popups for this site and retry.`, 'error', 6000),
+        });
+        this.dismissInitialScreen();
     }
 
     chooseInitialMirror(mirrorId) {
