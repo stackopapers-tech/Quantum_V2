@@ -729,6 +729,16 @@ NVIDIA_BASE = "https://" + NVIDIA_HOST + "/v1"
 NVIDIA_TIMEOUT = 300
 NVIDIA_BODY_LIMIT = 9 * 1024 * 1024  # chat bodies carry base64 image attachments
 
+# ---------------------------------------------------------------- Xkiro relay (key-optional cloud AI for students)
+#
+# Same browser-CORS situation as NVIDIA (api.xkiro.com sends no CORS
+# headers), same remedy: pinned-host relay, per-request key, never stored.
+# Xkiro answers keyless for many models, so students with nothing
+# configured still get working cloud AI through the hub server.
+XKIRO_HOST = "api.xkiro.com"
+XKIRO_TIMEOUT = 300
+XKIRO_BODY_LIMIT = 9 * 1024 * 1024
+
 # ---------------------------------------------------------------- rate limiting
 
 RATE = {}
@@ -1145,6 +1155,125 @@ class HubHandler(SimpleHTTPRequestHandler):
             except Exception:
                 pass
 
+    def api_xkiro_models(self):
+        # POST /api/xkiro/models {key?} — model list, upstream body passed
+        # through verbatim so OpenAI-shaped clients keep working. Keyless
+        # queries are allowed: Xkiro answers many models without a key.
+        if not rate_allow("xkiro:" + self.client_ip(), 30, 60):
+            self._send_json(429, {"ok": False, "error": "rate limited — slow down"})
+            return
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        if length < 0 or length > 65536:
+            self._send_json(413, {"ok": False, "error": "body too large"})
+            return
+        try:
+            data = json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
+            key = str(data.get("key") or "")
+        except Exception:
+            self._send_json(400, {"ok": False, "error": "invalid JSON body"})
+            return
+        try:
+            headers = {}
+            if key:
+                headers["Authorization"] = "Bearer " + key
+            conn = http.client.HTTPSConnection(XKIRO_HOST, timeout=20)
+            conn.request("GET", "/v1/models", headers=headers)
+            upstream = conn.getresponse()
+            body = upstream.read(65536)
+            status = upstream.status
+            conn.close()
+        except Exception:
+            self._send_json(502, {"ok": False, "error": "xkiro unreachable"})
+            return
+        if status != 200:
+            try:
+                detail = body.decode("utf-8", errors="replace")
+            except Exception:
+                detail = ""
+            self._send_json(status if status in (400, 401, 403, 404, 429) else 502,
+                            {"ok": False, "error": ("xkiro error %d: %s" % (status, detail[:160]))})
+            return
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+    def api_xkiro_chat(self):
+        # POST /api/xkiro/chat {key?, payload} — SSE chat stream, forwarded
+        # chunk by chunk (connection-close delimited) so tokens stream live.
+        if not rate_allow("xkiro:" + self.client_ip(), 20, 60):
+            self._send_json(429, {"ok": False, "error": "rate limited — slow down"})
+            return
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        if length <= 0 or length > XKIRO_BODY_LIMIT:
+            self._send_json(413, {"ok": False, "error": "body too large"})
+            return
+        try:
+            data = json.loads(self.rfile.read(length).decode("utf-8"))
+            key = str(data.get("key") or "")
+            payload = data.get("payload")
+        except Exception:
+            self._send_json(400, {"ok": False, "error": "invalid JSON body"})
+            return
+        if not isinstance(payload, dict):
+            self._send_json(400, {"ok": False, "error": "need {payload}"})
+            return
+        raw = json.dumps(payload).encode("utf-8")
+        try:
+            headers = {"Content-Type": "application/json"}
+            if key:
+                headers["Authorization"] = "Bearer " + key
+            conn = http.client.HTTPSConnection(XKIRO_HOST, timeout=XKIRO_TIMEOUT)
+            conn.request("POST", "/v1/chat/completions", body=raw, headers=headers)
+            upstream = conn.getresponse()
+        except Exception:
+            self._send_json(502, {"ok": False, "error": "xkiro unreachable"})
+            return
+        if upstream.status != 200:
+            try:
+                detail = upstream.read(2000).decode("utf-8", errors="replace")
+            except Exception:
+                detail = ""
+            try:
+                conn.close()
+            except Exception:
+                pass
+            self._send_json(upstream.status if upstream.status in (400, 401, 403, 404, 429) else 502,
+                            {"ok": False, "error": ("xkiro error %d: %s" % (upstream.status, detail[:160]))})
+            return
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            while True:
+                chunk = upstream.read(65536)
+                if not chunk:
+                    break
+                self.wfile.write(chunk)
+                self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
     def do_POST(self):
         parsed = urlparse(self.path)
         if not parsed.path.startswith("/api/"):
@@ -1163,6 +1292,12 @@ class HubHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/nvidia/chat":
             self.api_nvidia_chat()
+            return
+        if parsed.path == "/api/xkiro/models":
+            self.api_xkiro_models()
+            return
+        if parsed.path == "/api/xkiro/chat":
+            self.api_xkiro_chat()
             return
         data = self._read_json()
         try:
