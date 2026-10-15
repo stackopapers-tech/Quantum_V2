@@ -342,6 +342,9 @@
                         <option value="webgpu">In-Browser (WebGPU)</option>
                         <option value="nvidia">NVIDIA API</option>
                         <option value="xkiro">Xkiro</option>
+                        <option value="kilo">Kilo Code (free)</option>
+                        <option value="llm7">LLM7 (free)</option>
+                        <option value="ovh">OVHcloud (free)</option>
                     </select>
                 </div>
                 <div>
@@ -380,6 +383,21 @@
                     <label data-i18n="ocBaseUrl">Base URL</label>
                     <input type="text" id="xkBaseUrl" placeholder="https://api.xkiro.com/v1" autocomplete="off">
                     <div class="config-hint">Xkiro cloud models (OpenAI-compatible). Paste a key to chat — image attachments ride along on vision models.</div>
+                </div>
+                <div class="config-field" id="kiloConfig">
+                    <label data-i18n="ocApiKey">API Key</label>
+                    <input type="password" id="kiApiKey" placeholder="optional — free tier needs none" autocomplete="off">
+                    <div class="config-hint">Kilo Code free models, no key or card needed. Auto-router picks a free model if you leave the model field open.</div>
+                </div>
+                <div class="config-field" id="llm7Config">
+                    <label data-i18n="ocApiKey">API Key</label>
+                    <input type="password" id="llApiKey" placeholder="optional — anonymous works" autocomplete="off">
+                    <div class="config-hint">LLM7 free tier, anonymous access works. A free token from token.llm7.io raises the limits.</div>
+                </div>
+                <div class="config-field" id="ovhConfig">
+                    <label data-i18n="ocApiKey">API Key</label>
+                    <input type="password" id="ovApiKey" placeholder="optional — anonymous works" autocomplete="off">
+                    <div class="config-hint">OVHcloud free anonymous tier (2 requests/min shared). No key, no signup.</div>
                 </div>
                 <div class="config-field" id="webgpuConfig">
                     <div class="config-hint">Runs fully in this browser — no server, no install, nothing leaves the device. First chat downloads the model once (stays cached). Needs Chrome/Edge with WebGPU.</div>
@@ -573,6 +591,31 @@
                     { id: 'google/gemini-3.6-flash', name: 'Gemini 3.6 Flash' },
                     { id: 'openai/gpt-6.1-sol', name: 'GPT-6.1 Sol' }
                 ]
+            },
+            kilo: {
+                models: [
+                    { id: 'kilo-auto/free', name: 'Kilo Auto (free router)' },
+                    { id: 'nvidia/nemotron-3-super-120b-a12b:free', name: 'Nemotron 3 Super 120B (free)' },
+                    { id: 'nvidia/nemotron-3.5-lightning:free', name: 'Nemotron 3.5 Lightning (free)' },
+                    { id: 'qwen/qwen3.8-27b:free', name: 'Qwen 3.8 27B (free)' },
+                    { id: 'liquid/lfm-2.5-2.6b:free', name: 'LFM 2.5 2.6B (free)' }
+                ]
+            },
+            llm7: {
+                models: [
+                    { id: 'gpt-oss:20b', name: 'GPT-OSS 20B' },
+                    { id: 'mistral-Nemo-Instruct-2407', name: 'Mistral Nemo' },
+                    { id: 'minimax-m2.7', name: 'MiniMax M2.7' },
+                    { id: 'DeepSeek-V4-Flash-0731', name: 'DeepSeek V4 Flash' }
+                ]
+            },
+            ovh: {
+                models: [
+                    { id: 'gpt-oss-120b', name: 'GPT-OSS 120B' },
+                    { id: 'gpt-oss-20b', name: 'GPT-OSS 20B' },
+                    { id: 'Meta-Llama-3_3-70B-Instruct', name: 'Llama 3.3 70B' },
+                    { id: 'Qwen3.5-397B-A17B', name: 'Qwen 3.5 397B' }
+                ]
             }
         };
 
@@ -584,6 +627,9 @@
         const webgpuConfig = document.getElementById('webgpuConfig');
         const nvidiaConfig = document.getElementById('nvidiaConfig');
         const xkiroConfig = document.getElementById('xkiroConfig');
+        const kiloConfig = document.getElementById('kiloConfig');
+        const llm7Config = document.getElementById('llm7Config');
+        const ovhConfig = document.getElementById('ovhConfig');
 
         const aiStatus = document.getElementById('aiStatus');
         const OLLAMA_DEFAULT = 'http://localhost:11434';
@@ -677,6 +723,144 @@
                 const models = Array.isArray(j.data) ? j.data.map(m => m.id).filter(Boolean) : [];
                 return { ok: true, models };
             } catch (e) { return { ok: false }; }
+        }
+
+        /* ============================== Free cloud APIs ============================== */
+        // Kilo / LLM7 / OVH: free tiers, no key needed. One shared core —
+        // direct browser call first, hub relay fallback when the host sends
+        // no CORS headers (or the school filter breaks the direct path).
+        const FREE_HOSTS = {
+            kilo: 'https://api.kilo.ai/api/gateway',
+            llm7: 'https://api.llm7.io/v1',
+            ovh: 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1'
+        };
+        // Plain strings when no files ride along (max compatibility),
+        // vision parts when they do.
+        function buildFreeMessages() {
+            const hasFiles = chatHistory.some(m => m.role === 'user' && m.files && m.files.length);
+            if (!hasFiles) {
+                const msgs = [{ role: 'system', content: LANG_INSTRUCTION }];
+                chatHistory.forEach(m => msgs.push({ role: m.role, content: m.content }));
+                return msgs;
+            }
+            return buildVisionMessages();
+        }
+        // One SSE consumer for the free providers: content plus thinking
+        // fragments (reasoning_content / reasoning) so nothing is dropped.
+        async function streamChatInto(res) {
+            const messageContent = addMessage('', 'assistant');
+            hideTypingIndicator();
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let fullResponse = '';
+            let buffer = '';
+            let thinkingMarked = false;
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop();
+                for (const line of lines) {
+                    if (!line.trim() || !line.startsWith('data:')) continue;
+                    const data = line.slice(5).trim();
+                    if (data === '[DONE]') continue;
+                    try {
+                        const chunk = JSON.parse(data);
+                        const delta = (chunk.choices && chunk.choices[0] && chunk.choices[0].delta) || {};
+                        const think = delta.reasoning_content || delta.reasoning || '';
+                        if (think) {
+                            fullResponse += (!thinkingMarked ? '💭 ' : '') + think;
+                            thinkingMarked = true;
+                        }
+                        const piece = delta.content || '';
+                        if (piece) fullResponse += piece;
+                        if (think || piece) {
+                            renderFormattedMessage(fullResponse, messageContent);
+                            scrollToBottom();
+                        }
+                    } catch (e) {}
+                }
+            }
+            renderFormattedMessage(fullResponse, messageContent);
+            chatHistory.push({ role: 'assistant', content: fullResponse });
+        }
+        async function freeFetch(hostKey, op, key, payload, timeoutMs) {
+            const base = FREE_HOSTS[hostKey];
+            const isModels = (op === 'models');
+            const headers = {};
+            if (!isModels) headers['Content-Type'] = 'application/json';
+            if (key) headers['Authorization'] = 'Bearer ' + key;
+            const init = { method: isModels ? 'GET' : 'POST', headers };
+            if (!isModels) init.body = JSON.stringify(payload);
+            if (timeoutMs) {
+                try { init.signal = AbortSignal.timeout(timeoutMs); } catch (e) {}
+            }
+            try {
+                return await fetch(base + (isModels ? '/models' : '/chat/completions'), init);
+            } catch (e) {
+                if (await hubServer()) {
+                    const body = { host: new URL(base).hostname, op };
+                    if (key) body.key = key;
+                    if (!isModels) body.payload = payload;
+                    return await fetch(location.origin + '/api/free-relay', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                }
+                throw e;
+            }
+        }
+        async function freeModels(hostKey, key) {
+            try {
+                const r = await freeFetch(hostKey, 'models', key, null, 8000);
+                if (!r.ok) return { ok: false };
+                const j = await r.json();
+                const models = Array.isArray(j.data) ? j.data.map(m => m.id).filter(Boolean) : [];
+                return { ok: true, models };
+            } catch (e) { return { ok: false }; }
+        }
+        async function freeChat(hostKey, key, model, label) {
+            const res = await freeFetch(hostKey, 'chat', key, {
+                model, messages: buildFreeMessages(),
+                max_tokens: 2048, temperature: 1, stream: true
+            });
+            if (!res.ok) {
+                let msg = '';
+                try {
+                    const j = await res.json();
+                    const err = j && j.error;
+                    msg = (err && (err.message || err)) || '';
+                    if (typeof msg !== 'string') msg = '';
+                } catch (e) {
+                    try { msg = await res.text(); } catch (e2) {}
+                }
+                throw new Error(label + ' error ' + res.status + (msg ? ': ' + String(msg).slice(0, 120) : ''));
+            }
+            await streamChatInto(res);
+        }
+
+        async function refreshFreeProvider(p, hostKey, keyElId, token, label) {
+            const key = (document.getElementById(keyElId).value || '').trim();
+            setStatus('', 'Checking endpoint…');
+            const probe = await freeModels(hostKey, key);
+            if (token !== refreshToken) return;
+            const viaHub = await hubServer();
+            if (probe.ok && probe.models.length) {
+                modelSelect.innerHTML = '';
+                probe.models.forEach(id => {
+                    const o = document.createElement('option');
+                    o.value = id;
+                    o.textContent = id;
+                    modelSelect.appendChild(o);
+                });
+                setStatus('ok', '● Connected — ' + label + ' · ' + probe.models.length + ' model(s)' + (viaHub ? ' via hub' : ''));
+            } else if (probe.ok) {
+                setStatus('ok', '● Connected — ' + label + ' endpoint reachable' + (viaHub ? ' via hub' : ''));
+            } else {
+                setStatus('bad', '○ ' + label + ' unreachable — check connection' + (key ? ' and key' : ''));
+            }
         }
 
         // Xkiro probe: relay through the hub server when it's serving us
@@ -776,6 +960,9 @@
             webgpuConfig.classList.toggle('visible', p === 'webgpu');
             nvidiaConfig.classList.toggle('visible', p === 'nvidia');
             xkiroConfig.classList.toggle('visible', p === 'xkiro');
+            kiloConfig.classList.toggle('visible', p === 'kilo');
+            llm7Config.classList.toggle('visible', p === 'llm7');
+            ovhConfig.classList.toggle('visible', p === 'ovh');
             // Ollama: list whatever models are actually installed locally —
             // or on the hub server when this page is served over LAN.
             if (p === 'ollama') {
@@ -810,6 +997,16 @@
                         ? '○ Hub server has no Ollama running'
                         : '○ Ollama not reachable at ' + base + ' — run `ollama serve`');
                 }
+            }
+            // Free tiers: key optional everywhere — probe with or without.
+            if (p === 'kilo') {
+                await refreshFreeProvider(p, 'kilo', 'kiApiKey', token, 'Kilo Code');
+            }
+            if (p === 'llm7') {
+                await refreshFreeProvider(p, 'llm7', 'llApiKey', token, 'LLM7');
+            }
+            if (p === 'ovh') {
+                await refreshFreeProvider(p, 'ovh', 'ovApiKey', token, 'OVHcloud');
             }
             // HuggingFace: token present + valid means ready to try.
             if (p === 'huggingface') {
@@ -954,6 +1151,11 @@
         document.getElementById('xkBaseUrl').addEventListener('change', e => {
             try { localStorage.setItem('q_ai_xk_url', e.target.value); } catch (err) {}
         });
+        [['kiApiKey', 'q_ai_ki_key'], ['llApiKey', 'q_ai_ll_key'], ['ovApiKey', 'q_ai_ov_key']].forEach(([id, store]) => {
+            document.getElementById(id).addEventListener('change', e => {
+                try { localStorage.setItem(store, e.target.value); } catch (err) {}
+            });
+        });
         // Restore saved config.
         try {
             const tok = localStorage.getItem('q_ai_hf_token');
@@ -970,6 +1172,10 @@
             if (xkKey) document.getElementById('xkApiKey').value = xkKey;
             const xkUrl = localStorage.getItem('q_ai_xk_url');
             if (xkUrl) document.getElementById('xkBaseUrl').value = xkUrl;
+            [['kiApiKey', 'q_ai_ki_key'], ['llApiKey', 'q_ai_ll_key'], ['ovApiKey', 'q_ai_ov_key']].forEach(([id, store]) => {
+                const v = localStorage.getItem(store);
+                if (v) document.getElementById(id).value = v;
+            });
             // Ollama URL: restore the saved one, else fill in localhost
             // automatically so a fresh page just works.
             const savedOllama = localStorage.getItem('q_ai_ollama_url');
@@ -1025,6 +1231,15 @@
                 providerSelect.value = 'xkiro';
                 await refreshModels();
                 return;
+            }
+            // Free tiers last (keyless counts — they genuinely work).
+            for (const spec of [{ p: 'kilo', host: 'kilo', el: 'kiApiKey' }, { p: 'llm7', host: 'llm7', el: 'llApiKey' }, { p: 'ovh', host: 'ovh', el: 'ovApiKey' }]) {
+                const k = (document.getElementById(spec.el).value || '').trim();
+                if ((await freeModels(spec.host, k)).ok) {
+                    providerSelect.value = spec.p;
+                    await refreshModels();
+                    return;
+                }
             }
             providerSelect.value = 'ollama';
             await refreshModels();
@@ -1488,6 +1703,12 @@
                     await sendNVIDIA(message, model);
                 } else if (provider === 'xkiro') {
                     await sendXkiro(message, model);
+                } else if (provider === 'kilo') {
+                    await sendKilo(message, model);
+                } else if (provider === 'llm7') {
+                    await sendLlm7(message, model);
+                } else if (provider === 'ovh') {
+                    await sendOvh(message, model);
                 } else if (provider === 'webgpu') {
                     await sendWebGPU(message, model);
                 }
@@ -1886,6 +2107,20 @@
                 throw new Error(`Xkiro error ${res.status}: ${errText.slice(0, 120)}`);
             }
             await runStream(res);
+        }
+
+        // Free-tier senders: shared core, per-provider key + label.
+        async function sendKilo(message, model) {
+            const key = (document.getElementById('kiApiKey').value || '').trim();
+            await freeChat('kilo', key, model, 'Kilo Code');
+        }
+        async function sendLlm7(message, model) {
+            const key = (document.getElementById('llApiKey').value || '').trim();
+            await freeChat('llm7', key, model, 'LLM7');
+        }
+        async function sendOvh(message, model) {
+            const key = (document.getElementById('ovApiKey').value || '').trim();
+            await freeChat('ovh', key, model, 'OVHcloud');
         }
 
         /* ============================== In-browser AI (WebGPU) ============================== */

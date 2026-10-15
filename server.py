@@ -739,6 +739,20 @@ XKIRO_HOST = "api.xkiro.com"
 XKIRO_TIMEOUT = 300
 XKIRO_BODY_LIMIT = 9 * 1024 * 1024
 
+# ---------------------------------------------------------------- Free-API relay (keyless cloud AI for students)
+#
+# Kilo / LLM7 / OVH cost nothing and need no keys, but not all of them
+# send CORS headers, so browsers can't always call them directly. This
+# single pinned-host relay covers them: host must be on the allowlist,
+# op is models|chat, key (when the student has one) travels per-request
+# and is never stored. Per-IP rate limits apply.
+FREE_RELAY_HOSTS = {
+    "api.kilo.ai": "https://api.kilo.ai/api/gateway",
+    "api.llm7.io": "https://api.llm7.io/v1",
+    "oai.endpoints.kepler.ai.cloud.ovh.net": "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1",
+}
+FREE_BODY_LIMIT = 9 * 1024 * 1024
+
 # ---------------------------------------------------------------- rate limiting
 
 RATE = {}
@@ -1064,7 +1078,7 @@ class HubHandler(SimpleHTTPRequestHandler):
             conn = http.client.HTTPSConnection(NVIDIA_HOST, timeout=20)
             conn.request("GET", "/v1/models", headers={"Authorization": "Bearer " + key})
             upstream = conn.getresponse()
-            body = upstream.read(65536)
+            body = upstream.read()  # full read: catalogs run past any chunk cap
             status = upstream.status
             conn.close()
         except Exception:
@@ -1182,7 +1196,7 @@ class HubHandler(SimpleHTTPRequestHandler):
             conn = http.client.HTTPSConnection(XKIRO_HOST, timeout=20)
             conn.request("GET", "/v1/models", headers=headers)
             upstream = conn.getresponse()
-            body = upstream.read(65536)
+            body = upstream.read()  # full read: catalogs run past any chunk cap
             status = upstream.status
             conn.close()
         except Exception:
@@ -1274,6 +1288,111 @@ class HubHandler(SimpleHTTPRequestHandler):
             except Exception:
                 pass
 
+    def api_free_relay(self):
+        # POST /api/free-relay {host, op, key?, payload?} — one relay for
+        # every free-tier host on the allowlist (models = list, chat = SSE
+        # stream). Anything off-list is rejected: never an open proxy.
+        if not rate_allow("free:" + self.client_ip(), 20, 60):
+            self._send_json(429, {"ok": False, "error": "rate limited — slow down"})
+            return
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        if length <= 0 or length > FREE_BODY_LIMIT:
+            self._send_json(413, {"ok": False, "error": "body too large"})
+            return
+        try:
+            data = json.loads(self.rfile.read(length).decode("utf-8"))
+            host = str(data.get("host") or "")
+            op = str(data.get("op") or "")
+            key = str(data.get("key") or "")
+            payload = data.get("payload")
+        except Exception:
+            self._send_json(400, {"ok": False, "error": "invalid JSON body"})
+            return
+        base = FREE_RELAY_HOSTS.get(host)
+        if not base or op not in ("models", "chat"):
+            self._send_json(400, {"ok": False, "error": "unknown host or op"})
+            return
+        headers = {}
+        if key:
+            headers["Authorization"] = "Bearer " + key
+        try:
+            if op == "models":
+                conn = http.client.HTTPSConnection(host, timeout=20)
+                conn.request("GET", base[len("https://" + host):] + "/models", headers=headers)
+                upstream = conn.getresponse()
+                body = upstream.read()  # full read: catalogs run past any chunk cap
+                status = upstream.status
+                conn.close()
+                if status != 200:
+                    raise ApiError(status if status in (400, 401, 403, 404, 429) else 502,
+                                   "upstream error %d" % status)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            if not isinstance(payload, dict):
+                self._send_json(400, {"ok": False, "error": "need {payload}"})
+                return
+            raw = json.dumps(payload).encode("utf-8")
+            headers["Content-Type"] = "application/json"
+            conn = http.client.HTTPSConnection(host, timeout=300)
+            conn.request("POST", base[len("https://" + host):] + "/chat/completions",
+                         body=raw, headers=headers)
+            upstream = conn.getresponse()
+            if upstream.status != 200:
+                try:
+                    detail = upstream.read(2000).decode("utf-8", errors="replace")
+                except Exception:
+                    detail = ""
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+                self._send_json(upstream.status if upstream.status in (400, 401, 403, 404, 429) else 502,
+                                {"ok": False, "error": ("upstream error %d: %s" % (upstream.status, detail[:160]))})
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            while True:
+                chunk = upstream.read(65536)
+                if not chunk:
+                    break
+                self.wfile.write(chunk)
+                self.wfile.flush()
+        except ApiError as e:
+            try:
+                conn.close()
+            except Exception:
+                pass
+            self._send_json(e.status, {"ok": False, "error": e.message})
+        except (BrokenPipeError, ConnectionResetError):
+            try:
+                conn.close()
+            except Exception:
+                pass
+        except Exception:
+            try:
+                conn.close()
+            except Exception:
+                pass
+            self._send_json(502, {"ok": False, "error": "relay failed"})
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
     def do_POST(self):
         parsed = urlparse(self.path)
         if not parsed.path.startswith("/api/"):
@@ -1298,6 +1417,9 @@ class HubHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/xkiro/chat":
             self.api_xkiro_chat()
+            return
+        if parsed.path == "/api/free-relay":
+            self.api_free_relay()
             return
         data = self._read_json()
         try:
