@@ -13,8 +13,8 @@
  * JS-only overlay: no index.html changes required.
  */
 
-import { probeFirstReachable } from './mirror-loader.js?v=2026.10.15-2';
-import { isMediaUrl, mediaFrameUrl } from './about-blank-launcher.js?v=2026.10.15-2';
+import { probeFirstReachable } from './mirror-loader.js?v=2026.10.15-3';
+import { isMediaUrl, mediaFrameUrl } from './about-blank-launcher.js?v=2026.10.15-3';
 
 let activeViewer = null;
 
