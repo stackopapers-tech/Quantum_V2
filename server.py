@@ -703,6 +703,15 @@ def check_password_policy(password: str):
     return None
 
 
+# ---------------------------------------------------------------- FreeLLM router relay (aggregated free tiers for LAN browsers)
+#
+# Same zero-setup story as the Ollama relay: whoever runs the hub server
+# also runs the FreeLLM router (localhost:3001), and LAN browsers ride it
+# with no install. Fixed local paths only — never an open proxy.
+FREELLM_HOST = os.environ.get("FREELLM_HOST", "127.0.0.1")
+FREELLM_PORT = int(os.environ.get("FREELLM_PORT", "3001"))
+FREELLM_DOWN_MSG = "hub has no FreeLLM router running"
+
 # ---------------------------------------------------------------- Ollama relay (zero-config AI for LAN browsers)
 #
 # Students on locked-down machines can't install Ollama or use a terminal,
@@ -903,6 +912,9 @@ class HubHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/ollama/tags":
             self.api_ollama_tags()
             return
+        if parsed.path == "/api/freellm/models":
+            self.api_freellm_models()
+            return
         if parsed.path == "/relay":
             self._serve_relay(parsed, path_form=False)
             return
@@ -968,6 +980,99 @@ class HubHandler(SimpleHTTPRequestHandler):
             self.wfile.write(body)
         except (BrokenPipeError, ConnectionResetError):
             pass
+
+    def api_freellm_models(self):
+        # GET /api/freellm/models — model catalog of the hub server's local
+        # FreeLLM router (itself an aggregator of free tiers).
+        if not rate_allow("freellm:" + self.client_ip(), 60, 60):
+            self._send_json(429, {"ok": False, "error": "rate limited — slow down"})
+            return
+        try:
+            conn = http.client.HTTPConnection(FREELLM_HOST, FREELLM_PORT, timeout=15)
+            conn.request("GET", "/v1/models")
+            res = conn.getresponse()
+            body = res.read()
+            conn.close()
+        except Exception:
+            self._send_json(502, {"ok": False, "error": FREELLM_DOWN_MSG})
+            return
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+    def api_freellm_chat(self):
+        # POST /api/freellm/chat {payload} — NDJSON chat stream, forwarded
+        # chunk by chunk (connection-close delimited) so tokens stream live.
+        if not rate_allow("freellm:" + self.client_ip(), 30, 60):
+            self._send_json(429, {"ok": False, "error": "rate limited — slow down"})
+            return
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        if length <= 0 or length > OLLAMA_BODY_LIMIT:
+            self._send_json(413, {"ok": False, "error": "body too large"})
+            return
+        try:
+            data = json.loads(self.rfile.read(length).decode("utf-8"))
+            key = ""
+            payload = data
+            if isinstance(data, dict) and "payload" in data:
+                key = str(data.get("key") or "")
+                payload = data.get("payload")
+            raw = json.dumps(payload).encode("utf-8")
+            json.loads(raw.decode("utf-8"))  # must be JSON; FreeLLM validates the rest
+        except Exception:
+            self._send_json(400, {"ok": False, "error": "invalid JSON body"})
+            return
+        try:
+            headers = {"Content-Type": "application/json"}
+            if key:
+                headers["Authorization"] = "Bearer " + key
+            conn = http.client.HTTPConnection(FREELLM_HOST, FREELLM_PORT, timeout=OLLAMA_TIMEOUT)
+            conn.request("POST", "/v1/chat/completions", body=raw, headers=headers)
+            upstream = conn.getresponse()
+        except Exception:
+            self._send_json(502, {"ok": False, "error": FREELLM_DOWN_MSG})
+            return
+        if upstream.status != 200:
+            try:
+                detail = upstream.read(2000).decode("utf-8", errors="replace")
+            except Exception:
+                detail = ""
+            try:
+                conn.close()
+            except Exception:
+                pass
+            self._send_json(502, {"ok": False, "error": ("freellm error %d: %s" % (upstream.status, detail[:160]))})
+            return
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "application/x-ndjson")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            while True:
+                chunk = upstream.read(65536)
+                if not chunk:
+                    break
+                self.wfile.write(chunk)
+                self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
     def api_ollama_tags(self):
         # GET /api/ollama/tags — installed models on the hub server.
@@ -1405,6 +1510,9 @@ class HubHandler(SimpleHTTPRequestHandler):
             # Raw-body relay (chat bodies carry base64 images — far past the
             # 64K JSON helper's budget), so it bypasses _read_json.
             self.api_ollama_chat()
+            return
+        if parsed.path == "/api/freellm/chat":
+            self.api_freellm_chat()
             return
         if parsed.path == "/api/nvidia/models":
             self.api_nvidia_models()

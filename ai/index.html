@@ -186,6 +186,23 @@
         }
         .message:hover .msg-copy { opacity: 1; }
         .msg-copy:hover { color: #fff; border-color: #555; }
+        .thoughts {
+            margin-top: 10px; border: 1px solid #333; border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3); font-size: 14px;
+        }
+        .thoughts summary {
+            cursor: pointer; padding: 8px 12px; color: #888; font-size: 13px;
+            list-style: none; display: flex; gap: 6px; align-items: center;
+        }
+        .thoughts summary::-webkit-details-marker { display: none; }
+        .thoughts summary::before { content: '▶'; font-size: 10px; color: var(--acc); }
+        .thoughts[open] summary::before { content: '▼'; }
+        .thoughts-body {
+            padding: 4px 12px 12px; color: #b3b3b3;
+            white-space: pre-wrap; line-height: 1.6; font-size: 14px;
+            max-height: 300px; overflow-y: auto;
+        }
+        .thoughts-hint { color: #555; font-size: 11px; }
         .message.user .message-content {
             background-color: #1a2a1a; color: #d0ffd0;
         }
@@ -345,6 +362,7 @@
                         <option value="kilo">Kilo Code (free)</option>
                         <option value="llm7">LLM7 (free)</option>
                         <option value="ovh">OVHcloud (free)</option>
+                        <option value="freellm">FreeLLM Router</option>
                     </select>
                 </div>
                 <div>
@@ -398,6 +416,20 @@
                     <label data-i18n="ocApiKey">API Key</label>
                     <input type="password" id="ovApiKey" placeholder="optional — anonymous works" autocomplete="off">
                     <div class="config-hint">OVHcloud free anonymous tier (2 requests/min shared). No key, no signup.</div>
+                </div>
+                <div class="config-field" id="freellmConfig">
+                    <label data-i18n="ocApiKey">API Key</label>
+                    <input type="password" id="flApiKey" placeholder="unified key from your router dashboard" autocomplete="off">
+                    <label>Router URL</label>
+                    <input type="text" id="flBaseUrl" placeholder="http://localhost:3001/v1" autocomplete="off">
+                    <div class="config-hint">FreeLLM local router (aggregates free tiers, smart failover). Whoever runs the hub runs this too — students ride it with zero setup.</div>
+                </div>
+                <div class="config-field" id="freellmConfig">
+                    <label data-i18n="ocApiKey">API Key</label>
+                    <input type="password" id="flApiKey" placeholder="unified key from your router dashboard" autocomplete="off">
+                    <label>Router URL</label>
+                    <input type="text" id="flBaseUrl" placeholder="http://localhost:3001/v1" autocomplete="off">
+                    <div class="config-hint">FreeLLM local router (aggregates free tiers, smart failover). Whoever runs the hub runs this too — students ride it with zero setup.</div>
                 </div>
                 <div class="config-field" id="webgpuConfig">
                     <div class="config-hint">Runs fully in this browser — no server, no install, nothing leaves the device. First chat downloads the model once (stays cached). Needs Chrome/Edge with WebGPU.</div>
@@ -492,12 +524,12 @@
     <script>
         /* ============================== i18n ============================== */
         const I18N = {
-            en: { newChat: 'New chat', backHub: 'Hub', provider: 'Provider', model: 'Model', attachFile: 'Attach file', send: 'Send', hfToken: 'HuggingFace Token', hfHint: 'Paste a free token from huggingface.co/settings/tokens', ollamaUrl: 'Ollama URL', ollamaHint: 'Run ollama serve locally, then pull a model (e.g. ollama pull llama3)', ocApiKey: 'API Key', ocBaseUrl: 'Base URL', ocHint: 'OpenAI-compatible endpoint. Use your key from OpenAI, Anthropic, Google, or any OpenCode-supported provider.', recents: 'Recents', noRecents: 'No recent conversations', greeting: 'Quantum AI', write: 'Write', learn: 'Learn', code: 'Code', life: 'Life stuff', thinking: 'Quantum AI is thinking', welcomePh: 'How can I help you today?', chatPh: 'Message Quantum AI...', pullTitle: 'Download an Ollama model', pullDesc: 'Ollama is running but has no models yet. Pick one to download — this can take a while on slow connections.', pullBtn: 'Download a model', pullGo: 'Download', pullCancel: 'Cancel', langName: 'English' },
-            es: { newChat: 'Nuevo chat', backHub: 'Inicio', provider: 'Proveedor', model: 'Modelo', attachFile: 'Adjuntar archivo', send: 'Enviar', hfToken: 'Token de HuggingFace', hfHint: 'Pega un token gratuito de huggingface.co/settings/tokens', ollamaUrl: 'URL de Ollama', ollamaHint: 'Ejecuta ollama serve localmente, luego descarga un modelo (ej. ollama pull llama3)', ocApiKey: 'Clave API', ocBaseUrl: 'URL base', ocHint: 'Endpoint compatible con OpenAI. Usa tu clave de OpenAI, Anthropic, Google o cualquier proveedor compatible con OpenCode.', recents: 'Recientes', noRecents: 'No hay conversaciones recientes', greeting: 'Quantum AI', write: 'Escribir', learn: 'Aprender', code: 'Código', life: 'Tareas diarias', thinking: 'Quantum AI está pensando', welcomePh: '¿Cómo puedo ayudarte hoy?', chatPh: 'Mensaje a Quantum AI...', pullTitle: 'Descargar un modelo de Ollama', pullDesc: 'Ollama funciona pero no tiene modelos. Elige uno para descargar — puede tardar según tu conexión.', pullBtn: 'Descargar un modelo', pullGo: 'Descargar', pullCancel: 'Cancelar', langName: 'Español' },
-            fr: { newChat: 'Nouveau chat', backHub: 'Accueil', provider: 'Fournisseur', model: 'Modèle', attachFile: 'Joindre un fichier', send: 'Envoyer', hfToken: 'Jeton HuggingFace', hfHint: 'Collez un jeton gratuit depuis huggingface.co/settings/tokens', ollamaUrl: 'URL Ollama', ollamaHint: 'Lancez ollama serve localement, puis téléchargez un modèle (ex. ollama pull llama3)', ocApiKey: 'Clé API', ocBaseUrl: 'URL de base', ocHint: 'Endpoint compatible OpenAI. Utilisez votre clé OpenAI, Anthropic, Google ou tout fournisseur compatible OpenCode.', recents: 'Récents', noRecents: 'Aucune conversation récente', greeting: 'Quantum AI', write: 'Écrire', learn: 'Apprendre', code: 'Code', life: 'Tâches quotidiennes', thinking: 'Quantum AI réfléchit', welcomePh: 'Comment puis-je vous aider ?', chatPh: 'Message à Quantum AI...', pullTitle: 'Télécharger un modèle Ollama', pullDesc: 'Ollama fonctionne mais sans modèle. Choisissez-en un à télécharger — cela peut prendre un moment.', pullBtn: 'Télécharger un modèle', pullGo: 'Télécharger', pullCancel: 'Annuler', langName: 'Français' },
-            de: { newChat: 'Neuer Chat', backHub: 'Hub', provider: 'Anbieter', model: 'Modell', attachFile: 'Datei anhängen', send: 'Senden', hfToken: 'HuggingFace-Token', hfHint: 'Füge ein kostenloses Token von huggingface.co/settings/tokens ein', ollamaUrl: 'Ollama-URL', ollamaHint: 'Führe ollama serve lokal aus, dann lade ein Modell (z.B. ollama pull llama3)', ocApiKey: 'API-Schlüssel', ocBaseUrl: 'Basis-URL', ocHint: 'OpenAI-kompatibler Endpunkt. Verwende deinen Schlüssel von OpenAI, Anthropic, Google oder einem anderen OpenCode-kompatiblen Anbieter.', recents: 'Kürzlich', noRecents: 'Keine kürzlichen Gespräche', greeting: 'Quantum AI', write: 'Schreiben', learn: 'Lernen', code: 'Code', life: 'Alltagsaufgaben', thinking: 'Quantum AI denkt nach', welcomePh: 'Wie kann ich Ihnen helfen?', chatPh: 'Nachricht an Quantum AI...', pullTitle: 'Ollama-Modell herunterladen', pullDesc: 'Ollama läuft, hat aber keine Modelle. Wähle eines zum Herunterladen — je nach Verbindung dauert es.', pullBtn: 'Modell herunterladen', pullGo: 'Herunterladen', pullCancel: 'Abbrechen', langName: 'Deutsch' },
-            ja: { newChat: '新しいチャット', backHub: 'ハブ', provider: 'プロバイダー', model: 'モデル', attachFile: 'ファイルを添付', send: '送信', hfToken: 'HuggingFaceトークン', hfHint: 'huggingface.co/settings/tokens から無料トークンを貼り付け', ollamaUrl: 'Ollama URL', ollamaHint: 'ローカルで ollama serve を実行し、モデルをダウンロード (例: ollama pull llama3)', ocApiKey: 'APIキー', ocBaseUrl: 'ベースURL', ocHint: 'OpenAI互換エンドポイント。OpenAI、Anthropic、Google、またはOpenCode対応プロバイダーのキーを使用。', recents: '最近', noRecents: '最近の会話はありません', greeting: 'Quantum AI', write: '書く', learn: '学ぶ', code: 'コード', life: '日常のタスク', thinking: 'Quantum AIが考え中', welcomePh: '今日は何をお手伝いしましょうか？', chatPh: 'Quantum AIへのメッセージ...', pullTitle: 'Ollamaモデルをダウンロード', pullDesc: 'Ollamaは動作中ですがモデルがありません。ダウンロードするモデルを選択してください。', pullBtn: 'モデルをダウンロード', pullGo: 'ダウンロード', pullCancel: 'キャンセル', langName: '日本語' },
-            zh: { newChat: '新对话', backHub: '主页', provider: '提供商', model: '模型', attachFile: '附件', send: '发送', hfToken: 'HuggingFace 令牌', hfHint: '从 huggingface.co/settings/tokens 粘贴免费令牌', ollamaUrl: 'Ollama 地址', ollamaHint: '在本地运行 ollama serve，然后拉取模型（如 ollama pull llama3）', ocApiKey: 'API 密钥', ocBaseUrl: '基础 URL', ocHint: 'OpenAI 兼容端点。使用 OpenAI、Anthropic、Google 或任何 OpenCode 支持提供商的密钥。', recents: '最近', noRecents: '暂无最近对话', greeting: 'Quantum AI', write: '写作', learn: '学习', code: '编程', life: '日常任务', thinking: 'Quantum AI 正在思考', welcomePh: '今天我能帮你什么？', chatPh: '给 Quantum AI 发消息...', pullTitle: '下载 Ollama 模型', pullDesc: 'Ollama 运行正常，但还没有模型。选择一个下载（视网速而定）。', pullBtn: '下载模型', pullGo: '下载', pullCancel: '取消', langName: '中文' }
+            en: { newChat: 'New chat', backHub: 'Hub', thought: 'Thought', thoughtHint: '(click to expand)', provider: 'Provider', model: 'Model', attachFile: 'Attach file', send: 'Send', hfToken: 'HuggingFace Token', hfHint: 'Paste a free token from huggingface.co/settings/tokens', ollamaUrl: 'Ollama URL', ollamaHint: 'Run ollama serve locally, then pull a model (e.g. ollama pull llama3)', ocApiKey: 'API Key', ocBaseUrl: 'Base URL', ocHint: 'OpenAI-compatible endpoint. Use your key from OpenAI, Anthropic, Google, or any OpenCode-supported provider.', recents: 'Recents', noRecents: 'No recent conversations', greeting: 'Quantum AI', write: 'Write', learn: 'Learn', code: 'Code', life: 'Life stuff', thinking: 'Quantum AI is thinking', welcomePh: 'How can I help you today?', chatPh: 'Message Quantum AI...', pullTitle: 'Download an Ollama model', pullDesc: 'Ollama is running but has no models yet. Pick one to download — this can take a while on slow connections.', pullBtn: 'Download a model', pullGo: 'Download', pullCancel: 'Cancel', langName: 'English' },
+            es: { newChat: 'Nuevo chat', backHub: 'Inicio', thought: 'Pensamiento', thoughtHint: '(clic para expandir)', provider: 'Proveedor', model: 'Modelo', attachFile: 'Adjuntar archivo', send: 'Enviar', hfToken: 'Token de HuggingFace', hfHint: 'Pega un token gratuito de huggingface.co/settings/tokens', ollamaUrl: 'URL de Ollama', ollamaHint: 'Ejecuta ollama serve localmente, luego descarga un modelo (ej. ollama pull llama3)', ocApiKey: 'Clave API', ocBaseUrl: 'URL base', ocHint: 'Endpoint compatible con OpenAI. Usa tu clave de OpenAI, Anthropic, Google o cualquier proveedor compatible con OpenCode.', recents: 'Recientes', noRecents: 'No hay conversaciones recientes', greeting: 'Quantum AI', write: 'Escribir', learn: 'Aprender', code: 'Código', life: 'Tareas diarias', thinking: 'Quantum AI está pensando', welcomePh: '¿Cómo puedo ayudarte hoy?', chatPh: 'Mensaje a Quantum AI...', pullTitle: 'Descargar un modelo de Ollama', pullDesc: 'Ollama funciona pero no tiene modelos. Elige uno para descargar — puede tardar según tu conexión.', pullBtn: 'Descargar un modelo', pullGo: 'Descargar', pullCancel: 'Cancelar', langName: 'Español' },
+            fr: { newChat: 'Nouveau chat', backHub: 'Accueil', thought: 'Réflexion', thoughtHint: '(cliquer pour déplier)', provider: 'Fournisseur', model: 'Modèle', attachFile: 'Joindre un fichier', send: 'Envoyer', hfToken: 'Jeton HuggingFace', hfHint: 'Collez un jeton gratuit depuis huggingface.co/settings/tokens', ollamaUrl: 'URL Ollama', ollamaHint: 'Lancez ollama serve localement, puis téléchargez un modèle (ex. ollama pull llama3)', ocApiKey: 'Clé API', ocBaseUrl: 'URL de base', ocHint: 'Endpoint compatible OpenAI. Utilisez votre clé OpenAI, Anthropic, Google ou tout fournisseur compatible OpenCode.', recents: 'Récents', noRecents: 'Aucune conversation récente', greeting: 'Quantum AI', write: 'Écrire', learn: 'Apprendre', code: 'Code', life: 'Tâches quotidiennes', thinking: 'Quantum AI réfléchit', welcomePh: 'Comment puis-je vous aider ?', chatPh: 'Message à Quantum AI...', pullTitle: 'Télécharger un modèle Ollama', pullDesc: 'Ollama fonctionne mais sans modèle. Choisissez-en un à télécharger — cela peut prendre un moment.', pullBtn: 'Télécharger un modèle', pullGo: 'Télécharger', pullCancel: 'Annuler', langName: 'Français' },
+            de: { newChat: 'Neuer Chat', backHub: 'Hub', thought: 'Gedanken', thoughtHint: '(klicken zum Erweitern)', provider: 'Anbieter', model: 'Modell', attachFile: 'Datei anhängen', send: 'Senden', hfToken: 'HuggingFace-Token', hfHint: 'Füge ein kostenloses Token von huggingface.co/settings/tokens ein', ollamaUrl: 'Ollama-URL', ollamaHint: 'Führe ollama serve lokal aus, dann lade ein Modell (z.B. ollama pull llama3)', ocApiKey: 'API-Schlüssel', ocBaseUrl: 'Basis-URL', ocHint: 'OpenAI-kompatibler Endpunkt. Verwende deinen Schlüssel von OpenAI, Anthropic, Google oder einem anderen OpenCode-kompatiblen Anbieter.', recents: 'Kürzlich', noRecents: 'Keine kürzlichen Gespräche', greeting: 'Quantum AI', write: 'Schreiben', learn: 'Lernen', code: 'Code', life: 'Alltagsaufgaben', thinking: 'Quantum AI denkt nach', welcomePh: 'Wie kann ich Ihnen helfen?', chatPh: 'Nachricht an Quantum AI...', pullTitle: 'Ollama-Modell herunterladen', pullDesc: 'Ollama läuft, hat aber keine Modelle. Wähle eines zum Herunterladen — je nach Verbindung dauert es.', pullBtn: 'Modell herunterladen', pullGo: 'Herunterladen', pullCancel: 'Abbrechen', langName: 'Deutsch' },
+            ja: { newChat: '新しいチャット', backHub: 'ハブ', thought: '思考プロセス', thoughtHint: '(クリックで展開)', provider: 'プロバイダー', model: 'モデル', attachFile: 'ファイルを添付', send: '送信', hfToken: 'HuggingFaceトークン', hfHint: 'huggingface.co/settings/tokens から無料トークンを貼り付け', ollamaUrl: 'Ollama URL', ollamaHint: 'ローカルで ollama serve を実行し、モデルをダウンロード (例: ollama pull llama3)', ocApiKey: 'APIキー', ocBaseUrl: 'ベースURL', ocHint: 'OpenAI互換エンドポイント。OpenAI、Anthropic、Google、またはOpenCode対応プロバイダーのキーを使用。', recents: '最近', noRecents: '最近の会話はありません', greeting: 'Quantum AI', write: '書く', learn: '学ぶ', code: 'コード', life: '日常のタスク', thinking: 'Quantum AIが考え中', welcomePh: '今日は何をお手伝いしましょうか？', chatPh: 'Quantum AIへのメッセージ...', pullTitle: 'Ollamaモデルをダウンロード', pullDesc: 'Ollamaは動作中ですがモデルがありません。ダウンロードするモデルを選択してください。', pullBtn: 'モデルをダウンロード', pullGo: 'ダウンロード', pullCancel: 'キャンセル', langName: '日本語' },
+            zh: { newChat: '新对话', backHub: '主页', thought: '思考过程', thoughtHint: '(点击展开)', provider: '提供商', model: '模型', attachFile: '附件', send: '发送', hfToken: 'HuggingFace 令牌', hfHint: '从 huggingface.co/settings/tokens 粘贴免费令牌', ollamaUrl: 'Ollama 地址', ollamaHint: '在本地运行 ollama serve，然后拉取模型（如 ollama pull llama3）', ocApiKey: 'API 密钥', ocBaseUrl: '基础 URL', ocHint: 'OpenAI 兼容端点。使用 OpenAI、Anthropic、Google 或任何 OpenCode 支持提供商的密钥。', recents: '最近', noRecents: '暂无最近对话', greeting: 'Quantum AI', write: '写作', learn: '学习', code: '编程', life: '日常任务', thinking: 'Quantum AI 正在思考', welcomePh: '今天我能帮你什么？', chatPh: '给 Quantum AI 发消息...', pullTitle: '下载 Ollama 模型', pullDesc: 'Ollama 运行正常，但还没有模型。选择一个下载（视网速而定）。', pullBtn: '下载模型', pullGo: '下载', pullCancel: '取消', langName: '中文' }
         };
 
         // Language: from the hub (?lang=), else browser, else English.
@@ -523,7 +555,7 @@
         // Every provider replies as Quantum AI, in the interface language.
         const LANG_NAME = (I18N[lang] && I18N[lang].langName) || 'English';
         const IDENTITY = 'You are Quantum AI, the assistant of Quantum Hub. Always identify yourself as Quantum AI — never as Llama, Mistral, Ollama, HuggingFace, or any other underlying model or provider. If asked which model powers you, say you are Quantum AI.';
-        const LANG_INSTRUCTION = IDENTITY + ' Always respond in ' + LANG_NAME + '.';
+        const LANG_INSTRUCTION = IDENTITY + ' Mirror the user’s language: always reply in the same language the user writes in. If the language is unclear or the message is language-neutral (code, numbers, single words), use ' + LANG_NAME + '.';
 
         /* ============================== Providers ============================== */
         const PROVIDERS = {
@@ -616,6 +648,13 @@
                     { id: 'Meta-Llama-3_3-70B-Instruct', name: 'Llama 3.3 70B' },
                     { id: 'Qwen3.5-397B-A17B', name: 'Qwen 3.5 397B' }
                 ]
+            },
+            freellm: {
+                models: [
+                    { id: 'auto', name: 'Auto (router picks)' },
+                    { id: 'auto:fast', name: 'Auto: fast' },
+                    { id: 'auto:smart', name: 'Auto: smart' }
+                ]
             }
         };
 
@@ -630,6 +669,7 @@
         const kiloConfig = document.getElementById('kiloConfig');
         const llm7Config = document.getElementById('llm7Config');
         const ovhConfig = document.getElementById('ovhConfig');
+        const freellmConfig = document.getElementById('freellmConfig');
 
         const aiStatus = document.getElementById('aiStatus');
         const OLLAMA_DEFAULT = 'http://localhost:11434';
@@ -641,12 +681,12 @@
         // the hub server's Ollama instead: same-origin /api/ollama/* needs
         // no install, no terminal, no config. Localhost/file:// keeps
         // talking straight to local Ollama.
-        function hubRelayBase() {
+        function hubRelayBase(name) {
             try {
                 const h = location.hostname || '';
                 if (!h || h === 'localhost' || h === '127.0.0.1' || h === '[::1]') return null;
                 if (location.protocol !== 'http:' && location.protocol !== 'https:') return null;
-                return location.origin + '/api/ollama';
+                return location.origin + '/api/' + (name || 'ollama');
             } catch (e) { return null; }
         }
         function effectiveOllamaBase() {
@@ -752,9 +792,9 @@
             hideTypingIndicator();
             const reader = res.body.getReader();
             const decoder = new TextDecoder();
+            let fullThink = '';
             let fullResponse = '';
             let buffer = '';
-            let thinkingMarked = false;
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
@@ -769,20 +809,17 @@
                         const chunk = JSON.parse(data);
                         const delta = (chunk.choices && chunk.choices[0] && chunk.choices[0].delta) || {};
                         const think = delta.reasoning_content || delta.reasoning || '';
-                        if (think) {
-                            fullResponse += (!thinkingMarked ? '💭 ' : '') + think;
-                            thinkingMarked = true;
-                        }
+                        if (think) fullThink += think;
                         const piece = delta.content || '';
                         if (piece) fullResponse += piece;
                         if (think || piece) {
-                            renderFormattedMessage(fullResponse, messageContent);
+                            renderSplitAnswer(messageContent, fullThink, fullResponse);
                             scrollToBottom();
                         }
                     } catch (e) {}
                 }
             }
-            renderFormattedMessage(fullResponse, messageContent);
+            renderSplitAnswer(messageContent, fullThink, fullResponse);
             chatHistory.push({ role: 'assistant', content: fullResponse });
         }
         async function freeFetch(hostKey, op, key, payload, timeoutMs) {
@@ -963,6 +1000,7 @@
             kiloConfig.classList.toggle('visible', p === 'kilo');
             llm7Config.classList.toggle('visible', p === 'llm7');
             ovhConfig.classList.toggle('visible', p === 'ovh');
+            freellmConfig.classList.toggle('visible', p === 'freellm');
             // Ollama: list whatever models are actually installed locally —
             // or on the hub server when this page is served over LAN.
             if (p === 'ollama') {
@@ -998,7 +1036,29 @@
                         : '○ Ollama not reachable at ' + base + ' — run `ollama serve`');
                 }
             }
-            // Free tiers: key optional everywhere — probe with or without.
+            // FreeLLM local router: whoever runs the hub runs this too.
+            if (p === 'freellm') {
+                const key = (document.getElementById('flApiKey').value || '').trim();
+                const url = (document.getElementById('flBaseUrl').value || '').trim() || 'http://localhost:3001/v1';
+                setStatus('', 'Checking endpoint…');
+                const probe = await probeFreellm(url, key);
+                if (token !== refreshToken) return;
+                const viaHub = await hubServer();
+                if (probe.ok && probe.models.length) {
+                    modelSelect.innerHTML = '';
+                    probe.models.forEach(id => {
+                        const o = document.createElement('option');
+                        o.value = id;
+                        o.textContent = id;
+                        modelSelect.appendChild(o);
+                    });
+                    setStatus('ok', '● Connected — FreeLLM · ' + probe.models.length + ' model(s)' + (viaHub ? ' via hub' : ''));
+                } else if (probe.ok) {
+                    setStatus('ok', '● Connected — FreeLLM router reachable' + (viaHub ? ' via hub' : ''));
+                } else {
+                    setStatus('bad', '○ FreeLLM router unreachable — start it where the hub runs');
+                }
+            }
             if (p === 'kilo') {
                 await refreshFreeProvider(p, 'kilo', 'kiApiKey', token, 'Kilo Code');
             }
@@ -1156,6 +1216,12 @@
                 try { localStorage.setItem(store, e.target.value); } catch (err) {}
             });
         });
+        document.getElementById('flApiKey').addEventListener('change', e => {
+            try { localStorage.setItem('q_ai_fl_key', e.target.value); } catch (err) {}
+        });
+        document.getElementById('flBaseUrl').addEventListener('change', e => {
+            try { localStorage.setItem('q_ai_fl_url', e.target.value); } catch (err) {}
+        });
         // Restore saved config.
         try {
             const tok = localStorage.getItem('q_ai_hf_token');
@@ -1176,6 +1242,10 @@
                 const v = localStorage.getItem(store);
                 if (v) document.getElementById(id).value = v;
             });
+            const flKey = localStorage.getItem('q_ai_fl_key');
+            if (flKey) document.getElementById('flApiKey').value = flKey;
+            const flUrl = localStorage.getItem('q_ai_fl_url');
+            if (flUrl) document.getElementById('flBaseUrl').value = flUrl;
             // Ollama URL: restore the saved one, else fill in localhost
             // automatically so a fresh page just works.
             const savedOllama = localStorage.getItem('q_ai_ollama_url');
@@ -1232,7 +1302,16 @@
                 await refreshModels();
                 return;
             }
-            // Free tiers last (keyless counts — they genuinely work).
+            // FreeLLM local router, right after local Ollama (same shape:
+            // runs where the hub runs, students ride free).
+            const flKey = (document.getElementById('flApiKey').value || '').trim();
+            const flUrl = (document.getElementById('flBaseUrl').value || '').trim() || 'http://localhost:3001/v1';
+            if ((await probeFreellm(flUrl, flKey)).ok) {
+                providerSelect.value = 'freellm';
+                await refreshModels();
+                return;
+            }
+            // Free cloud tiers last (keyless counts — they genuinely work).
             for (const spec of [{ p: 'kilo', host: 'kilo', el: 'kiApiKey' }, { p: 'llm7', host: 'llm7', el: 'llApiKey' }, { p: 'ovh', host: 'ovh', el: 'ovApiKey' }]) {
                 const k = (document.getElementById(spec.el).value || '').trim();
                 if ((await freeModels(spec.host, k)).ok) {
@@ -1465,6 +1544,8 @@
                 copyBtn.className = 'msg-copy';
                 copyBtn.textContent = 'Copy';
                 copyBtn.onclick = () => {
+                    const ansOnly = (messageContent.querySelector('.msg-answer') || {}).innerText;
+                    const copyText = ansOnly || messageContent.innerText;
                     const done = () => {
                         copyBtn.textContent = 'Copied!';
                         setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
@@ -1474,11 +1555,11 @@
                         setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
                     };
                     if (navigator.clipboard && window.isSecureContext) {
-                        navigator.clipboard.writeText(messageContent.innerText).then(done).catch(failed);
+                        navigator.clipboard.writeText(copyText).then(done).catch(failed);
                     } else {
                         try {
                             const ta = document.createElement('textarea');
-                            ta.value = messageContent.innerText;
+                            ta.value = copyText;
                             ta.style.position = 'fixed';
                             ta.style.opacity = '0';
                             document.body.appendChild(ta);
@@ -1709,6 +1790,8 @@
                     await sendLlm7(message, model);
                 } else if (provider === 'ovh') {
                     await sendOvh(message, model);
+                } else if (provider === 'freellm') {
+                    await sendFreellm(message, model);
                 } else if (provider === 'webgpu') {
                     await sendWebGPU(message, model);
                 }
@@ -1955,9 +2038,9 @@
                 hideTypingIndicator();
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
+                let fullThink = '';
                 let fullResponse = '';
                 let buffer = '';
-                let thinkingMarked = false;
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
@@ -1972,24 +2055,21 @@
                             const chunk = JSON.parse(data);
                             const delta = (chunk.choices && chunk.choices[0] && chunk.choices[0].delta) || {};
                             // Thinking models stream reasoning separately —
-                            // surface it (marked once) instead of dropping it.
+                            // it goes to the Thought dropdown, not the answer.
                             const think = delta.reasoning_content || '';
-                            if (think) {
-                                fullResponse += (!thinkingMarked ? '💭 ' : '') + think;
-                                thinkingMarked = true;
-                            }
+                            if (think) fullThink += think;
                             const piece = delta.content || '';
                             if (piece) {
                                 fullResponse += piece;
                             }
                             if (think || piece) {
-                                renderFormattedMessage(fullResponse, messageContent);
+                                renderSplitAnswer(messageContent, fullThink, fullResponse);
                                 scrollToBottom();
                             }
                         } catch (e) {}
                     }
                 }
-                renderFormattedMessage(fullResponse, messageContent);
+                renderSplitAnswer(messageContent, fullThink, fullResponse);
                 chatHistory.push({ role: 'assistant', content: fullResponse });
             }
             if (await hubServer()) {
@@ -2045,6 +2125,7 @@
                 hideTypingIndicator();
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
+                let fullThink = '';
                 let fullResponse = '';
                 let buffer = '';
                 while (true) {
@@ -2062,20 +2143,20 @@
                             const delta = (chunk.choices && chunk.choices[0] && chunk.choices[0].delta) || {};
                             const think = delta.reasoning_content || '';
                             if (think) {
-                                fullResponse += think;
+                                fullThink += think;
                             }
                             const piece = delta.content || '';
                             if (piece) {
                                 fullResponse += piece;
                             }
                             if (think || piece) {
-                                renderFormattedMessage(fullResponse, messageContent);
+                                renderSplitAnswer(messageContent, fullThink, fullResponse);
                                 scrollToBottom();
                             }
                         } catch (e) {}
                     }
                 }
-                renderFormattedMessage(fullResponse, messageContent);
+                renderSplitAnswer(messageContent, fullThink, fullResponse);
                 chatHistory.push({ role: 'assistant', content: fullResponse });
             }
             if (await hubServer()) {
@@ -2121,6 +2202,99 @@
         async function sendOvh(message, model) {
             const key = (document.getElementById('ovApiKey').value || '').trim();
             await freeChat('ovh', key, model, 'OVHcloud');
+        }
+
+        // FreeLLM local router: direct when it's this machine, hub relay
+        // (/api/freellm) for LAN browsers. Key optional throughout.
+        async function probeFreellm(baseUrl, apiKey) {
+            const headers = {};
+            if (apiKey) headers['Authorization'] = 'Bearer ' + apiKey;
+            const relay = hubRelayBase('freellm');
+            if (relay) {
+                try {
+                    const r = await fetch(relay + '/models');
+                    if (!r.ok) return { ok: false };
+                    const j = await r.json();
+                    const models = Array.isArray(j.data) ? j.data.map(m => m.id).filter(Boolean) : [];
+                    return { ok: true, models };
+                } catch (e) { return { ok: false }; }
+            }
+            try {
+                const base = (baseUrl || 'http://localhost:3001/v1').trim().replace(/\/$/, '');
+                const r = await fetch(base + '/models', {
+                    headers, signal: AbortSignal.timeout(4000)
+                });
+                if (!r.ok) return { ok: false };
+                const j = await r.json();
+                const models = Array.isArray(j.data) ? j.data.map(m => m.id).filter(Boolean) : [];
+                return { ok: true, models };
+            } catch (e) { return { ok: false }; }
+        }
+        async function sendFreellm(message, model) {
+            const apiKey = (document.getElementById('flApiKey').value || '').trim();
+            const baseUrl = (document.getElementById('flBaseUrl').value || 'http://localhost:3001/v1').trim().replace(/\/$/, '');
+            const payload = {
+                model, messages: buildFreeMessages(),
+                max_tokens: 2048, temperature: 1, stream: true
+            };
+            const headers = { 'Content-Type': 'application/json' };
+            if (apiKey) headers['Authorization'] = 'Bearer ' + apiKey;
+            const relay = hubRelayBase('freellm');
+            const post = (url, body, extraHeaders) => fetch(url, {
+                method: 'POST', headers: extraHeaders, body: JSON.stringify(body)
+            });
+            let res;
+            if (relay) {
+                res = await post(relay + '/chat', { key: apiKey, payload },
+                    { 'Content-Type': 'application/json' });
+            } else {
+                res = await post(baseUrl + '/chat/completions', payload, headers);
+            }
+            if (!res.ok) {
+                let msg = '';
+                try {
+                    const j = await res.json();
+                    const err = j && j.error;
+                    msg = (err && (err.message || err)) || '';
+                    if (typeof msg !== 'string') msg = '';
+                } catch (e) {
+                    try { msg = await res.text(); } catch (e2) {}
+                }
+                throw new Error('FreeLLM error ' + res.status + (msg ? ': ' + String(msg).slice(0, 120) : ''));
+            }
+            const messageContent = addMessage('', 'assistant');
+            hideTypingIndicator();
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let fullThink = '';
+            let fullResponse = '';
+            let buffer = '';
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop();
+                for (const line of lines) {
+                    if (!line.trim() || !line.startsWith('data:')) continue;
+                    const data = line.slice(5).trim();
+                    if (data === '[DONE]') continue;
+                    try {
+                        const chunk = JSON.parse(data);
+                        const delta = (chunk.choices && chunk.choices[0] && chunk.choices[0].delta) || {};
+                        const think = delta.reasoning_content || delta.reasoning || '';
+                        if (think) fullThink += think;
+                        const piece = delta.content || '';
+                        if (piece) fullResponse += piece;
+                        if (think || piece) {
+                            renderSplitAnswer(messageContent, fullThink, fullResponse);
+                            scrollToBottom();
+                        }
+                    } catch (e) {}
+                }
+            }
+            renderSplitAnswer(messageContent, fullThink, fullResponse);
+            chatHistory.push({ role: 'assistant', content: fullResponse });
         }
 
         /* ============================== In-browser AI (WebGPU) ============================== */
@@ -2185,6 +2359,42 @@
             webEngine = null;
             setStatus('', 'Model unloaded.');
         });
+
+        // Split renderer: the answer renders rich (code artifacts included),
+        // thinking streams into a collapsible "Thought" dropdown below it.
+        // Created lazily so plain (non-thinking) paths keep rendering
+        // straight into the container exactly as before.
+        function renderSplitAnswer(container, think, answer) {
+            let ans = container.querySelector(':scope > .msg-answer');
+            if (!ans) {
+                ans = document.createElement('div');
+                ans.className = 'msg-answer';
+                container.appendChild(ans);
+            }
+            renderFormattedMessage(answer, ans);
+            if (think) {
+                let det = container.querySelector(':scope > .thoughts');
+                if (!det) {
+                    det = document.createElement('details');
+                    det.className = 'thoughts';
+                    const sum = document.createElement('summary');
+                    const label = document.createElement('span');
+                    label.textContent = t('thought');
+                    sum.appendChild(label);
+                    const hint = document.createElement('span');
+                    hint.className = 'thoughts-hint';
+                    hint.textContent = t('thoughtHint');
+                    sum.appendChild(hint);
+                    det.appendChild(sum);
+                    const body = document.createElement('div');
+                    body.className = 'thoughts-body';
+                    det.appendChild(body);
+                    container.appendChild(det);
+                    det.open = true;
+                }
+                det.querySelector('.thoughts-body').textContent = think;
+            }
+        }
 
         /* ============================== Wiring ============================== */
         function handleWelcomeMessage() {

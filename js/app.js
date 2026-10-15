@@ -1,28 +1,28 @@
 // (c) Quantum Hub — proprietary hub build. All rights reserved.
 // Quantum Hub — core application: catalog, themes, launch engine, settings.
-import { DEFAULT_SETTINGS, DEFAULT_MIRRORS, DEFAULT_GAMES, DEMO_MEDIA, PROXY_DATA, DEFAULT_COLLECTIONS, ACHIEVEMENT_DEFS, DEFAULT_SOUND_PACKS } from './data/defaults.js?v=2026.10.15-5';
-import { TV_CATALOG, MOVIE_CATALOG, ANIME_CATALOG, TOP_TIER } from './data/catalog.js?v=2026.10.15-5';
-import toast from './components/toast.js?v=2026.10.15-5';
-import modals from './components/modal.js?v=2026.10.15-5';
-import { AboutBlankLauncher, launchViaAboutBlank, normalizeHttpUrl, isValidHttpUrl } from './components/about-blank-launcher.js?v=2026.10.15-5';
-import { MirrorLoader, MIRROR_SETS, expandUnblockedMirrors, mirrorCandidates, mirrorUrlGuesses } from './components/mirror-loader.js?v=2026.10.15-5';
-import { POLARIS_GAMES } from './data/polaris-games.js?v=2026.10.15-5';
-import { GAMESITE_GAMES } from './data/gamesite-games.js?v=2026.10.15-5';
-import { GMS55_GAMES } from './data/gms55-games.js?v=2026.10.15-5';
-import { PASTED_GAMES } from './data/pasted-games.js?v=2026.10.15-5';
-import { ESCAPE_ROAD_GAMES } from './data/escape-road-games.js?v=2026.10.15-5';
-import { SELENITE_GAMES } from './data/selenite-games.js?v=2026.10.15-5';
-import { DOTNET_GAMES } from './data/dotnet-games.js?v=2026.10.15-5';
-import { PETEZAH_GAMES } from './data/petezah-games.js?v=2026.10.15-5';
-import { AI_SKILLS, AI_DESIGN_SYSTEMS } from './data/ai-skills.js?v=2026.10.15-5';
-import { openGameViewer } from './components/game-viewer.js?v=2026.10.15-5';
-import { PasswordPolicy, FailedAttemptTracker, SecurityPolicy, defaultPasswordPolicy, defaultFailedTracker } from './components/password-policy.js?v=2026.10.15-5';
-import { userDB } from './components/user-db.js?v=2026.10.15-5';
-import { initHubPlus } from './components/hub-plus.js?v=2026.10.15-5';
-import { initMusicDeck } from './components/music-deck.js?v=2026.10.15-5';
-import { applyAnimatedBg } from './components/animated-bg.js?v=2026.10.15-5';
-import './components/stealth.js?v=2026.10.15-5';
-import { localApi, localInbox } from './local-api.js?v=2026.10.15-5';
+import { DEFAULT_SETTINGS, DEFAULT_MIRRORS, DEFAULT_GAMES, DEMO_MEDIA, PROXY_DATA, DEFAULT_COLLECTIONS, ACHIEVEMENT_DEFS, DEFAULT_SOUND_PACKS } from './data/defaults.js?v=2026.10.15-8';
+import { TV_CATALOG, MOVIE_CATALOG, ANIME_CATALOG, TOP_TIER } from './data/catalog.js?v=2026.10.15-8';
+import toast from './components/toast.js?v=2026.10.15-8';
+import modals from './components/modal.js?v=2026.10.15-8';
+import { AboutBlankLauncher, launchViaAboutBlank, normalizeHttpUrl, isValidHttpUrl } from './components/about-blank-launcher.js?v=2026.10.15-8';
+import { MirrorLoader, MIRROR_SETS, expandUnblockedMirrors, mirrorCandidates, mirrorUrlGuesses } from './components/mirror-loader.js?v=2026.10.15-8';
+import { POLARIS_GAMES } from './data/polaris-games.js?v=2026.10.15-8';
+import { GAMESITE_GAMES } from './data/gamesite-games.js?v=2026.10.15-8';
+import { GMS55_GAMES } from './data/gms55-games.js?v=2026.10.15-8';
+import { PASTED_GAMES } from './data/pasted-games.js?v=2026.10.15-8';
+import { ESCAPE_ROAD_GAMES } from './data/escape-road-games.js?v=2026.10.15-8';
+import { SELENITE_GAMES } from './data/selenite-games.js?v=2026.10.15-8';
+import { DOTNET_GAMES } from './data/dotnet-games.js?v=2026.10.15-8';
+import { PETEZAH_GAMES } from './data/petezah-games.js?v=2026.10.15-8';
+import { AI_SKILLS, AI_DESIGN_SYSTEMS } from './data/ai-skills.js?v=2026.10.15-8';
+import { openGameViewer } from './components/game-viewer.js?v=2026.10.15-8';
+import { PasswordPolicy, FailedAttemptTracker, SecurityPolicy, defaultPasswordPolicy, defaultFailedTracker } from './components/password-policy.js?v=2026.10.15-8';
+import { userDB } from './components/user-db.js?v=2026.10.15-8';
+import { initHubPlus } from './components/hub-plus.js?v=2026.10.15-8';
+import { initMusicDeck } from './components/music-deck.js?v=2026.10.15-8';
+import { applyAnimatedBg } from './components/animated-bg.js?v=2026.10.15-8';
+import './components/stealth.js?v=2026.10.15-8';
+import { localApi, localInbox } from './local-api.js?v=2026.10.15-8';
 
 class GameHubApplication {
     constructor() {

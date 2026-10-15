@@ -724,6 +724,7 @@
                                     <option value="kilo">Kilo Code (free)</option>
                                     <option value="llm7">LLM7 (free)</option>
                                     <option value="ovh">OVHcloud (free)</option>
+                                    <option value="freellm">FreeLLM Router</option>
                                 </select>
                                 <button class="btn-premium px-8 py-3 text-sm proxy-launch-btn" data-local="ai/index.html"><i class="fas fa-external-link-alt mr-2"></i><span data-i18n="goToAIHub">GO TO AI HUB</span></button>
                             </div>
@@ -1332,7 +1333,7 @@
          website markup. Edit the SOURCES (css/style.css, js/*.js), then run
          py bump_version.py && py build_index.py (regenerates js/bundle.js and
          standalone.html — never hand-edit those). -->
-    <script>window.HUB_VERSION = '2026.10.15-5';</script>
+    <script>window.HUB_VERSION = '2026.10.15-8';</script>
     <script>
     /* Start-screen failsafe (plain script, no modules): the overlay can never
        trap the hub, even if app.js is stale, cached, or fails to boot. */
@@ -1389,10 +1390,10 @@
     (function () {
         var s = document.createElement('script');
         if (location.protocol === 'file:') {
-            s.src = 'js/bundle.js?v=2026.10.15-5';
+            s.src = 'js/bundle.js?v=2026.10.15-8';
         } else {
             s.type = 'module';
-            s.src = 'js/app.js?v=2026.10.15-5';
+            s.src = 'js/app.js?v=2026.10.15-8';
         }
         (document.body || document.documentElement).appendChild(s);
     })();
