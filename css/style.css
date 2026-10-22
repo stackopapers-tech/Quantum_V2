@@ -794,6 +794,7 @@ main {
     inset: 0;
     background-size: cover;
     background-position: center;
+    background-color: rgba(255, 255, 255, 0.04);
     z-index: 1;
     transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
@@ -1398,7 +1399,21 @@ body, main, header, .glass-panel, .nav-item, .btn-premium, .btn-outline {
 .dev-inbox-body { font-size: 11px; color: #cbd5e1; }
 .dev-inbox-body b { color: #fff; letter-spacing: 0.14em; }
 
-/* ============ silk + neon: smoother motion, layered glow ============ */
+/* ============ accessibility: skip-to-content link ============ */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    z-index: 100000;
+    padding: 8px 16px;
+    background: var(--accent);
+    color: #000;
+    font: 700 12px system-ui, sans-serif;
+    text-decoration: none;
+    border-radius: 0 0 8px 0;
+    transition: top 0.15s ease;
+}
+.skip-link:focus { top: 0; outline: 2px solid #fff; outline-offset: 2px; }
 /* Layered glow scale — derived from --accent-rgb so every layout scheme
    recolors the whole site automatically. */
 :root {

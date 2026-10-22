@@ -7,6 +7,9 @@ export class ModalManager {
     constructor() {
         this.overlay = document.createElement('div');
         this.overlay.className = 'modal-overlay';
+        this.overlay.setAttribute('role', 'dialog');
+        this.overlay.setAttribute('aria-modal', 'true');
+        this.overlay.setAttribute('aria-hidden', 'true');
         document.body.appendChild(this.overlay);
 
         this.overlay.addEventListener('click', (e) => {
@@ -39,6 +42,7 @@ export class ModalManager {
         `;
 
         this.overlay.classList.add('active');
+        this.overlay.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
 
         // Wire close button
@@ -72,6 +76,7 @@ export class ModalManager {
 
     close() {
         this.overlay.classList.remove('active');
+        this.overlay.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
         setTimeout(() => {
             this.overlay.innerHTML = '';
