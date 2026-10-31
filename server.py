@@ -55,7 +55,7 @@ import urllib.request
 from email.message import EmailMessage
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse, parse_qs, unquote
+from urllib.parse import urlparse, parse_qs, unquote, quote
 
 # Load .env if present
 try:
@@ -921,6 +921,12 @@ class HubHandler(SimpleHTTPRequestHandler):
         if parsed.path.startswith("/relay/raw/"):
             self._serve_relay(parsed, path_form=True)
             return
+        if parsed.path == "/ironclad":
+            self.api_ironclad_landing()
+            return
+        if parsed.path.startswith("/ironclad/gateway/"):
+            self.api_ironclad_gateway(parsed)
+            return
         return SimpleHTTPRequestHandler.do_GET(self)
 
     def _serve_relay(self, parsed, path_form=False):
@@ -1073,6 +1079,156 @@ class HubHandler(SimpleHTTPRequestHandler):
                 conn.close()
             except Exception:
                 pass
+
+    IRONCLAD_SECRET = "STUDENT_PORTAL_2026_SECURE"
+
+    def _ironclad_xor(self, text):
+        out = []
+        for i, ch in enumerate(text):
+            out.append(chr(ord(ch) ^ ord(self.IRONCLAD_SECRET[i % len(self.IRONCLAD_SECRET)])))
+        return "".join(out)
+
+    def api_ironclad_landing(self):
+        page = """<!DOCTYPE html>
+<html style="font-family: sans-serif; text-align: center; background: #f0f2f5; padding: 50px;">
+  <div style="max-width: 600px; margin: auto; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+    <h1 style="color: #1a73e8;">Academic Research Gateway</h1>
+    <p>Authorized student access only. Please enter the target resource URL.</p>
+    <input type="text" id="url" placeholder="https://..." style="width: 80%; padding: 12px; margin: 20px 0; border: 1px solid #ddd; border-radius: 8px;">
+    <br>
+    <button onclick="launch()" style="padding: 12px 30px; background: #1a73e8; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Enter Gateway</button>
+  </div>
+  <script>
+    function xorEncryptDecrypt(input) {
+      const key = 'STUDENT_PORTAL_2026_SECURE';
+      let output = '';
+      for (let i = 0; i < input.length; i++) {
+        output += String.fromCharCode(input.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+      }
+      return output;
+    }
+    function launch() {
+      const url = document.getElementById('url').value;
+      if (!url) return;
+      const encrypted = btoa(unescape(encodeURIComponent(xorEncryptDecrypt(url))));
+      window.location.href = '/ironclad/gateway/' + encrypted;
+    }
+  </script>
+</html>"""
+        body = page.encode("utf-8")
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+    def api_ironclad_gateway(self, parsed):
+        token = parsed.path[len("/ironclad/gateway/"):].strip("/")
+        try:
+            decoded = base64.b64decode(token, validate=False).decode("utf-8", errors="strict")
+            target_url = self._ironclad_xor(decoded)
+            target_origin = urlparse(target_url).scheme + "://" + urlparse(target_url).netloc
+        except Exception:
+            self._send_json(400, {"ok": False, "error": "bad token"})
+            return
+        # Fetch target
+        ssl_ctx = None
+        try:
+            import ssl
+            ssl_ctx = ssl.create_default_context()
+        except Exception:
+            ssl_ctx = None
+        try:
+            req = urllib.request.Request(target_url, headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Referer": "https://www.google.com/",
+            })
+            opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl_ctx)) if ssl_ctx else None
+            if opener:
+                with opener.open(req, timeout=30) as resp:
+                    raw = resp.read()
+                    ctype = resp.headers.get("Content-Type", "text/html")
+            else:
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    raw = resp.read()
+                    ctype = resp.headers.get("Content-Type", "text/html")
+        except Exception as e:
+            # Retry HTTPS with an unverified context (dev-only fallback)
+            if target_url.lower().startswith("https://"):
+                try:
+                    import ssl
+                    ctx = ssl._create_unverified_context()
+                    req = urllib.request.Request(target_url, headers={
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                        "Referer": "https://www.google.com/",
+                    })
+                    with urllib.request.urlopen(req, timeout=30, context=ctx) as resp:
+                        raw = resp.read()
+                        ctype = resp.headers.get("Content-Type", "text/html")
+                except Exception:
+                    raw = None
+            if raw is None:
+                try:
+                    self.send_response(404)
+                    self.send_header("Content-Type", "text/plain; charset=utf-8")
+                    self.send_header("Content-Length", "20")
+                    self.end_headers()
+                    self.wfile.write(b"Resource not found.")
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
+                return
+        if "text/html" not in (ctype or "").lower():
+            # pass through non-HTML as-is
+            try:
+                self.send_response(200)
+                self.send_header("Content-Type", ctype or "application/octet-stream")
+                self.send_header("Content-Length", str(len(raw)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(raw)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            return
+        try:
+            html = raw.decode("utf-8", errors="replace")
+        except Exception:
+            html = raw.decode("latin-1", errors="replace")
+        scheme = "https" if (self.headers.get("X-Forwarded-Proto") == "https") else "http"
+        host = self.headers.get("Host") or "127.0.0.1:8129"
+        proxy_base = "{0}://{1}/ironclad/gateway/".format(scheme, host)
+
+        def _enc(u):
+            return base64.b64encode(self._ironclad_xor(u).encode("utf-8", errors="replace")).decode("ascii")
+
+        def rewrite(m):
+            attr = m.group(1)
+            url = m.group(2)
+            absolute = url
+            if url.startswith("/"):
+                absolute = target_origin + url
+            elif not url.startswith("http"):
+                absolute = target_origin + "/" + url
+            enc = _enc(absolute)
+            return ' {0}="{1}{2}"'.format(attr, proxy_base, enc)
+
+        html = re.sub(r' (href|src)=["\']([^"\']+)["\']', rewrite, html)
+        # Tab camouflage
+        html = html.replace("<title>", "<title>Document Viewer - PDF Reader</title>")
+        body = html.encode("utf-8", errors="replace")
+        try:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def api_ollama_tags(self):
         # GET /api/ollama/tags — installed models on the hub server.
